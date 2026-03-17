@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import type { DashboardStats, Alert } from '../services/dashboardService';
 import { dashboardService } from '../services/dashboardService';
+import { formatDate } from '../utils/date';
 
 export function DashboardPage() {
   const { t } = useTranslation();
@@ -63,7 +64,7 @@ export function DashboardPage() {
         <h1 className="text-xl sm:text-2xl font-bold text-surface-800">
           {t('dashboard.title')}
         </h1>
-        <p className="text-sm text-surface-500 mt-1">{user?.name} • {new Date().toLocaleDateString('he-IL')}</p>
+        <p className="text-sm text-surface-500 mt-1">{user?.name} • {formatDate(new Date())}</p>
       </div>
 
       {/* Stats Grid - 2x2 on mobile, 4 columns on desktop */}

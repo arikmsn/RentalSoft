@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useMyTasks } from '../hooks/useOfflineApi';
 import { useAuthStore } from '../stores/authStore';
 import type { DBSite } from '../offline/db';
+import { formatDate } from '../utils/date';
 
 const typeIcons: Record<string, string> = {
   installation: '🔧',
@@ -196,7 +197,7 @@ export function MyTasksPage() {
                       <span className="text-xs text-gray-500 hidden sm:inline">{task.site.name}</span>
                     )}
                     <span className="text-xs text-gray-400">
-                      {new Date(task.plannedDate).toLocaleDateString('he-IL')}
+                      {formatDate(task.plannedDate)}
                     </span>
                   </div>
                 </div>

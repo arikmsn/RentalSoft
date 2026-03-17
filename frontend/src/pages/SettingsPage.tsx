@@ -85,7 +85,7 @@ export function SettingsPage() {
     setSaving(true);
     try {
       let url = '';
-      let method: 'post' | 'put' = 'post';
+      let method: 'post' | 'put' = editingItem ? 'put' : 'post';
       switch (activeTab) {
         case 'checklist':
           url = '/settings/checklist';
@@ -104,11 +104,10 @@ export function SettingsPage() {
           break;
         case 'technicians':
           url = editingItem ? `/settings/technicians/${editingItem.id}` : '/settings/technicians';
-          method = editingItem ? 'put' : 'post';
           break;
       }
 
-      if (editingItem && activeTab !== 'technicians') {
+      if (editingItem) {
         url += `/${editingItem.id}`;
       }
 
@@ -332,7 +331,7 @@ export function SettingsPage() {
                       className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                     />
                   </div>
-                  {(activeTab === 'equipmentTypes' || activeTab === 'equipmentStatuses' || activeTab === 'equipmentConditions') && (
+                  {(activeTab === 'equipmentTypes' || activeTab === 'equipmentStatuses') && (
                     <div>
                       <label className="block text-sm font-medium text-surface-700 mb-2">{t('settings.code')}</label>
                       <input

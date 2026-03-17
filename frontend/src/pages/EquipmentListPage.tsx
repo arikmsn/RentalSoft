@@ -5,6 +5,15 @@ import { equipmentService } from '../services/equipmentService';
 import { siteService } from '../services/siteService';
 import { QRScanner } from '../components/qr/QRScanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { api } from '../services/api';
+import { formatDate } from '../utils/date';
+
+interface SettingsEquipmentType {
+  id: string;
+  name: string;
+  code?: string;
+  isActive?: boolean;
+}
 
 const statusColors: Record<EquipmentStatus, string> = {
   warehouse: 'bg-primary-100 text-primary-700',
@@ -17,6 +26,7 @@ export function EquipmentListPage() {
   const { t } = useTranslation();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
+  const [equipmentTypes, setEquipmentTypes] = useState<SettingsEquipmentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<EquipmentStatus | 'all'>('all');
   const [search, setSearch] = useState('');
@@ -68,9 +78,11 @@ export function EquipmentListPage() {
     Promise.all([
       equipmentService.getAll(),
       siteService.getAll(),
-    ]).then(([eqData, siteData]) => {
+      api.get<SettingsEquipmentType[]>('/settings/equipment-types').then(res => res.data),
+    ]).then(([eqData, siteData, typesData]) => {
       setEquipment(eqData);
       setSites(siteData);
+      setEquipmentTypes(typesData.filter((t: SettingsEquipmentType) => t.isActive !== false));
     }).catch((err) => {
       console.error('Failed to fetch data:', err);
     }).finally(() => {
@@ -240,7 +252,7 @@ export function EquipmentListPage() {
               <div className="mt-4 pt-3 border-t border-surface-100">
                 <div className="flex justify-between text-xs text-surface-500 mb-2">
                   <span>{t('equipment.plannedRemoval')}</span>
-                  <span className="font-medium">{new Date(eq.plannedRemovalDate).toLocaleDateString('he-IL')}</span>
+                  <span className="font-medium">{formatDate(eq.plannedRemovalDate)}</span>
                 </div>
                 <div className="h-1.5 bg-surface-100 rounded-full overflow-hidden">
                   <div
@@ -288,19 +300,17 @@ export function EquipmentListPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.type')}</label>
-                <input
-                  type="text"
+                <select
                   required
-                  list="equipmentTypes"
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                />
-                <datalist id="equipmentTypes">
-                  <option value="מכונה גדולה" />
-                  <option value="מכונה בינונית" />
-                  <option value="מכונה קטנה" />
-                </datalist>
+                >
+                  <option value="">-- {t('app.select')} --</option>
+                  {equipmentTypes.map((type) => (
+                    <option key={type.id} value={type.name}>{type.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.status')}</label>
@@ -412,19 +422,17 @@ export function EquipmentListPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.type')}</label>
-                <input
-                  type="text"
+                <select
                   required
-                  list="equipmentTypes"
                   value={editFormData.type}
                   onChange={(e) => setEditFormData({ ...editFormData, type: e.target.value })}
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                />
-                <datalist id="equipmentTypes">
-                  <option value="מכונה גדולה" />
-                  <option value="מכונה בינונית" />
-                  <option value="מכונה קטנה" />
-                </datalist>
+                >
+                  <option value="">-- {t('app.select')} --</option>
+                  {equipmentTypes.map((type) => (
+                    <option key={type.id} value={type.name}>{type.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.status')}</label>

@@ -6,6 +6,7 @@ import { workOrderService } from '../services/workOrderService';
 import { siteService } from '../services/siteService';
 import { api } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
+import { formatDate } from '../utils/date';
 
 const statusColors: Record<WorkOrderStatus, string> = {
   open: 'bg-primary-100 text-primary-700',
@@ -163,7 +164,7 @@ export function WorkOrdersListPage() {
                     {t(`workOrders.types.${wo.type}`)}
                   </h3>
                   <p className="text-sm text-surface-500 mt-1">
-                    {t('workOrders.plannedDate')}: <span className="font-medium">{new Date(wo.plannedDate).toLocaleDateString('he-IL')}</span>
+                    {t('workOrders.plannedDate')}: <span className="font-medium">{formatDate(wo.plannedDate)}</span>
                   </p>
                 </div>
               </div>

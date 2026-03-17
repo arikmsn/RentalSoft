@@ -11,6 +11,7 @@ import { offlineApi } from '../services/offlineApi';
 import { workOrderService } from '../services/workOrderService';
 import { siteService } from '../services/siteService';
 import { api } from '../services/api';
+import { formatDate, formatDateFull } from '../utils/date';
 
 const typeIcons: Record<string, string> = {
   installation: '🔧',
@@ -501,12 +502,7 @@ export function WorkOrderDetailsPage() {
           <div>
             <h1 className="text-xl font-bold">{t(`workOrders.types.${workOrder.type}`)}</h1>
             <p className="text-sm text-gray-500">
-              {new Date(workOrder.plannedDate).toLocaleDateString('he-IL', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {formatDateFull(workOrder.plannedDate)}
             </p>
           </div>
         </div>
@@ -541,7 +537,7 @@ export function WorkOrderDetailsPage() {
         {workOrder.type === 'removal' && workOrder.plannedRemovalDate && (
           <div className="p-3 bg-orange-50 rounded-lg mb-4">
             <p className="text-sm text-orange-800">
-              {t('equipment.plannedRemoval')}: {new Date(workOrder.plannedRemovalDate).toLocaleDateString('he-IL')}
+              {t('equipment.plannedRemoval')}: {formatDate(workOrder.plannedRemovalDate)}
             </p>
           </div>
         )}

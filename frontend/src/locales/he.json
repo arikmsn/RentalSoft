@@ -59,7 +59,7 @@
     "lastScan": "סריקה אחרונה",
     "plannedRemoval": "מתפנה בתאריך",
     "estimatedRemovalDate": "תאריך פירוק משוער",
-    "actualRemoval": "הסרה בפועל",
+    "actualRemoval": "פירוק בפועל",
     "installationDate": "תאריך התקנה",
     "condition": "מצב",
     "history": "היסטוריה",
@@ -85,13 +85,13 @@
       "atCustomer": "אצל לקוח",
       "inWarehouse": "במחסן",
       "inRepair": "בתיקון",
-      "pastRemoval": "הסרה עברה",
-      "closeToRemoval": "קרוב להסרה"
+      "pastRemoval": "פירוק עבר",
+      "closeToRemoval": "קרוב לפירוק"
     },
     "progress": {
       "green": "יש זמן",
       "yellow": "בינוני",
-      "orange": "קרוב להסרה",
+      "orange": "קרוב לפירוק",
       "red": "באיחור"
     },
     "types": {
@@ -109,7 +109,7 @@
     "floor": "קומה",
     "contact1": "איש קשר ראשי",
     "contact2": "איש קשר משני",
-    "phone1": "טלפון 1",
+    "phone1": "מס' טלפון",
     "phone2": "טלפון 2",
     "rating": "דירוג",
     "highlight": "מסומן",
@@ -140,7 +140,7 @@
     "types": {
       "installation": "התקנה",
       "inspection": "בדיקה",
-      "removal": "הסרה",
+      "removal": "פירוק",
       "general": "כללי"
     },
     "statuses": {
@@ -170,22 +170,22 @@
     "summary": "סיכום",
     "activeEquipment": "ציוד פעיל",
     "sitesWithEquipment": "אתרים עם ציוד",
-    "overdueRemovals": "הסרות באיחור",
-    "upcomingRemovals": "הסרות קרובות",
+    "overdueRemovals": "פירוקים באיחור",
+    "upcomingRemovals": "פירוקים קרובים",
     "noAlerts": "אין התראות"
   },
   "alerts": {
     "title": "התראות",
-    "past_removal": "ציוד שעבר תאריך הסרה",
-    "close_to_removal": "ציוד קרוב להסרה",
+    "past_removal": "ציוד שעבר תאריך פירוק",
+    "close_to_removal": "ציוד קרוב לפירוק",
     "long_stay": "ציוד שהושאר זמן רב",
-    "pastRemoval": "ציוד שעבר תאריך הסרה",
-    "closeToRemoval": "ציוד קרוב להסרה",
+    "pastRemoval": "ציוד שעבר תאריך פירוק",
+    "closeToRemoval": "ציוד קרוב לפירוק",
     "longStay": "ציוד שהושאר זמן רב",
-    "pastremoval": "ציוד שעבר תאריך הסרה",
-    "closetoremoval": "ציוד קרוב להסרה",
+    "pastremoval": "ציוד שעבר תאריך פירוק",
+    "closetoremoval": "ציוד קרוב לפירוק",
     "longstay": "ציוד שהושאר זמן רב",
-    "createRemoval": "צור תעבודת הסרה",
+    "createRemoval": "צור תעבודת פירוק",
     "daysRemaining": "ימים נותרו",
     "daysOverdue": "ימים באיחור"
   },

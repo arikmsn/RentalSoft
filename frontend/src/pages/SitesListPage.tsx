@@ -5,6 +5,18 @@ import { siteService } from '../services/siteService';
 import { useAuthStore } from '../stores/authStore';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
+const ISRAELI_CITIES = [
+  'תל אביב', 'ירושלים', 'חיפה', 'באר שבע', 'רמת גן', 'פתח תקווה', 'נתניה', 'הרצליה',
+  'רמת השרון', 'גבעתיים', 'חולון', 'בני ברק', 'ראשון לציון', 'נס ציונה', 'אשדוד',
+  'אשקלון', 'רחובות', 'הוד השרון', 'כרמיאל', 'טבריה', 'צפת', 'נהריה', 'עפולה',
+  'קריית ביאליק', 'קריית מוצקין', 'קריית ים', 'קריית שמונה', 'אילת', 'מודיעין',
+  'לוד', 'רמלה', 'נתבג', 'גדרה', 'שדרות', 'אריאל', 'בית שמש', 'מעלה אדומים',
+  'צור הדסה', 'ביתר עילית', 'קריית גת', 'קריית מלאכי', 'יבנה', 'שפיים', 'זכרון יעקב',
+  'באקה אל גרבייה', 'קלנסווה', 'כפר קרע', 'ערערה', 'בסמת', 'טייבה', 'טירה', 'כפר יונה',
+  'קדימה', 'צורן', 'שלומי', 'מעלות', 'יקנעם', 'נשר', 'קריית בנימין', 'אופקים',
+  'שגב שלום', 'דימונה', 'ערד', 'מצפה רמון', 'קריית אונו', 'גבעת שמואל', 'יבנה'
+].sort((a, b) => a.localeCompare(b, 'he'));
+
 export function SitesListPage() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
@@ -20,6 +32,8 @@ export function SitesListPage() {
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [siteToDelete, setSiteToDelete] = useState<Site | null>(null);
+  const [citySearch, setCitySearch] = useState('');
+  const [filteredCities, setFilteredCities] = useState(ISRAELI_CITIES);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -47,6 +61,17 @@ export function SitesListPage() {
   useEffect(() => {
     fetchSites();
   }, []);
+
+  useEffect(() => {
+    if (!citySearch) {
+      setFilteredCities(ISRAELI_CITIES);
+    } else {
+      const filtered = ISRAELI_CITIES.filter(city => 
+        city.toLowerCase().includes(citySearch.toLowerCase())
+      );
+      setFilteredCities(filtered);
+    }
+  }, [citySearch]);
 
   const fetchSites = async () => {
     try {
@@ -273,11 +298,20 @@ export function SitesListPage() {
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.city')}</label>
                 <input
                   type="text"
+                  list="citySuggestions"
                   required
                   value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, city: e.target.value });
+                    setCitySearch(e.target.value);
+                  }}
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
+                <datalist id="citySuggestions">
+                  {filteredCities.map((city) => (
+                    <option key={city} value={city} />
+                  ))}
+                </datalist>
               </div>
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
@@ -382,11 +416,17 @@ export function SitesListPage() {
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.city')}</label>
                 <input
                   type="text"
+                  list="citySuggestionsEdit"
                   required
                   value={editFormData.city}
                   onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
+                <datalist id="citySuggestionsEdit">
+                  {filteredCities.map((city) => (
+                    <option key={city} value={city} />
+                  ))}
+                </datalist>
               </div>
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
