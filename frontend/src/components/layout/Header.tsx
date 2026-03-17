@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '../../i18n';
 import { useAuthStore } from '../../stores/authStore';
@@ -10,6 +11,7 @@ interface HeaderProps {
 
 export function Header({ onMenuToggle }: HeaderProps) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { isOnline, syncStatus, pendingActionsCount } = useAppStore();
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -57,21 +59,21 @@ export function Header({ onMenuToggle }: HeaderProps) {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+    <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-surface-200/50 sticky top-0 z-30">
       <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3">
         <div className="flex items-center gap-2 sm:gap-3">
           {onMenuToggle && (
             <button
               onClick={onMenuToggle}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-xl hover:bg-surface-100 transition-all duration-200"
               aria-label="Menu"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
           )}
-          <h1 className="text-lg sm:text-xl font-bold text-primary-600">{t('app.title')}</h1>
+          <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-l from-primary-600 to-primary-500 bg-clip-text text-transparent">{t('app.title')}</h1>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -138,7 +140,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
                   <p className="text-xs text-gray-500">{t(`roles.${user?.role}`)}</p>
                 </div>
                 <button
-                  onClick={() => { logout(); setShowUserMenu(false); }}
+                  onClick={() => { logout(); setShowUserMenu(false); navigate('/'); }}
                   className="w-full px-4 py-2 text-start hover:bg-gray-100 flex items-center gap-2 text-red-600"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

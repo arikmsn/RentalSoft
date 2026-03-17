@@ -15,6 +15,7 @@ import {
 function App() {
   return (
     <Routes>
+      <Route path="/" element={<LoginPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route element={<MainLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />
@@ -28,8 +29,7 @@ function App() {
         <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/my-tasks" element={<MyTasksPage />} />
       </Route>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

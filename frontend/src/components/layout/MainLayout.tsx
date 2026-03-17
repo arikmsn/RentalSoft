@@ -94,21 +94,17 @@ export function MainLayout() {
         />
       )}
       
-      {/* Sidebar - always mounted on desktop, conditional on mobile */}
+      {/* Sidebar - always mounted on desktop */}
       {!isMobile && (
         <div className="fixed inset-y-0 start-0 z-50 lg:block">
           <Sidebar onClose={closeSidebar} />
         </div>
       )}
 
-      {/* Mobile sidebar - conditionally rendered with very high z-index to be above Leaflet */}
-      {isMobile && (
+      {/* Mobile sidebar - ONLY rendered when open, hidden otherwise */}
+      {isMobile && sidebarOpen && (
         <div 
-          className={`
-            fixed inset-y-0 start-0 z-[9999] w-72
-            transform transition-transform duration-300 ease-out
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          `}
+          className="fixed inset-y-0 start-0 z-[9999] w-72 animate-slide-up"
         >
           <Sidebar onClose={closeSidebar} />
         </div>
