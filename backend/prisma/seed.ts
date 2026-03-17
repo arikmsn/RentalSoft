@@ -6,102 +6,92 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  const managerPassword = process.env.MANAGER_PASSWORD;
-  const techPassword = process.env.TECH_PASSWORD;
-  const tech2Password = process.env.TECH2_PASSWORD;
+  // Default passwords (can be overridden by env vars)
+  // admin: ADMINADMIN, manager: qazwsx123, tech/tech2: TECHAPP
+  const adminPassword = process.env.ADMIN_PASSWORD || 'ADMINADMIN';
+  const managerPassword = process.env.MANAGER_PASSWORD || 'qazwsx123';
+  const techPassword = process.env.TECH_PASSWORD || 'TECHAPP';
+  const tech2Password = process.env.TECH2_PASSWORD || 'TECHAPP';
 
-  if (adminPassword) {
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
-    await prisma.user.upsert({
-      where: { username: 'admin' },
-      update: {
-        password: hashedPassword,
-        name: 'מנהל מערכת',
-        role: 'admin',
-      },
-      create: {
-        name: 'מנהל מערכת',
-        email: 'admin@rentalsoft.local',
-        username: 'admin',
-        password: hashedPassword,
-        role: 'admin',
-        phone: '050-1234567',
-      },
-    });
-    console.log('✅ Admin user created/updated: admin');
-  } else {
-    console.log('⚠️ ADMIN_PASSWORD not set, skipping admin user');
-  }
+  // Admin user
+  const hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
+  await prisma.user.upsert({
+    where: { username: 'admin' },
+    update: {
+      password: hashedAdminPassword,
+      name: 'מנהל מערכת',
+      role: 'admin',
+    },
+    create: {
+      name: 'מנהל מערכת',
+      email: 'admin@rentalsoft.local',
+      username: 'admin',
+      password: hashedAdminPassword,
+      role: 'admin',
+      phone: '050-1234567',
+    },
+  });
+  console.log('✅ Admin user created/updated: admin');
 
-  if (managerPassword) {
-    const hashedPassword = await bcrypt.hash(managerPassword, 10);
-    await prisma.user.upsert({
-      where: { username: 'manager' },
-      update: {
-        password: hashedPassword,
-        name: 'מנהל',
-        role: 'manager',
-      },
-      create: {
-        name: 'מנהל',
-        email: 'manager@rentalsoft.local',
-        username: 'manager',
-        password: hashedPassword,
-        role: 'manager',
-        phone: '050-2345678',
-      },
-    });
-    console.log('✅ Manager user created/updated: manager');
-  } else {
-    console.log('⚠️ MANAGER_PASSWORD not set, skipping manager user');
-  }
+  // Manager user
+  const hashedManagerPassword = await bcrypt.hash(managerPassword, 10);
+  await prisma.user.upsert({
+    where: { username: 'manager' },
+    update: {
+      password: hashedManagerPassword,
+      name: 'מנהל',
+      role: 'manager',
+    },
+    create: {
+      name: 'מנהל',
+      email: 'manager@rentalsoft.local',
+      username: 'manager',
+      password: hashedManagerPassword,
+      role: 'manager',
+      phone: '050-2345678',
+    },
+  });
+  console.log('✅ Manager user created/updated: manager');
 
-  if (techPassword) {
-    const hashedPassword = await bcrypt.hash(techPassword, 10);
-    await prisma.user.upsert({
-      where: { username: 'tech' },
-      update: {
-        password: hashedPassword,
-        name: 'טכנאי 1',
-        role: 'technician',
-      },
-      create: {
-        name: 'טכנאי 1',
-        email: 'tech@rentalsoft.local',
-        username: 'tech',
-        password: hashedPassword,
-        role: 'technician',
-        phone: '050-3456789',
-      },
-    });
-    console.log('✅ Technician user created/updated: tech');
-  } else {
-    console.log('⚠️ TECH_PASSWORD not set, skipping tech user');
-  }
+  // Tech user
+  const hashedTechPassword = await bcrypt.hash(techPassword, 10);
+  await prisma.user.upsert({
+    where: { username: 'tech' },
+    update: {
+      password: hashedTechPassword,
+      name: 'טכנאי 1',
+      role: 'technician',
+    },
+    create: {
+      name: 'טכנאי 1',
+      email: 'tech@rentalsoft.local',
+      username: 'tech',
+      password: hashedTechPassword,
+      role: 'technician',
+      phone: '050-3456789',
+    },
+  });
+  console.log('✅ Technician user created/updated: tech');
 
-  if (tech2Password) {
-    const hashedPassword = await bcrypt.hash(tech2Password, 10);
-    await prisma.user.upsert({
-      where: { username: 'tech2' },
-      update: {
-        password: hashedPassword,
-        name: 'טכנאי 2',
-        role: 'technician',
-      },
-      create: {
-        name: 'טכנאי 2',
-        email: 'tech2@rentalsoft.local',
-        username: 'tech2',
-        password: hashedPassword,
-        role: 'technician',
-        phone: '050-4567890',
-      },
-    });
-    console.log('✅ Technician user created/updated: tech2');
-  } else {
-    console.log('⚠️ TECH2_PASSWORD not set, skipping tech2 user');
-  }
+  // Tech2 user
+  const hashedTech2Password = await bcrypt.hash(tech2Password, 10);
+  await prisma.user.upsert({
+    where: { username: 'tech2' },
+    update: {
+      password: hashedTech2Password,
+      name: 'טכנאי 2',
+      role: 'technician',
+    },
+    create: {
+      name: 'טכנאי 2',
+      email: 'tech2@rentalsoft.local',
+      username: 'tech2',
+      password: hashedTech2Password,
+      role: 'technician',
+      phone: '050-4567890',
+    },
+  });
+  console.log('✅ Technician user created/updated: tech2');
 
   const equipmentTypes = [
     { name: 'מכונה גדולה', description: 'מכונה גדולה לייבוש' },
