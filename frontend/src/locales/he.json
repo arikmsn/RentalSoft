@@ -1,0 +1,224 @@
+{
+  "app": {
+    "title": "מערכת מעקב ציוד",
+    "loading": "טוען...",
+    "error": "שגיאה",
+    "success": "הצלחה",
+    "save": "שמור",
+    "cancel": "ביטול",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "add": "הוסף",
+    "search": "חיפוש",
+    "filter": "סינון",
+    "actions": "פעולות",
+    "back": "חזור",
+    "next": "הבא",
+    "previous": "קודם",
+    "confirm": "אישור",
+    "yes": "כן",
+    "no": "לא",
+    "refresh": "רענן",
+    "select": "בחר"
+  },
+  "auth": {
+    "login": "התחברות",
+    "logout": "התנתק",
+    "email": "דואר אלקטרוני",
+    "password": "סיסמה",
+    "rememberMe": "זכור אותי",
+    "forgotPassword": "שכחת סיסמה?",
+    "loginButton": "התחבר",
+    "invalidCredentials": "פרטי התחברות שגויים",
+    "welcomeBack": "ברוך הבא"
+  },
+  "roles": {
+    "manager": "מנהל",
+    "technician": "טכנאי",
+    "admin": "מנהל מערכת"
+  },
+  "navigation": {
+    "dashboard": "לוח בקרה",
+    "equipment": "ציוד",
+    "sites": "אתרים",
+    "workOrders": "עבודות",
+    "map": "מפה",
+    "alerts": "התראות",
+    "settings": "הגדרות",
+    "myTasks": "המשימות שלי"
+  },
+  "equipment": {
+    "title": "ציוד",
+    "addNew": "הוסף ציוד חדש",
+    "qrTag": "תג QR",
+    "type": "סוג ציוד",
+    "status": "סטטוס",
+    "site": "אתר",
+    "lastScan": "סריקה אחרונה",
+    "plannedRemoval": "תכנון הסרה",
+    "actualRemoval": "הסרה בפועל",
+    "installationDate": "תאריך התקנה",
+    "condition": "מצב",
+    "history": "היסטוריה",
+    "details": "פרטי ציוד",
+    "statuses": {
+      "warehouse": "במחסן",
+      "atCustomer": "אצל לקוח",
+      "inRepair": "בתיקון",
+      "available": "זמין",
+      "atcustomer": "אצל לקוח",
+      "inrepair": "בתיקון"
+    },
+    "conditions": {
+      "ok": "תקין",
+      "notOk": "לא תקין",
+      "wearout": "בלאי"
+    },
+    "filters": {
+      "all": "הכל",
+      "atCustomer": "אצל לקוח",
+      "inWarehouse": "במחסן",
+      "inRepair": "בתיקון",
+      "pastRemoval": "הסרה עברה",
+      "closeToRemoval": "קרוב להסרה"
+    },
+    "progress": {
+      "green": "יש זמן",
+      "yellow": "בינוני",
+      "orange": "קרוב להסרה",
+      "red": "באיחור"
+    }
+  },
+  "sites": {
+    "title": "אתרים",
+    "addNew": "הוסף אתר חדש",
+    "name": "שם האתר",
+    "address": "כתובת",
+    "city": "עיר",
+    "floor": "קומה",
+    "contact1": "איש קשר ראשי",
+    "contact2": "איש קשר משני",
+    "phone1": "טלפון 1",
+    "phone2": "טלפון 2",
+    "rating": "דירוג",
+    "highlight": "מסומן",
+    "coordinates": "קואורדינטות",
+    "navigate": "נווט עם Waze",
+    "activeEquipment": "ציוד פעיל",
+    "history": "היסטוריה",
+    "createWorkOrder": "צור עבודה"
+  },
+  "workOrders": {
+    "title": "עבודות",
+    "addNew": "עבודה חדשה",
+    "type": "סוג תעבודה",
+    "site": "אתר",
+    "technician": "טכנאי",
+    "plannedDate": "תאריך מתוכנן",
+    "actualDate": "תאריך בפועל",
+    "status": "סטטוס",
+    "checklist": "רשימת בדיקה",
+    "done": "בוצע",
+    "todo": "לביצוע",
+    "scanEquipment": "סרוק ציוד",
+    "types": {
+      "installation": "התקנה",
+      "inspection": "בדיקה",
+      "removal": "הסרה",
+      "general": "כללי"
+    },
+    "statuses": {
+      "open": "פתוח",
+      "inProgress": "בביצוע",
+      "completed": "הושלם"
+    },
+    "removalOptions": {
+      "oneWeek": "שבוע",
+      "twoWeeks": "שבועיים",
+      "custom": "מותאם אישית"
+    }
+  },
+  "map": {
+    "title": "מפת אתרים",
+    "filters": "סינון",
+    "legend": "מקרא",
+    "equipmentCount": "יחידות ציוד",
+    "viewSite": "צפה באתר"
+  },
+  "dashboard": {
+    "title": "לוח בקרה",
+    "alerts": "התראות",
+    "todaysTasks": "משימות היום",
+    "weeklyTasks": "משימות השבוע",
+    "summary": "סיכום",
+    "activeEquipment": "ציוד פעיל",
+    "sitesWithEquipment": "אתרים עם ציוד",
+    "overdueRemovals": "הסרות באיחור",
+    "upcomingRemovals": "הסרות קרובות",
+    "noAlerts": "אין התראות"
+  },
+  "alerts": {
+    "title": "התראות",
+    "pastRemoval": "ציוד שעבר תאריך הסרה",
+    "closeToRemoval": "ציוד קרוב להסרה",
+    "longStay": "ציוד שהושאר זמן רב",
+    "pastremoval": "ציוד שעבר תאריך הסרה",
+    "closetoremoval": "ציוד קרוב להסרה",
+    "longstay": "ציוד שהושאר זמן רב",
+    "createRemoval": "צור תעבודת הסרה",
+    "daysRemaining": "ימים נותרו",
+    "daysOverdue": "ימים באיחור"
+  },
+  "sync": {
+    "online": "מקוון",
+    "offline": "לא מקוון",
+    "syncing": "מסנכרן...",
+    "synced": "מסונכרן",
+    "syncFailed": "סנכרון נכשל",
+    "lastSync": "סנכרון אחרון",
+    "pending": "בהמתנה",
+    "syncedLater": "יסתכרן כשיהיה חיבור"
+  },
+  "errors": {
+    "notFound": "לא נמצא",
+    "networkError": "שגיאת רשת",
+    "serverError": "שגיאת שרת",
+    "unauthorized": "לא מורשה",
+    "validationError": "שגיאת ולידציה"
+  },
+  "language": {
+    "hebrew": "עברית",
+    "english": "English"
+  },
+  "myTasks": {
+    "noTasksForToday": "אין משימות להיום",
+    "upcoming": "משימות קרובות"
+  },
+  "workOrder": {
+    "details": "פרטי תעבודה",
+    "siteDetails": "פרטי האתר",
+    "checklist": "רשימת בדיקה",
+    "donePlaceholder": "מה בוצע?",
+    "todoPlaceholder": "מה נשאר לביצוע?",
+    "completeWorkOrder": "השלם תעבודה",
+    "workOrderCompleted": "התעבודה הושלמה",
+    "scanQR": "סרוק QR",
+    "scanQRToAddEquipment": "סרוק QR להוספת ציוד",
+    "equipmentScanned": "ציוד נסרק",
+    "equipmentAdded": "ציוד נוסף",
+    "callContact": "התקשר",
+    "editNotes": "ערוך הערות",
+    "invalidEquipment": "ציוד לא נמצא",
+    "invalidEquipmentForSite": "הציוד לא שייך לאתר זה",
+    "equipmentAlreadyAdded": "הציוד כבר נוסף",
+    "scannedEquipment": "ציוד שנסרק",
+    "noScannedEquipment": "לא נוסף ציוד",
+    "removeEquipment": "הסר"
+  },
+  "qrScanner": {
+    "title": "סרוק QR",
+    "initializing": "מפעיל מצלמה...",
+    "cameraError": "לא ניתן לגשת למצלמה. ודא שיש הרשאה.",
+    "instructions": "החזק את מצלמה מול קוד QR"
+  }
+}

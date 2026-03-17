@@ -1,0 +1,674 @@
+Product Brief – Equipment Tracking & Field Operations System (V1)
+
+1. Context & Vision
+This system is designed for companies that install and temporarily leave equipment at customer sites for short periods (typically one to two weeks), similar to rental or temporary deployment.
+The main pain points today are: not knowing exactly where each device is, missing removal dates, losing equipment in the field, and lacking a clear history of what was done at each site and what must be done next.
+
+The system’s vision is to become the “brain of the equipment in the field”:
+
+Always know where each tagged device is, at which customer site, and for how long.
+
+See what was done during the last installation/inspection/removal and what needs to happen on the next visit.
+
+Prevent lost equipment and unnecessary trips, and make every field visit focused and informed.
+
+Initial target users:
+
+Company owner / operations manager.
+
+Field technicians / installers.
+
+Office coordinator / dispatcher (later).
+
+Technology-wise, V1 is a web-based application, responsive and mobile-first for technicians (Android/iOS browsers), and comfortable on desktop for managers.
+Equipment is identified using QR tags (e.g., 001–500), and location is based on customer site addresses and optional GPS at the moment of QR scanning. A map view and color-based alerts help managers quickly see where equipment is and what requires attention.
+
+2. Core User Story
+As an operations manager who installs and leaves equipment at customer sites for 1–2 weeks,
+I want to know at any moment where each piece of equipment is, how long it’s been there, and what has been done at each site,
+so that I can avoid losing equipment, schedule removals on time, and make every visit efficient and purposeful.
+
+3. Primary User Journeys
+3.1 “A Day in the Life of a Manager”
+Morning:
+
+The manager logs into the web app (desktop).
+
+They see a high-level view:
+
+A list of alerts: equipment past or close to planned removal date, “risky” sites.
+
+A map of sites with active equipment, colored by urgency.
+
+The manager selects several sites that require action and creates Work Orders (installations / inspections / removals), assigning technicians and planned dates.
+
+During the day:
+
+The manager monitors which Work Orders have been completed.
+
+For a problematic site, the manager opens the Site view:
+
+Sees all active equipment at that site, with “removal wheels” (time progress to planned removal).
+
+Reviews the history of past visits (installations, inspections, removals).
+
+Based on this, the manager decides:
+
+To extend planned removal for some devices.
+
+To schedule an immediate removal for others.
+
+Evening:
+
+The manager opens the Equipment list:
+
+Filters to “At customer” + “Past removal date” or “Long time at site”.
+
+Identifies “stuck” equipment and plans follow-up visits.
+
+3.2 “A Day in the Life of a Technician”
+Morning:
+
+The technician opens the web app on their phone.
+
+They see a list of today’s Work Orders (installations, inspections, removals), with addresses and a “Navigate with Waze” button.
+
+They pick the first job and start navigation to the customer site.
+
+On site – Installation:
+
+The technician opens the Work Order.
+
+They scan the QR tag of the equipment they are installing.
+
+The system:
+
+Links this equipment to the customer site.
+
+Sets the installation date to today.
+
+Lets the technician quickly select a planned removal: 1 week / 2 weeks / custom date.
+
+The technician completes the checklist (e.g., electrical report, sand, moisture, ring closures).
+
+They write what was done (Done) and what should be addressed on the next visit (To Do).
+
+On site – Inspection:
+
+For an inspection Work Order, the technician scans all devices found at the site.
+
+Each scan confirms the device is still at that site and updates its last scanned timestamp and location.
+
+The technician updates the checklist and Done/To Do for that visit, possibly adjusting planned removal dates.
+
+End of day:
+
+The technician completes remaining Work Orders.
+
+The system updates equipment statuses and locations, and enriches site and equipment history with all actions performed.
+
+4. Core Modules & Entities
+4.1 Equipment
+Represents a single physical device with a unique QR tag.
+
+Key fields:
+
+Equipment ID (internal).
+
+QR Tag (e.g., 001–500, unique).
+
+Equipment Type:
+
+Created/managed by the manager.
+
+Technicians can only select existing types (no creation).
+
+Status:
+
+Location status: At customer / In warehouse / In vehicle (future) / In repair / Available.
+
+Condition: OK / Not OK / Wear-out.
+
+Current Location:
+
+Linked Site (customer) if at a customer.
+
+“Warehouse” (no site) if in stock.
+
+“Vehicle X” in future phases.
+
+Dates:
+
+Last Installation Date.
+
+Planned Removal Date (from Work Orders; defaults: 1 week / 2 weeks / custom).
+
+Actual Removal Date (if removed).
+
+Last “move” date (last location change / “drag” event).
+
+Removal Progress Wheel:
+
+Percentage of time elapsed between installation and planned removal.
+
+Color-coded:
+
+Green: plenty of time remaining.
+
+Yellow: medium.
+
+Orange: close to removal.
+
+Red: past planned removal.
+
+Fault / wear history: linked to Activities.
+
+4.2 Site (Customer)
+Represents a physical location where equipment is installed.
+
+Key fields:
+
+Site ID.
+
+Name (customer / site).
+
+Address (including city).
+
+Additional details:
+
+Floor.
+
+Apartment.
+
+Contact Person 1 (name, phone).
+
+Contact Person 2 (optional).
+
+Rating (e.g., internal score).
+
+Highlight flag (important or problematic customer).
+
+Coordinates (lat/lng):
+
+Derived from the address (geocoding) or from GPS at first QR scan on-site.
+
+Waze integration:
+
+“Navigate” button opens Waze with this site as the destination.
+
+4.3 Work Order (Job)
+Represents any field activity at a site.
+
+Key fields:
+
+WorkOrder ID.
+
+Type: Installation / Inspection / Removal / General.
+
+Planned date & time.
+
+Actual date & time.
+
+Assigned technician (User).
+
+Linked Site.
+
+Linked equipment list:
+
+Equipment used/installed/inspected/removed during this work.
+
+Done / To Do:
+
+Two text fields:
+
+Done – what was actually done during this visit.
+
+To Do – what must be done next time.
+
+Checklist:
+
+Fields like: Electrical report, “SomSom”, sand, moisture check, ring closure, etc.
+
+Manager can define/edit the checklist type; technicians can only use existing checklists.
+
+Planned Removal Date (if relevant):
+
+Choice: 1 week / 2 weeks / custom date.
+
+This also updates the associated equipment’s Planned Removal Date.
+
+4.4 Activity Log
+An immutable history of actions on equipment and sites.
+
+Key fields:
+
+Activity ID.
+
+Timestamp (when the action occurred).
+
+Action type, e.g.:
+
+Equipment status change (OK / Not OK / wear).
+
+Location change (warehouse → customer, customer → warehouse, etc.).
+
+Work Order created / completed.
+
+Checklist updates.
+
+Done / To Do updates.
+
+Planned removal date changes.
+
+Links:
+
+Equipment ID (if relevant).
+
+WorkOrder ID.
+
+Site ID.
+
+Performed by (User).
+
+Location of action (if QR was scanned):
+
+GPS coordinates + user name.
+
+Editing policy:
+
+V1: all users can edit past dates/values (business-level), but changes are still logged.
+
+Later: only managers can edit history.
+
+4.5 Users
+Basic identity for now (no strict RBAC yet).
+
+Key fields:
+
+User ID.
+
+Full name.
+
+Phone.
+
+Role label: Manager / Technician / Office.
+
+Active / inactive.
+
+A proper role-based permission model will be added in a later phase.
+
+5. UI & Main Screens
+5.1 Equipment List & Detail
+Equipment List
+
+Table or card view, with:
+
+QR Tag.
+
+Equipment Type.
+
+Status (At customer / Warehouse / etc.).
+
+Site (if applicable).
+
+Removal Progress Wheel (small icon with color & percentage).
+
+Filters:
+
+At customer / In warehouse / In repair.
+
+Past removal date.
+
+Close to removal (e.g., orange/red).
+
+By site.
+
+By equipment type.
+
+Equipment Detail
+
+Header: Equipment Type + QR Tag.
+
+Status & current location:
+
+“At: [Site Name]” (link to Site detail), or “In warehouse”.
+
+Large Progress Wheel showing time to removal.
+
+Dates:
+
+Last Installation Date.
+
+Planned Removal Date.
+
+Actual Removal Date (if any).
+
+List of related Work Orders (timeline).
+
+Quick actions:
+
+“Start new Work Order with this equipment.”
+
+“Mark as removed” (opens a Removal-type Work Order).
+
+“Update condition (fault/wear).”
+
+5.2 Sites (Customers)
+Sites List
+
+List with:
+
+Site name.
+
+Address.
+
+Rating.
+
+Highlight badge (if flagged).
+
+Number of active equipment at site.
+
+A small indicator of “worst” removal status at that site (e.g., if any device is in red).
+
+Filters:
+
+Sites with equipment past removal date.
+
+Sites with upcoming removals (this week).
+
+High/low rating.
+
+Site Detail
+
+Full customer information.
+
+“Navigate with Waze” button.
+
+List of active equipment at this site:
+
+Equipment Type, QR, Progress Wheel.
+
+History of Work Orders at this site (installations, inspections, removals).
+
+“Create new Work Order” button:
+
+Choose type (Installation / Inspection / Removal / General).
+
+Set date/time, technician, equipment.
+
+5.3 Work Orders
+Work Orders List
+
+Default view: Today / This week.
+
+For each Work Order:
+
+Type (icon).
+
+Site.
+
+Planned date & time (and actual if completed).
+
+Technician.
+
+Checklist completion status (e.g., 3/5 items done).
+
+Status: Open / In progress / Completed.
+
+Filters:
+
+By technician.
+
+By type.
+
+By status.
+
+Work Order Detail
+
+Site and technician details.
+
+Planned vs actual date/time.
+
+Checklist:
+
+Items like electrical report, “SomSom”, sand, moisture, ring closure – checkboxes and optional text inputs.
+
+Done / To Do text areas with timestamps.
+
+Equipment section:
+
+List of linked equipment.
+
+“Scan equipment” button:
+
+Opens camera.
+
+Scanning QR adds the equipment to this Work Order and updates its location to this site.
+
+Planned Removal Date (if type requires):
+
+Select 1 week / 2 weeks / custom date.
+
+5.4 Map View
+Map with markers for sites that currently have active equipment.
+
+Marker color/size can reflect:
+
+Number of devices at the site.
+
+Highest urgency among devices (e.g., if any device is red, the site marker is red).
+
+Clicking a marker shows:
+
+Site name.
+
+Count of devices by removal status (e.g., 3 green, 1 orange, 2 red).
+
+Link to Site detail.
+
+Filters:
+
+By equipment type.
+
+By removal time window:
+
+Must be removed this week.
+
+Past removal date.
+
+By status (OK / Not OK / wear).
+
+5.5 Alerts / Dashboard
+List of alert cards grouped by category:
+
+Devices past planned removal date.
+
+Devices close to planned removal (orange/red).
+
+Devices staying at a customer longer than a configured threshold.
+
+Each alert card shows:
+
+Equipment Type, QR Tag.
+
+Site.
+
+Days past/remaining.
+
+Quick actions:
+
+Open Equipment.
+
+Open Site.
+
+Create Removal Work Order.
+
+V1: alerts are shown only inside the web app (no email/SMS/WhatsApp yet).
+
+6. Key Business Flows
+6.1 Equipment Lifecycle
+Create equipment
+
+Manager creates a new Equipment entry.
+
+Sets QR Tag, Equipment Type, initial status (In warehouse).
+
+Send equipment for installation
+
+Manager/office creates an Installation Work Order.
+
+Technician physically takes the device (formal warehouse/vehicle flows will come later).
+
+Install at customer site
+
+Technician scans the QR at the customer site.
+
+System:
+
+Sets location to the Site.
+
+Sets installation date to today.
+
+Prompts for planned removal (1 week / 2 weeks / custom date).
+
+Inspections
+
+Each inspection is a separate Work Order.
+
+Technician scans all devices at the site:
+
+Confirms presence at this site.
+
+Updates last scan timestamp and position.
+
+Technician may adjust planned removal dates and statuses.
+
+Removal and return
+
+Removal Work Order is created.
+
+On site, technician scans the QR when taking the device back.
+
+System:
+
+Changes location to “Warehouse” / “Available”.
+
+Sets actual removal date.
+
+Resets the removal progress wheel.
+
+6.2 Checklist & Done/To Do Flow
+Each Work Order contains a checklist specific to its type.
+
+During the visit, the technician:
+
+Checks relevant items.
+
+Writes what was done (Done).
+
+Writes what must be done next time (To Do).
+
+On the next visit (new Work Order), the technician sees the previous To Do and can seamlessly continue.
+
+6.3 Alerts & Monitoring Flow
+Periodically or on-demand, the system recalculates for each device:
+
+Time elapsed between installation and planned removal.
+
+Whether the device is past, close to, or far from removal date.
+
+It compiles an alerts list for:
+
+Devices with removal date in the past.
+
+Devices approaching removal date.
+
+Devices at customer sites longer than a threshold.
+
+The manager uses the Alerts screen to:
+
+Open Equipment / Site details.
+
+Create new Work Orders (usually removals or inspections).
+
+7. Architecture Overview (High-Level)
+7.1 Layers
+Presentation Layer (Web Client)
+
+Responsive web application:
+
+Desktop UX optimized for managers and office users.
+
+Mobile-first UX for technicians (phone browsers, camera access for QR).
+
+Includes views for Equipment, Sites, Work Orders, Map, Alerts.
+
+Integrates with:
+
+Device camera (for QR scanning via browser APIs).
+
+Waze (via URL deep-link from site address/coordinates).
+
+Application Layer (Backend API)
+
+REST or GraphQL API powering all UI operations.
+
+Core services:
+
+Inventory Service: equipment data, statuses, locations, removal progress.
+
+Work Orders Service: job lifecycle and association with equipment/sites.
+
+Sites/CRM Service: customer/site data and metadata.
+
+Activity & Audit Service: action logging and history.
+
+Alerts & Scheduler Service: periodic evaluation of removal dates and conditions.
+
+Location & Map Service: managing coordinates and data aggregation for the map.
+
+Data Layer (Database)
+
+Relational database (e.g., PostgreSQL).
+
+Core tables: Equipment, Sites, WorkOrders, Activities, Users, Alerts, Checklists.
+
+Indexed for common queries: by QR Tag, Site, status, and date ranges.
+
+Integration Layer
+
+Map provider (Google Maps / OpenStreetMap or similar).
+
+Optional geocoding service for address → coordinates.
+
+Future phase: integration with email/SMS/WhatsApp providers for external notifications.
+
+8. V1 Scope & Future Directions
+In scope for V1:
+
+Web app (no separate native mobile app).
+
+QR-based identification of equipment.
+
+Equipment lifecycle (creation, installation, inspection, removal).
+
+Checklists, Done/To Do per Work Order.
+
+Sites & customer data with Waze navigation.
+
+Map view of devices by site.
+
+In-app alerts for removal timing and long-duration equipment at customers.
+
+Out of scope for V1 (planned for later phases):
+
+Full role-based permissions and complex hierarchy (Manager / Technician / Office with restricted access).
+
+Detailed warehouse/vehicle logistics flows.
+
+External notifications (email/SMS/WhatsApp).
+
+Offline mode.
+
+Realtime driver/vehicle tracking.
+

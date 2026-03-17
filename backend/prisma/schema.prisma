@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  manager
+  technician
+  admin
+}
+
+enum EquipmentStatus {
+  warehouse
+  at_customer
+  in_repair
+  available
+}
+
+enum EquipmentCondition {
+  ok
+  not_ok
+  wearout
+}
+
+enum WorkOrderType {
+  installation
+  inspection
+  removal
+  general
+}
+
+enum WorkOrderStatus {
+  open
+  in_progress
+  completed
+}
+
+enum ActionType {
+  status_change
+  location_change
+  workorder_created
+  workorder_completed
+  checklist_update
+  done_update
+  todo_update
+  planned_removal_change
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(technician)
+  phone     String?
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workOrders      WorkOrder[]
+  activityLogs    ActivityLog[]
+}
+
+model Equipment {
+  id                  String            @id @default(uuid())
+  qrTag               String            @unique
+  type                String
+  status              EquipmentStatus   @default(warehouse)
+  condition           EquipmentCondition @default(ok)
+  siteId              String?
+  lastScanDate        DateTime?
+  installationDate    DateTime?
+  plannedRemovalDate  DateTime?
+  actualRemovalDate   DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  site            Site?        @relation(fields: [siteId], references: [id])
+  activityLogs    ActivityLog[]
+  equipmentTypes  EquipmentType? @relation(fields: [typeId], references: [id])
+  typeId          String?
+}
+
+model EquipmentType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  equipment Equipment[]
+}
+
+model Site {
+  id             String   @id @default(uuid())
+  name           String
+  address        String
+  city           String
+  floor          String?
+  apartment      String?
+  contact1Name   String?
+  contact1Phone  String?
+  contact2Name   String?
+  contact2Phone  String?
+  rating         Int?
+  isHighlighted  Boolean  @default(false)
+  latitude       Float?
+  longitude      Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  equipment   Equipment[]
+  workOrders  WorkOrder[]
+  activityLogs ActivityLog[]
+}
+
+model WorkOrder {
+  id                 String           @id @default(uuid())
+  type               WorkOrderType
+  siteId             String
+  technicianId       String
+  status             WorkOrderStatus  @default(open)
+  plannedDate        DateTime
+  actualDate         DateTime?
+  done               String?
+  todo               String?
+  plannedRemovalDate DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  site       Site          @relation(fields: [siteId], references: [id])
+  technician User          @relation(fields: [technicianId], references: [id])
+  checklist  ChecklistItem[]
+  activityLogs ActivityLog[]
+}
+
+model ChecklistItem {
+  id          String   @id @default(uuid())
+  workOrderId String
+  itemName    String
+  isChecked   Boolean  @default(false)
+  value       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id             String      @id @default(uuid())
+  equipmentId    String?
+  siteId         String?
+  workOrderId    String?
+  userId         String
+  actionType     ActionType
+  timestamp      DateTime    @default(now())
+  notes          String?
+  locationLat    Float?
+  locationLng    Float?
+
+  equipment  Equipment?  @relation(fields: [equipmentId], references: [id])
+  site       Site?       @relation(fields: [siteId], references: [id])
+  workOrder  WorkOrder?  @relation(fields: [workOrderId], references: [id])
+  user       User        @relation(fields: [userId], references: [id])
+}

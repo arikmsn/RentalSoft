@@ -1,0 +1,224 @@
+{
+  "app": {
+    "title": "Equipment Tracking System",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "filter": "Filter",
+    "actions": "Actions",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "refresh": "Refresh",
+    "select": "Select"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "loginButton": "Sign In",
+    "invalidCredentials": "Invalid credentials",
+    "welcomeBack": "Welcome back"
+  },
+  "roles": {
+    "manager": "Manager",
+    "technician": "Technician",
+    "admin": "Administrator"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "equipment": "Equipment",
+    "sites": "Sites",
+    "workOrders": "Work Orders",
+    "map": "Map",
+    "alerts": "Alerts",
+    "settings": "Settings",
+    "myTasks": "My Tasks"
+  },
+  "equipment": {
+    "title": "Equipment",
+    "addNew": "Add New Equipment",
+    "qrTag": "QR Tag",
+    "type": "Equipment Type",
+    "status": "Status",
+    "site": "Site",
+    "lastScan": "Last Scan",
+    "plannedRemoval": "Planned Removal",
+    "actualRemoval": "Actual Removal",
+    "installationDate": "Installation Date",
+    "condition": "Condition",
+    "history": "History",
+    "details": "Equipment Details",
+    "statuses": {
+      "warehouse": "In Warehouse",
+      "atCustomer": "At Customer",
+      "inRepair": "In Repair",
+      "available": "Available",
+      "atcustomer": "At Customer",
+      "inrepair": "In Repair"
+    },
+    "conditions": {
+      "ok": "OK",
+      "notOk": "Not OK",
+      "wearout": "Wear-out"
+    },
+    "filters": {
+      "all": "All",
+      "atCustomer": "At Customer",
+      "inWarehouse": "In Warehouse",
+      "inRepair": "In Repair",
+      "pastRemoval": "Past Removal",
+      "closeToRemoval": "Close to Removal"
+    },
+    "progress": {
+      "green": "Plenty of time",
+      "yellow": "Medium",
+      "orange": "Close to removal",
+      "red": "Overdue"
+    }
+  },
+  "sites": {
+    "title": "Sites",
+    "addNew": "Add New Site",
+    "name": "Site Name",
+    "address": "Address",
+    "city": "City",
+    "floor": "Floor",
+    "contact1": "Primary Contact",
+    "contact2": "Secondary Contact",
+    "phone1": "Phone 1",
+    "phone2": "Phone 2",
+    "rating": "Rating",
+    "highlight": "Highlight",
+    "coordinates": "Coordinates",
+    "navigate": "Navigate with Waze",
+    "activeEquipment": "Active Equipment",
+    "history": "History",
+    "createWorkOrder": "Create Work Order"
+  },
+  "workOrders": {
+    "title": "Work Orders",
+    "addNew": "New Work Order",
+    "type": "Work Order Type",
+    "site": "Site",
+    "technician": "Technician",
+    "plannedDate": "Planned Date",
+    "actualDate": "Actual Date",
+    "status": "Status",
+    "checklist": "Checklist",
+    "done": "Done",
+    "todo": "To Do",
+    "scanEquipment": "Scan Equipment",
+    "types": {
+      "installation": "Installation",
+      "inspection": "Inspection",
+      "removal": "Removal",
+      "general": "General"
+    },
+    "statuses": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "completed": "Completed"
+    },
+    "removalOptions": {
+      "oneWeek": "1 Week",
+      "twoWeeks": "2 Weeks",
+      "custom": "Custom"
+    }
+  },
+  "map": {
+    "title": "Sites Map",
+    "filters": "Filters",
+    "legend": "Legend",
+    "equipmentCount": "Equipment Units",
+    "viewSite": "View Site"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "alerts": "Alerts",
+    "todaysTasks": "Today's Tasks",
+    "weeklyTasks": "This Week's Tasks",
+    "summary": "Summary",
+    "activeEquipment": "Active Equipment",
+    "sitesWithEquipment": "Sites with Equipment",
+    "overdueRemovals": "Overdue Removals",
+    "upcomingRemovals": "Upcoming Removals",
+    "noAlerts": "No alerts"
+  },
+  "alerts": {
+    "title": "Alerts",
+    "pastRemoval": "Equipment past removal date",
+    "closeToRemoval": "Equipment close to removal",
+    "longStay": "Equipment at site for long time",
+    "pastremoval": "Equipment past removal date",
+    "closetoremoval": "Equipment close to removal",
+    "longstay": "Equipment at site for long time",
+    "createRemoval": "Create Removal Work Order",
+    "daysRemaining": "days remaining",
+    "daysOverdue": "days overdue"
+  },
+  "sync": {
+    "online": "Online",
+    "offline": "Offline",
+    "syncing": "Syncing...",
+    "synced": "Synced",
+    "syncFailed": "Sync failed",
+    "lastSync": "Last sync",
+    "pending": "Pending",
+    "syncedLater": "Will sync when online"
+  },
+  "errors": {
+    "notFound": "Not found",
+    "networkError": "Network error",
+    "serverError": "Server error",
+    "unauthorized": "Unauthorized",
+    "validationError": "Validation error"
+  },
+  "language": {
+    "hebrew": "עברית",
+    "english": "English"
+  },
+  "myTasks": {
+    "noTasksForToday": "No tasks for today",
+    "upcoming": "Upcoming Tasks"
+  },
+  "workOrder": {
+    "details": "Work Order Details",
+    "siteDetails": "Site Details",
+    "checklist": "Checklist",
+    "donePlaceholder": "What was done?",
+    "todoPlaceholder": "What remains to be done?",
+    "completeWorkOrder": "Complete Work Order",
+    "workOrderCompleted": "Work order completed",
+    "scanQR": "Scan QR",
+    "scanQRToAddEquipment": "Scan QR to add equipment",
+    "equipmentScanned": "Equipment scanned",
+    "equipmentAdded": "Equipment added",
+    "callContact": "Call",
+    "editNotes": "Edit Notes",
+    "invalidEquipment": "Equipment not found",
+    "invalidEquipmentForSite": "Equipment does not belong to this site",
+    "equipmentAlreadyAdded": "Equipment already added",
+    "scannedEquipment": "Scanned Equipment",
+    "noScannedEquipment": "No equipment added",
+    "removeEquipment": "Remove"
+  },
+  "qrScanner": {
+    "title": "Scan QR",
+    "initializing": "Initializing camera...",
+    "cameraError": "Unable to access camera. Please ensure permissions are granted.",
+    "instructions": "Point camera at QR code"
+  }
+}
