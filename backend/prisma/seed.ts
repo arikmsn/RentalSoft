@@ -295,6 +295,93 @@ async function main() {
     }
     console.log('✅ Sample work orders created');
 
+    console.log('✅ Sample work orders created');
+
+    // Seed Settings tables
+    // Work Order Types
+    const workOrderTypes = [
+      { name: 'התקנה', sortOrder: 1 },
+      { name: 'בדיקה', sortOrder: 2 },
+      { name: 'הסרה', sortOrder: 3 },
+      { name: 'כללי', sortOrder: 4 },
+    ];
+    for (const type of workOrderTypes) {
+      await prisma.settingsWorkOrderType.upsert({
+        where: { name: type.name },
+        update: {},
+        create: type,
+      });
+    }
+    console.log('✅ Settings work order types created');
+
+    // Equipment Types
+    const settingsEquipmentTypes = [
+      { name: 'מכונה גדולה', code: 'LG', sortOrder: 1 },
+      { name: 'מכונה בינונית', code: 'MD', sortOrder: 2 },
+      { name: 'מכונה קטנה', code: 'SM', sortOrder: 3 },
+    ];
+    for (const type of settingsEquipmentTypes) {
+      await prisma.settingsEquipmentType.upsert({
+        where: { name: type.name },
+        update: {},
+        create: type,
+      });
+    }
+    console.log('✅ Settings equipment types created');
+
+    // Equipment Statuses
+    const equipmentStatuses = [
+      { name: 'במחסן', code: 'WH', sortOrder: 1 },
+      { name: 'זמין', code: 'AV', sortOrder: 2 },
+      { name: 'אצל לקוח', code: 'AT', sortOrder: 3 },
+      { name: 'בתיקון', code: 'RP', sortOrder: 4 },
+    ];
+    for (const status of equipmentStatuses) {
+      await prisma.settingsEquipmentStatus.upsert({
+        where: { name: status.name },
+        update: {},
+        create: status,
+      });
+    }
+    console.log('✅ Settings equipment statuses created');
+
+    // Equipment Conditions
+    const equipmentConditions = [
+      { name: 'תקין', code: 'OK', sortOrder: 1 },
+      { name: 'לא תקין', code: 'NK', sortOrder: 2 },
+      { name: 'בלאי', code: 'WT', sortOrder: 3 },
+    ];
+    for (const condition of equipmentConditions) {
+      await prisma.settingsEquipmentCondition.upsert({
+        where: { name: condition.name },
+        update: {},
+        create: condition,
+      });
+    }
+    console.log('✅ Settings equipment conditions created');
+
+    // Checklist Items (Settings)
+    const settingsChecklistItems = [
+      { id: 'checklist-1', name: 'בדיקת מתח חשמל', sortOrder: 1 },
+      { id: 'checklist-2', name: 'חיבור ניקוז', sortOrder: 2 },
+      { id: 'checklist-3', name: 'בדיקת פעולה', sortOrder: 3 },
+      { id: 'checklist-4', name: 'הדרכת לקוח', sortOrder: 4 },
+      { id: 'checklist-5', name: 'בדיקת טמפרטורה', sortOrder: 5 },
+      { id: 'checklist-6', name: 'בדיקת פילטרים', sortOrder: 6 },
+      { id: 'checklist-7', name: 'ניקוי מערכת', sortOrder: 7 },
+      { id: 'checklist-8', name: 'ניתוק חשמל', sortOrder: 8 },
+      { id: 'checklist-9', name: 'פירוק הציוד', sortOrder: 9 },
+      { id: 'checklist-10', name: 'אישור לקוח', sortOrder: 10 },
+    ];
+    for (const item of settingsChecklistItems) {
+      await prisma.settingsChecklistItem.upsert({
+        where: { id: item.id },
+        update: {},
+        create: item,
+      });
+    }
+    console.log('✅ Settings checklist items created');
+
     const checklistItems = [
       { workOrderId: createdWorkOrders[0].id, itemName: 'בדיקת מתח חשמל', isChecked: false },
       { workOrderId: createdWorkOrders[0].id, itemName: 'חיבור ניקוז', isChecked: false },

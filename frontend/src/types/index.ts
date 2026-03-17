@@ -108,9 +108,14 @@ export interface ActivityLog {
 export interface Alert {
   id: string;
   equipmentId: string;
+  workOrderId: string | null;
   type: 'past_removal' | 'close_to_removal' | 'long_stay';
   daysRemaining: number;
   createdAt: Date;
+  siteName: string;
+  siteAddress: string;
+  siteContact: string;
+  sitePhone: string;
 }
 
 export interface EquipmentType {

@@ -107,13 +107,16 @@ export function DashboardPage() {
             {alerts.slice(0, 5).map((alert) => (
               <Link
                 key={alert.id}
-                to={`/equipment/${alert.equipmentId}`}
+                to={alert.workOrderId ? `/workorders/${alert.workOrderId}` : `/equipment/${alert.equipmentId}`}
                 className="block"
               >
                 <div className="flex items-center justify-between p-2 sm:p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm sm:text-base text-red-800">
-                      {t(`alerts.${alert.type}`)}
+                      {alert.siteName || t('equipment.title')}
+                    </p>
+                    <p className="text-xs text-red-600 truncate">
+                      {alert.siteAddress}
                     </p>
                     <p className="text-xs sm:text-sm text-red-600">
                       {alert.daysRemaining > 0
@@ -129,15 +132,8 @@ export function DashboardPage() {
         )}
       </div>
 
-      {/* Quick Actions for Manager */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-        <Link
-          to="/workorders"
-          className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center gap-2 min-h-[80px] justify-center"
-        >
-          <span className="text-2xl">📋</span>
-          <span className="text-sm font-medium text-center">{t('navigation.workOrders')}</span>
-        </Link>
+      {/* Quick Actions - only show אתרים and ציוד */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
         <Link
           to="/sites"
           className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center gap-2 min-h-[80px] justify-center"
@@ -146,18 +142,11 @@ export function DashboardPage() {
           <span className="text-sm font-medium text-center">{t('navigation.sites')}</span>
         </Link>
         <Link
-          to="/map"
+          to="/equipment"
           className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center gap-2 min-h-[80px] justify-center"
         >
-          <span className="text-2xl">🗺️</span>
-          <span className="text-sm font-medium text-center">{t('navigation.map')}</span>
-        </Link>
-        <Link
-          to="/alerts"
-          className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center gap-2 min-h-[80px] justify-center"
-        >
-          <span className="text-2xl">🔔</span>
-          <span className="text-sm font-medium text-center">{t('navigation.alerts')}</span>
+          <span className="text-2xl">📦</span>
+          <span className="text-sm font-medium text-center">{t('navigation.equipment')}</span>
         </Link>
       </div>
     </div>

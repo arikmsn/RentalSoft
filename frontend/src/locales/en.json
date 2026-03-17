@@ -118,7 +118,8 @@
     "activeEquipment": "Active Equipment",
     "history": "History",
     "createWorkOrder": "Create Work Order",
-    "deleteWarning": "Cannot delete - this site has active equipment. Delete anyway?"
+    "deleteWarning": "Cannot delete - this site has active equipment. Delete anyway?",
+    "deleteError": "Cannot delete site - it has related equipment or work orders. Please remove or update them first."
   },
   "workOrders": {
     "title": "Work Orders",
@@ -226,7 +227,7 @@
     "equipmentScanned": "Equipment scanned",
     "equipmentAdded": "Equipment added",
     "callContact": "Call",
-    "editNotes": "Edit Notes",
+    "editNotes": "Notes",
     "invalidEquipment": "Equipment not found",
     "invalidEquipmentForSite": "Equipment does not belong to this site",
     "equipmentAlreadyAdded": "Equipment already added",

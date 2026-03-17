@@ -84,6 +84,7 @@ router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
         site: true,
         technician: { select: { id: true, name: true, email: true, phone: true } },
         checklist: true,
+        equipment: { include: { equipment: true } },
       },
     });
 
@@ -100,7 +101,7 @@ router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
 
 router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRequest, res) => {
   try {
-    const { type, siteId, technicianId, plannedDate, plannedRemovalDate } = req.body;
+    const { type, siteId, technicianId, plannedDate, plannedRemovalDate, equipmentIds } = req.body;
 
     const workOrder = await prisma.workOrder.create({
       data: {
@@ -109,10 +110,14 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         technicianId,
         plannedDate: new Date(plannedDate),
         plannedRemovalDate: plannedRemovalDate ? new Date(plannedRemovalDate) : null,
+        equipment: equipmentIds && equipmentIds.length > 0 ? {
+          create: equipmentIds.map((eqId: string) => ({ equipmentId: eqId }))
+        } : undefined,
       },
       include: {
         site: true,
         technician: { select: { id: true, name: true, email: true } },
+        equipment: { include: { equipment: true } },
       },
     });
 

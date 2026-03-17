@@ -118,7 +118,8 @@
     "activeEquipment": "ציוד פעיל",
     "history": "היסטוריה",
     "createWorkOrder": "צור עבודה",
-    "deleteWarning": "לא ניתן לבטל – באתר זה יש כרגע ציוד פעיל. למחוק בכל זאת?"
+    "deleteWarning": "לא ניתן לבטל – באתר זה יש כרגע ציוד פעיל. למחוק בכל זאת?",
+    "deleteError": "לא ניתן למחוק את האתר כי יש אליו עבודות או ציוד מקושרים. אפשר להסיר או לעדכן אותם תחילה."
   },
   "workOrders": {
     "title": "עבודות",
@@ -226,7 +227,7 @@
     "equipmentScanned": "ציוד נסרק",
     "equipmentAdded": "ציוד נוסף",
     "callContact": "התקשר",
-    "editNotes": "ערוך הערות",
+    "editNotes": "הערות",
     "invalidEquipment": "ציוד לא נמצא",
     "invalidEquipmentForSite": "הציוד לא שייך לאתר זה",
     "equipmentAlreadyAdded": "הציוד כבר נוסף",

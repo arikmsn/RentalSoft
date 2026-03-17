@@ -87,6 +87,7 @@ model Equipment {
   activityLogs    ActivityLog[]
   equipmentTypes  EquipmentType? @relation(fields: [typeId], references: [id])
   typeId          String?
+  workOrders     WorkOrderEquipment[]
 }
 
 model EquipmentType {
@@ -141,6 +142,7 @@ model WorkOrder {
   checklist  ChecklistItem[]
   activityLogs ActivityLog[]
   statusHistory WorkOrderStatusHistory[]
+  equipment    WorkOrderEquipment[]
 }
 
 model ChecklistItem {
@@ -232,4 +234,16 @@ model WorkOrderStatusHistory {
 
   workOrder      WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
   changedBy      User      @relation(fields: [changedById], references: [id])
+}
+
+model WorkOrderEquipment {
+  id          String   @id @default(uuid())
+  workOrderId String
+  equipmentId String
+  createdAt   DateTime @default(now())
+
+  workOrder WorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([workOrderId, equipmentId])
 }

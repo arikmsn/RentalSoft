@@ -105,6 +105,22 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
       include: { site: true },
     });
 
+    // Get work orders for these equipment
+    const workOrders = await prisma.workOrder.findMany({
+      where: {
+        status: { in: ['open', 'in_progress'] },
+      },
+      select: { id: true, siteId: true },
+    });
+
+    // Create a map of siteId to workOrderId
+    const siteToWorkOrder = new Map<string, string>();
+    workOrders.forEach(wo => {
+      if (!siteToWorkOrder.has(wo.siteId)) {
+        siteToWorkOrder.set(wo.siteId, wo.id);
+      }
+    });
+
     const alerts = equipment.map((eq: any) => {
       const daysRemaining = eq.plannedRemovalDate
         ? Math.ceil((new Date(eq.plannedRemovalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
@@ -122,9 +138,14 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
       return {
         id: `alert-${eq.id}`,
         equipmentId: eq.id,
+        workOrderId: eq.siteId ? siteToWorkOrder.get(eq.siteId) || null : null,
         type: alertType,
         daysRemaining,
         createdAt: now,
+        siteName: eq.site?.name || '',
+        siteAddress: eq.site ? `${eq.site.city} ${eq.site.address}` : '',
+        siteContact: eq.site?.contact1Name || '',
+        sitePhone: eq.site?.contact1Phone || '',
       };
     });
 

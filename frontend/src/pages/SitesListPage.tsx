@@ -17,6 +17,8 @@ export function SitesListPage() {
   const [editingSite, setEditingSite] = useState<Site | null>(null);
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [siteToDelete, setSiteToDelete] = useState<Site | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -123,7 +125,9 @@ export function SitesListPage() {
       fetchSites();
     } catch (err: any) {
       console.error('Failed to delete site:', err);
-      alert(err?.response?.data?.message || 'Failed to delete site');
+      const errorMsg = err?.response?.data?.message || err?.response?.data || 'Failed to delete site';
+      setErrorMessage(typeof errorMsg === 'string' ? errorMsg : t('sites.deleteError'));
+      setShowErrorDialog(true);
     } finally {
       setShowDeleteConfirm(false);
       setSiteToDelete(null);
@@ -316,16 +320,6 @@ export function SitesListPage() {
                   <option value={5}>5</option>
                 </select>
               </div>
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="isHighlighted"
-                  checked={formData.isHighlighted}
-                  onChange={(e) => setFormData({ ...formData, isHighlighted: e.target.checked })}
-                  className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <label htmlFor="isHighlighted" className="text-sm text-surface-700">{t('sites.highlight')}</label>
-              </div>
               <div className="flex gap-3 pt-3">
                 <button
                   type="button"
@@ -475,6 +469,18 @@ export function SitesListPage() {
           onConfirm={confirmDelete}
           onCancel={() => { setShowDeleteConfirm(false); setSiteToDelete(null); }}
           variant="danger"
+        />
+      )}
+
+      {showErrorDialog && (
+        <ConfirmDialog
+          isOpen={showErrorDialog}
+          title={t('app.error')}
+          message={errorMessage}
+          confirmLabel={t('app.cancel')}
+          onConfirm={() => setShowErrorDialog(false)}
+          onCancel={() => setShowErrorDialog(false)}
+          variant="default"
         />
       )}
     </div>

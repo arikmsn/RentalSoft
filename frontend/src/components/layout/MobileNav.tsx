@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 
 const mobileNavItems = [
-  { path: '/workorders', icon: '📋', label: 'workOrders', roles: ['manager', 'technician', 'admin'] },
-  { path: '/equipment', icon: '📦', label: 'equipment', roles: ['manager', 'technician', 'admin'] },
+  { path: '/workorders?filter=active', icon: '📋', label: 'workOrders', roles: ['manager', 'technician', 'admin'] },
   { path: '/map', icon: '🗺️', label: 'map', roles: ['manager', 'admin'] },
+  { path: '/equipment', icon: '📦', label: 'equipment', roles: ['manager', 'technician', 'admin'] },
   { path: '/sites', icon: '📍', label: 'sites', roles: ['manager', 'technician', 'admin'] },
   { path: '/my-tasks', icon: '✅', label: 'myTasks', roles: ['technician'] },
 ];

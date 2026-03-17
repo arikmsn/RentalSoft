@@ -6,6 +6,7 @@ import type { ChecklistUpdate } from '../services/workOrderService';
 import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
 import { QRScanner } from '../components/qr';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { offlineApi } from '../services/offlineApi';
 import { workOrderService } from '../services/workOrderService';
 import { siteService } from '../services/siteService';
@@ -58,6 +59,7 @@ export function WorkOrderDetailsPage() {
   const [scanError, setScanError] = useState<string | null>(null);
   
   const [showEditForm, setShowEditForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editFormData, setEditFormData] = useState({
     type: '' as WorkOrderType,
     status: '' as WorkOrderStatus,
@@ -254,7 +256,7 @@ export function WorkOrderDetailsPage() {
   };
 
   const handleDelete = async () => {
-    if (!id || !confirm(t('app.confirmDelete') + '?')) return;
+    if (!id) return;
     setDeleting(true);
     try {
       await workOrderService.delete(id);
@@ -264,6 +266,7 @@ export function WorkOrderDetailsPage() {
       alert(err?.response?.data?.message || 'Failed to delete work order');
     } finally {
       setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -449,7 +452,7 @@ export function WorkOrderDetailsPage() {
         <div className="flex items-center gap-2">
           {canDelete && (
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={deleting}
               className="text-red-600 hover:text-red-700 p-1"
               title={t('app.delete')}
@@ -688,6 +691,18 @@ export function WorkOrderDetailsPage() {
         <div className="bg-green-50 text-green-600 p-4 rounded-xl text-center">
           ✅ {t('workOrder.workOrderCompleted')}
         </div>
+      )}
+
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          isOpen={showDeleteConfirm}
+          title={t('app.delete')}
+          message={t('app.confirmDelete') + '?'}
+          confirmLabel={t('app.delete')}
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+          variant="danger"
+        />
       )}
     </div>
   );

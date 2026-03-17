@@ -92,23 +92,41 @@ export function AlertsPage() {
             key={alert.id}
             className={`p-4 rounded-xl border ${getAlertColor(alert.type)}`}
           >
-            <div className="flex justify-between items-center">
-              <div>
+            <div className="flex justify-between items-start">
+              <div className="flex-1 min-w-0">
                 <h3 className="font-semibold">
-                  {t(`alerts.${alert.type}`)}
+                  {alert.siteName || t('equipment.title')}
                 </h3>
+                <p className="text-sm mt-1 text-gray-600">
+                  {alert.siteAddress}
+                </p>
+                {alert.siteContact && (
+                  <p className="text-sm text-gray-500">
+                    {t('sites.contact1')}: {alert.siteContact}
+                  </p>
+                )}
                 <p className="text-sm mt-1">
                   {alert.daysRemaining > 0
                     ? `${alert.daysRemaining} ${t('alerts.daysRemaining')}`
                     : `${Math.abs(alert.daysRemaining)} ${t('alerts.daysOverdue')}`}
                 </p>
               </div>
-              <Link
-                to={`/equipment/${alert.equipmentId}`}
-                className="px-3 py-1 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
-              >
-                {t('equipment.details')}
-              </Link>
+              <div className="flex flex-col gap-2 ms-4">
+                {alert.sitePhone && (
+                  <a
+                    href={`tel:${alert.sitePhone}`}
+                    className="px-3 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 flex items-center gap-1"
+                  >
+                    📞 {t('sites.phone1')}
+                  </a>
+                )}
+                <Link
+                  to={alert.workOrderId ? `/workorders/${alert.workOrderId}` : `/equipment/${alert.equipmentId}`}
+                  className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                >
+                  {alert.workOrderId ? t('workOrders.details') : t('equipment.details')}
+                </Link>
+              </div>
             </div>
           </div>
         ))}

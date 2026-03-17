@@ -202,17 +202,39 @@ export function EquipmentListPage() {
         {filteredEquipment.map((eq) => (
           <div
             key={eq.id}
-            onClick={() => handleViewDetails(eq)}
-            className="bg-white rounded-2xl p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100 cursor-pointer"
+            className="bg-white rounded-2xl p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100"
           >
             <div className="flex justify-between items-start mb-3">
-              <div>
-                <h3 className="font-semibold text-lg text-surface-800">{eq.qrTag}</h3>
+              <div className="flex-1" onClick={() => handleViewDetails(eq)}>
+                <h3 className="font-semibold text-lg text-surface-800 cursor-pointer">{eq.qrTag}</h3>
                 <p className="text-surface-500 text-sm mt-0.5">{eq.type}</p>
               </div>
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewDetails(eq);
+                  }}
+                  className="p-2 hover:bg-surface-100 rounded-lg transition-colors"
+                  title={t('app.actions')}
+                >
+                  <svg className="w-5 h-5 text-surface-500" fill="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="5" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="12" cy="19" r="2" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[eq.status]}`}>
                 {t(`equipment.statuses.${eq.status}`)}
               </span>
+              {eq.siteId && (
+                <span className="text-xs text-surface-500">
+                  {sites.find(s => s.id === eq.siteId)?.name}
+                </span>
+              )}
             </div>
             {eq.plannedRemovalDate && eq.status === 'at_customer' && (
               <div className="mt-4 pt-3 border-t border-surface-100">
