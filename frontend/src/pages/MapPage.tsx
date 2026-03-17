@@ -57,7 +57,18 @@ export function MapPage() {
   const [showSiteList, setShowSiteList] = useState(false);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
+
+  useEffect(() => {
+    const checkSidebar = () => {
+      setIsMobileSidebarOpen(document.body.classList.contains('mobile-sidebar-open'));
+    };
+    checkSidebar();
+    const observer = new MutationObserver(checkSidebar);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const fetchSites = async () => {
@@ -126,7 +137,7 @@ export function MapPage() {
       {/* Mobile: Toggle between map and list, Desktop: Map takes most space */}
       <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 h-full">
         {/* Map - takes most space on desktop (3/4) */}
-        <div className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden ${showSiteList ? 'hidden lg:block' : ''} flex-1 min-h-[300px] sm:min-h-[400px] lg:flex-[3]`}>
+        <div className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden ${showSiteList ? 'hidden lg:block' : ''} flex-1 min-h-[300px] sm:min-h-[400px] lg:flex-[3] ${isMobileSidebarOpen ? 'pointer-events-none' : ''}`}>
           <MapContainer
             center={defaultCenter}
             zoom={7}

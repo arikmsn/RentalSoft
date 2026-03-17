@@ -10,12 +10,32 @@ export function MainLayout() {
   const { isAuthenticated } = useAuthStore();
   const { setOnline, setSyncStatus } = useAppStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Close sidebar on navigation (for mobile)
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
+
+  // Add body class when mobile sidebar is open to block map interactions
+  useEffect(() => {
+    if (isMobile && sidebarOpen) {
+      document.body.classList.add('mobile-sidebar-open');
+    } else {
+      document.body.classList.remove('mobile-sidebar-open');
+    }
+  }, [isMobile, sidebarOpen]);
 
   // Also close sidebar when window resizes to desktop
   useEffect(() => {
@@ -63,32 +83,42 @@ export function MainLayout() {
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Header onMenuToggle={toggleSidebar} />
       
-      {/* Sidebar backdrop for mobile */}
-      {sidebarOpen && (
+      {/* Mobile sidebar backdrop - only on mobile when open */}
+      {isMobile && sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-40 animate-fade-in"
           onClick={closeSidebar}
         />
       )}
       
-      {/* Sidebar - drawer on mobile (hidden off-canvas), always visible on desktop */}
-      <div 
-        className={`
-          fixed inset-y-0 start-0 z-50
-          transform transition-transform duration-300 ease-in-out
-          lg:translate-x-0
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        `}
-      >
-        <Sidebar onClose={closeSidebar} />
-      </div>
+      {/* Sidebar - always mounted on desktop, conditional on mobile */}
+      {!isMobile && (
+        <div className="fixed inset-y-0 start-0 z-50 lg:block">
+          <Sidebar onClose={closeSidebar} />
+        </div>
+      )}
+
+      {/* Mobile sidebar - conditionally rendered with very high z-index to be above Leaflet */}
+      {isMobile && (
+        <div 
+          className={`
+            fixed inset-y-0 start-0 z-[9999] w-72
+            transform transition-transform duration-300 ease-out
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}
+        >
+          <Sidebar onClose={closeSidebar} />
+        </div>
+      )}
 
       {/* Main content - with left margin on large screens */}
-      <main className="lg:ms-64 p-3 sm:p-4 pb-24 sm:pb-4 min-h-[calc(100vh-64px)]">
-        <Outlet />
+      <main className="lg:ms-64 p-4 sm:p-5 pb-24 sm:pb-5 min-h-[calc(100vh-64px)]">
+        <div className="animate-fade-in">
+          <Outlet />
+        </div>
       </main>
       
       <MobileNav />
