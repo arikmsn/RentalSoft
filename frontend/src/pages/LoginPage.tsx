@@ -9,7 +9,7 @@ export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuthStore();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,7 @@ export function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await authService.login({ email, password });
+      const response = await authService.login({ username, password });
       login(response.user, response.token);
       navigate('/dashboard');
     } catch (err) {
@@ -52,14 +52,15 @@ export function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('auth.email')}
+                {t('auth.username')}
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
                 required
+                autoComplete="username"
               />
             </div>
 
@@ -73,6 +74,7 @@ export function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
                 required
+                autoComplete="current-password"
               />
             </div>
 

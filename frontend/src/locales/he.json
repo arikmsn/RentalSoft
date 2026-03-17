@@ -25,6 +25,7 @@
   "auth": {
     "login": "התחברות",
     "logout": "התנתק",
+    "username": "שם משתמש",
     "email": "דואר אלקטרוני",
     "password": "סיסמה",
     "rememberMe": "זכור אותי",
