@@ -61,7 +61,7 @@ export function EquipmentListPage() {
     try {
       await equipmentService.create({
         ...formData,
-        siteId: formData.siteId || null,
+        siteId: formData.siteId || undefined,
       });
       setShowForm(false);
       setFormData({ qrTag: '', type: '', status: 'warehouse', siteId: '', condition: 'ok' });
@@ -95,7 +95,7 @@ export function EquipmentListPage() {
     try {
       await equipmentService.update(selectedEquipment.id, {
         ...editFormData,
-        siteId: editFormData.siteId || null,
+        siteId: editFormData.siteId || undefined,
         plannedRemovalDate: editFormData.plannedRemovalDate ? new Date(editFormData.plannedRemovalDate) : undefined,
       });
       setShowDetails(false);
