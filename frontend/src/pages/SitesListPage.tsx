@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import type { Site } from '../types';
 import { siteService } from '../services/siteService';
 import { useAuthStore } from '../stores/authStore';
@@ -108,7 +107,11 @@ export function SitesListPage() {
   };
 
   const handleDelete = async (site: Site) => {
-    if (!confirm(t('app.confirmDelete') + '?')) return;
+    const hasEquipment = sites.some(s => s.id === site.id && (s as any)._count?.equipment > 0);
+    const message = hasEquipment 
+      ? t('sites.deleteWarning')
+      : t('app.confirmDelete') + '?';
+    if (!confirm(message)) return;
     setDeletingId(site.id);
     try {
       await siteService.delete(site.id);
@@ -181,10 +184,10 @@ export function SitesListPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredSites.map((site) => (
-          <Link
+          <div
             key={site.id}
-            to={`/sites/${site.id}`}
-            className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+            onClick={() => canEdit && handleEditClick(site)}
+            className={`bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow ${canEdit ? 'cursor-pointer' : ''}`}
           >
             <div className="flex justify-between items-start mb-2">
               <h3 className="font-semibold text-lg">{site.name}</h3>
@@ -205,33 +208,10 @@ export function SitesListPage() {
                 </div>
               )}
               <div className="flex items-center gap-2">
-                {canEdit && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleEditClick(site);
-                    }}
-                    className="text-sm text-primary-600 hover:text-primary-700"
-                  >
-                    {t('app.edit')}
-                  </button>
-                )}
-                {canDelete && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleDelete(site);
-                    }}
-                    disabled={deletingId === site.id}
-                    className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50"
-                  >
-                    {deletingId === site.id ? t('app.loading') : t('app.delete')}
-                  </button>
-                )}
                 {site.latitude && site.longitude && (
                   <button
                     onClick={(e) => {
-                      e.preventDefault();
+                      e.stopPropagation();
                       handleNavigate(site);
                     }}
                     className="text-sm text-primary-600 hover:text-primary-700"
@@ -241,7 +221,7 @@ export function SitesListPage() {
                 )}
               </div>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
 
@@ -362,7 +342,20 @@ export function SitesListPage() {
       {showEditForm && editingSite && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">{t('app.edit')}</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">{t('app.edit')}</h2>
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={() => handleDelete(editingSite)}
+                  disabled={deletingId === editingSite.id}
+                  className="text-red-600 hover:text-red-700 p-1"
+                  title={t('app.delete')}
+                >
+                  🗑️
+                </button>
+              )}
+            </div>
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.name')}</label>

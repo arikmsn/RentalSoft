@@ -113,7 +113,7 @@ export function DashboardPage() {
                 <div className="flex items-center justify-between p-2 sm:p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
                   <div>
                     <p className="font-medium text-sm sm:text-base text-red-800">
-                      {t(`alerts.${alert.type.replace('_', '')}`)}
+                      {t(`alerts.${alert.type}`)}
                     </p>
                     <p className="text-xs sm:text-sm text-red-600">
                       {alert.daysRemaining > 0

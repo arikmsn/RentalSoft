@@ -40,6 +40,29 @@ export function EquipmentListPage() {
     plannedRemovalDate: '',
   });
   const [savingEdit, setSavingEdit] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteEquipment = async () => {
+    if (!selectedEquipment) return;
+    const hasSite = selectedEquipment.siteId;
+    const message = hasSite 
+      ? t('equipment.deleteWarning')
+      : t('app.confirmDelete') + '?';
+    if (!confirm(message)) return;
+    setDeleting(true);
+    try {
+      await equipmentService.delete(selectedEquipment.id);
+      setShowDetails(false);
+      setSelectedEquipment(null);
+      const data = await equipmentService.getAll();
+      setEquipment(data);
+    } catch (err: any) {
+      console.error('Failed to delete equipment:', err);
+      alert(err?.response?.data?.message || 'Failed to delete equipment');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -327,7 +350,18 @@ export function EquipmentListPage() {
       {showDetails && selectedEquipment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">{t('equipment.details')}</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">{t('equipment.details')}</h2>
+              <button
+                type="button"
+                onClick={handleDeleteEquipment}
+                disabled={deleting}
+                className="text-red-600 hover:text-red-700 p-1"
+                title={t('app.delete')}
+              >
+                🗑️
+              </button>
+            </div>
             <form onSubmit={handleUpdateEquipment} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.qrTag')}</label>

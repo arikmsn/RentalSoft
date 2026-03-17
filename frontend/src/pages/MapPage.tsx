@@ -56,6 +56,7 @@ export function MapPage() {
   const [loading, setLoading] = useState(true);
   const [showSiteList, setShowSiteList] = useState(false);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
@@ -71,6 +72,18 @@ export function MapPage() {
     };
     fetchSites();
   }, []);
+
+  const filteredSites = sites
+    .filter(site => {
+      if (!search) return true;
+      const searchLower = search.toLowerCase();
+      return (
+        site.name.toLowerCase().includes(searchLower) ||
+        site.city.toLowerCase().includes(searchLower) ||
+        site.address.toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a, b) => a.city.localeCompare(b.city, 'he'));
 
   const handleSiteClick = (site: SiteWithStatus) => {
     setSelectedSiteId(site.id);
@@ -106,7 +119,7 @@ export function MapPage() {
           onClick={() => setShowSiteList(!showSiteList)}
           className="lg:hidden px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-medium min-h-[40px]"
         >
-          {showSiteList ? t('map.title') : `📋 ${sites.length}`}
+          {showSiteList ? t('map.title') : `📋 ${filteredSites.length}`}
         </button>
       </div>
 
@@ -124,7 +137,7 @@ export function MapPage() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {sites.map((site) => (
+            {filteredSites.map((site) => (
               <Marker
                 key={site.id}
                 position={[site.latitude!, site.longitude!]}
@@ -177,9 +190,16 @@ export function MapPage() {
         {/* Site List - sidebar on desktop (1/4), overlay on mobile */}
         <div className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-auto ${showSiteList ? 'block' : 'hidden lg:block'} ${showSiteList ? 'max-h-[50vh]' : 'lg:max-h-[600px]'} lg:flex-1`}>
           <div className="p-3 sm:p-4">
-            <h2 className="font-semibold mb-3 hidden lg:block">{t('sites.title')} ({sites.length})</h2>
+            <input
+              type="text"
+              placeholder={t('app.search')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full px-3 py-2 mb-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm"
+            />
+            <h2 className="font-semibold mb-3 hidden lg:block">{t('sites.title')} ({filteredSites.length})</h2>
             <div className="space-y-2">
-              {sites.map((site) => (
+              {filteredSites.map((site) => (
                 <div
                   key={site.id}
                   onClick={() => handleSiteClick(site)}

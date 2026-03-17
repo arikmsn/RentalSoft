@@ -58,11 +58,13 @@
     "site": "Site",
     "lastScan": "Last Scan",
     "plannedRemoval": "Available on date",
+    "estimatedRemovalDate": "Estimated Removal Date",
     "actualRemoval": "Actual Removal",
     "installationDate": "Installation Date",
     "condition": "Condition",
     "history": "History",
     "details": "Equipment Details",
+    "deleteWarning": "Cannot delete - this site has active equipment. Delete anyway?",
     "statuses": {
       "warehouse": "In Warehouse",
       "at_customer": "At Customer",
@@ -115,7 +117,8 @@
     "navigate": "Navigate with Waze",
     "activeEquipment": "Active Equipment",
     "history": "History",
-    "createWorkOrder": "Create Work Order"
+    "createWorkOrder": "Create Work Order",
+    "deleteWarning": "Cannot delete - this site has active equipment. Delete anyway?"
   },
   "workOrders": {
     "title": "Work Orders",

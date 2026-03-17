@@ -20,6 +20,7 @@ export interface CreateWorkOrderRequest {
 export interface UpdateWorkOrderRequest {
   type?: WorkOrderType;
   status?: WorkOrderStatus;
+  siteId?: string;
   technicianId?: string;
   plannedDate?: Date;
   actualDate?: Date;

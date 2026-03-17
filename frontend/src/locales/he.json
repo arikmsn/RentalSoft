@@ -58,11 +58,13 @@
     "site": "אתר",
     "lastScan": "סריקה אחרונה",
     "plannedRemoval": "מתפנה בתאריך",
+    "estimatedRemovalDate": "תאריך פירוק משוער",
     "actualRemoval": "הסרה בפועל",
     "installationDate": "תאריך התקנה",
     "condition": "מצב",
     "history": "היסטוריה",
     "details": "פרטי ציוד",
+    "deleteWarning": "לא ניתן לבטל – באתר זה יש כרגע ציוד פעיל. למחוק בכל זאת?",
     "statuses": {
       "warehouse": "במחסן",
       "at_customer": "אצל לקוח",
@@ -115,7 +117,8 @@
     "navigate": "נווט עם Waze",
     "activeEquipment": "ציוד פעיל",
     "history": "היסטוריה",
-    "createWorkOrder": "צור עבודה"
+    "createWorkOrder": "צור עבודה",
+    "deleteWarning": "לא ניתן לבטל – באתר זה יש כרגע ציוד פעיל. למחוק בכל זאת?"
   },
   "workOrders": {
     "title": "עבודות",

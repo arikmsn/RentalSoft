@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { WorkOrder, Site, Equipment } from '../types';
+import type { WorkOrder, WorkOrderStatus, WorkOrderType, Site, Equipment, User } from '../types';
 import type { ChecklistUpdate } from '../services/workOrderService';
 import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
 import { QRScanner } from '../components/qr';
 import { offlineApi } from '../services/offlineApi';
+import { workOrderService } from '../services/workOrderService';
+import { siteService } from '../services/siteService';
+import { api } from '../services/api';
 
 const typeIcons: Record<string, string> = {
   installation: '🔧',
@@ -53,9 +56,23 @@ export function WorkOrderDetailsPage() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannedEquipment, setScannedEquipment] = useState<ScannedEquipment[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
+  
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    type: '' as WorkOrderType,
+    status: '' as WorkOrderStatus,
+    siteId: '',
+    technicianId: '',
+    plannedDate: '',
+    plannedRemovalDate: '',
+  });
+  const [sites, setSites] = useState<Site[]>([]);
+  const [technicians, setTechnicians] = useState<User[]>([]);
+  const [deleting, setDeleting] = useState(false);
 
   const isAssignedTechnician = user?.id === workOrder?.technicianId;
   const canEdit = user?.role === 'manager' || user?.role === 'admin' || isAssignedTechnician;
+  const canDelete = user?.role === 'manager' || user?.role === 'admin';
   const canComplete = canEdit && workOrder?.status !== 'completed';
 
   const fetchData = useCallback(async () => {
@@ -236,6 +253,63 @@ export function WorkOrderDetailsPage() {
     setScannedEquipment(prev => prev.filter(eq => eq.id !== equipmentId));
   };
 
+  const handleDelete = async () => {
+    if (!id || !confirm(t('app.confirmDelete') + '?')) return;
+    setDeleting(true);
+    try {
+      await workOrderService.delete(id);
+      navigate('/workorders');
+    } catch (err: any) {
+      console.error('Failed to delete work order:', err);
+      alert(err?.response?.data?.message || 'Failed to delete work order');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleEditClick = () => {
+    if (!workOrder) return;
+    setEditFormData({
+      type: workOrder.type,
+      status: workOrder.status,
+      siteId: workOrder.siteId,
+      technicianId: workOrder.technicianId,
+      plannedDate: new Date(workOrder.plannedDate).toISOString().slice(0, 16),
+      plannedRemovalDate: workOrder.plannedRemovalDate ? new Date(workOrder.plannedRemovalDate).toISOString().slice(0, 10) : '',
+    });
+    Promise.all([
+      siteService.getAll(),
+      api.get<User[]>('/users/technicians').then(res => res.data),
+    ]).then(([sitesData, techsData]) => {
+      setSites(sitesData);
+      setTechnicians(techsData);
+      setShowEditForm(true);
+    });
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+    setSaving(true);
+    try {
+      await workOrderService.update(id, {
+        type: editFormData.type,
+        status: editFormData.status,
+        siteId: editFormData.siteId,
+        technicianId: editFormData.technicianId,
+        plannedDate: new Date(editFormData.plannedDate),
+        plannedRemovalDate: editFormData.plannedRemovalDate ? new Date(editFormData.plannedRemovalDate) : undefined,
+      });
+      setShowEditForm(false);
+      fetchData();
+    } catch (err: any) {
+      console.error('Failed to update work order:', err);
+      alert(err?.response?.data?.message || 'Failed to update work order');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -267,6 +341,101 @@ export function WorkOrderDetailsPage() {
         />
       )}
 
+      {showEditForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">{t('app.edit')}</h2>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.type')}</label>
+                <select
+                  value={editFormData.type}
+                  onChange={(e) => setEditFormData({ ...editFormData, type: e.target.value as WorkOrderType })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="installation">{t('workOrders.types.installation')}</option>
+                  <option value="inspection">{t('workOrders.types.inspection')}</option>
+                  <option value="removal">{t('workOrders.types.removal')}</option>
+                  <option value="general">{t('workOrders.types.general')}</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.status')}</label>
+                <select
+                  value={editFormData.status}
+                  onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as WorkOrderStatus })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="open">{t('workOrders.statuses.open')}</option>
+                  <option value="in_progress">{t('workOrders.statuses.in_progress')}</option>
+                  <option value="completed">{t('workOrders.statuses.completed')}</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.site')}</label>
+                <select
+                  value={editFormData.siteId}
+                  onChange={(e) => setEditFormData({ ...editFormData, siteId: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">-- {t('app.select')} --</option>
+                  {sites.map((site) => (
+                    <option key={site.id} value={site.id}>{site.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.technician')}</label>
+                <select
+                  value={editFormData.technicianId}
+                  onChange={(e) => setEditFormData({ ...editFormData, technicianId: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">-- {t('app.select')} --</option>
+                  {technicians.map((tech) => (
+                    <option key={tech.id} value={tech.id}>{tech.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.plannedDate')}</label>
+                <input
+                  type="datetime-local"
+                  value={editFormData.plannedDate}
+                  onChange={(e) => setEditFormData({ ...editFormData, plannedDate: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.plannedRemoval')}</label>
+                <input
+                  type="date"
+                  value={editFormData.plannedRemovalDate}
+                  onChange={(e) => setEditFormData({ ...editFormData, plannedRemovalDate: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditForm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  {t('app.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {saving ? t('app.loading') : t('app.save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
@@ -277,9 +446,30 @@ export function WorkOrderDetailsPage() {
           </svg>
           {t('app.back')}
         </button>
-        <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[workOrder.status]}`}>
-          {t(`workOrders.statuses.${workOrder.status.replace('_', '')}`)}
-        </span>
+        <div className="flex items-center gap-2">
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-red-600 hover:text-red-700 p-1"
+              title={t('app.delete')}
+            >
+              🗑️
+            </button>
+          )}
+          {canEdit && (
+            <button
+              onClick={handleEditClick}
+              className="text-primary-600 hover:text-primary-700 p-1"
+              title={t('app.edit')}
+            >
+              ✏️
+            </button>
+          )}
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[workOrder.status]}`}>
+            {t(`workOrders.statuses.${workOrder.status}`)}
+          </span>
+        </div>
       </div>
 
       {/* Offline indicator */}
