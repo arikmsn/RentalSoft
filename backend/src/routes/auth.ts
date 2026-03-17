@@ -9,11 +9,23 @@ const router = Router();
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, username, password } = req.body;
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    let user;
+    if (username) {
+      user = await prisma.user.findFirst({
+        where: { 
+          OR: [
+            { username: username },
+            { email: username },
+          ]
+        },
+      });
+    } else if (email) {
+      user = await prisma.user.findUnique({
+        where: { email },
+      });
+    }
 
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -40,6 +52,7 @@ router.post('/login', async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        username: user.username,
         role: user.role,
         phone: user.phone,
         isActive: user.isActive,

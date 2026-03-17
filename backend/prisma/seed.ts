@@ -6,63 +6,107 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  const hashedPassword = await bcrypt.hash('admin123', 10);
-  
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
-    update: {},
-    create: {
-      name: 'מנהל מערכת',
-      email: 'admin@example.com',
-      password: hashedPassword,
-      role: 'admin',
-      phone: '050-1234567',
-    },
-  });
-  console.log('✅ Admin user created:', admin.email);
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const managerPassword = process.env.MANAGER_PASSWORD;
+  const techPassword = process.env.TECH_PASSWORD;
+  const tech2Password = process.env.TECH2_PASSWORD;
 
-  const managerPassword = await bcrypt.hash('manager123', 10);
-  const manager = await prisma.user.upsert({
-    where: { email: 'manager@example.com' },
-    update: {},
-    create: {
-      name: 'דוד כהן',
-      email: 'manager@example.com',
-      password: managerPassword,
-      role: 'manager',
-      phone: '050-2345678',
-    },
-  });
-  console.log('✅ Manager user created:', manager.email);
+  if (adminPassword) {
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    await prisma.user.upsert({
+      where: { username: 'admin' },
+      update: {
+        password: hashedPassword,
+        name: 'מנהל מערכת',
+        role: 'admin',
+      },
+      create: {
+        name: 'מנהל מערכת',
+        email: 'admin@rentalsoft.local',
+        username: 'admin',
+        password: hashedPassword,
+        role: 'admin',
+        phone: '050-1234567',
+      },
+    });
+    console.log('✅ Admin user created/updated: admin');
+  } else {
+    console.log('⚠️ ADMIN_PASSWORD not set, skipping admin user');
+  }
 
-  const techPassword = await bcrypt.hash('tech123', 10);
-  const technician = await prisma.user.upsert({
-    where: { email: 'tech@example.com' },
-    update: {},
-    create: {
-      name: 'אבי לוי',
-      email: 'tech@example.com',
-      password: techPassword,
-      role: 'technician',
-      phone: '050-3456789',
-    },
-  });
+  if (managerPassword) {
+    const hashedPassword = await bcrypt.hash(managerPassword, 10);
+    await prisma.user.upsert({
+      where: { username: 'manager' },
+      update: {
+        password: hashedPassword,
+        name: 'מנהל',
+        role: 'manager',
+      },
+      create: {
+        name: 'מנהל',
+        email: 'manager@rentalsoft.local',
+        username: 'manager',
+        password: hashedPassword,
+        role: 'manager',
+        phone: '050-2345678',
+      },
+    });
+    console.log('✅ Manager user created/updated: manager');
+  } else {
+    console.log('⚠️ MANAGER_PASSWORD not set, skipping manager user');
+  }
 
-  const tech2Password = await bcrypt.hash('tech2123', 10);
-  const technician2 = await prisma.user.upsert({
-    where: { email: 'tech2@example.com' },
-    update: {},
-    create: {
-      name: 'משה פרידמן',
-      email: 'tech2@example.com',
-      password: tech2Password,
-      role: 'technician',
-      phone: '050-4567890',
-    },
-  });
-  console.log('✅ Technician users created:', technician.email, technician2.email);
+  if (techPassword) {
+    const hashedPassword = await bcrypt.hash(techPassword, 10);
+    await prisma.user.upsert({
+      where: { username: 'tech' },
+      update: {
+        password: hashedPassword,
+        name: 'טכנאי 1',
+        role: 'technician',
+      },
+      create: {
+        name: 'טכנאי 1',
+        email: 'tech@rentalsoft.local',
+        username: 'tech',
+        password: hashedPassword,
+        role: 'technician',
+        phone: '050-3456789',
+      },
+    });
+    console.log('✅ Technician user created/updated: tech');
+  } else {
+    console.log('⚠️ TECH_PASSWORD not set, skipping tech user');
+  }
+
+  if (tech2Password) {
+    const hashedPassword = await bcrypt.hash(tech2Password, 10);
+    await prisma.user.upsert({
+      where: { username: 'tech2' },
+      update: {
+        password: hashedPassword,
+        name: 'טכנאי 2',
+        role: 'technician',
+      },
+      create: {
+        name: 'טכנאי 2',
+        email: 'tech2@rentalsoft.local',
+        username: 'tech2',
+        password: hashedPassword,
+        role: 'technician',
+        phone: '050-4567890',
+      },
+    });
+    console.log('✅ Technician user created/updated: tech2');
+  } else {
+    console.log('⚠️ TECH2_PASSWORD not set, skipping tech2 user');
+  }
 
   const equipmentTypes = [
+    { name: 'מכונה גדולה', description: 'מכונה גדולה לייבוש' },
+    { name: 'מכונה בינונית', description: 'מכונה בינונית לייבוש' },
+    { name: 'מכונה קטנה', description: 'מכונה קטנה לייבוש' },
     { name: 'מזגן', description: 'מזגן עילוי' },
     { name: 'מקרר', description: 'מקרר תעשייתי' },
     { name: 'מכונת כביסה', description: 'מכונת כביסה תעשייתית' },
@@ -155,18 +199,18 @@ async function main() {
   const typeRecords = await prisma.equipmentType.findMany();
 
   const equipmentData = [
-    { qrTag: 'EQ001', type: 'מזגן', status: EquipmentStatus.at_customer, siteId: createdSites[0].id, condition: EquipmentCondition.ok },
-    { qrTag: 'EQ002', type: 'מזגן', status: EquipmentStatus.at_customer, siteId: createdSites[0].id, condition: EquipmentCondition.ok },
-    { qrTag: 'EQ003', type: 'מקרר', status: EquipmentStatus.at_customer, siteId: createdSites[1].id, condition: EquipmentCondition.ok },
-    { qrTag: 'EQ004', type: 'מקרר', status: EquipmentStatus.at_customer, siteId: createdSites[1].id, condition: EquipmentCondition.wearout },
-    { qrTag: 'EQ005', type: 'מקפיא', status: EquipmentStatus.at_customer, siteId: createdSites[2].id, condition: EquipmentCondition.ok },
-    { qrTag: 'EQ006', type: 'מכונת כביסה', status: EquipmentStatus.warehouse, condition: EquipmentCondition.ok },
-    { qrTag: 'EQ007', type: 'מזגן', status: EquipmentStatus.in_repair, condition: EquipmentCondition.not_ok },
-    { qrTag: 'EQ008', type: 'מדיח', status: EquipmentStatus.at_customer, siteId: createdSites[3].id, condition: EquipmentCondition.ok },
-    { qrTag: 'EQ009', type: 'מקרר', status: EquipmentStatus.at_customer, siteId: createdSites[4].id, condition: EquipmentCondition.ok },
-    { qrTag: 'EQ010', type: 'מזגן', status: EquipmentStatus.warehouse, condition: EquipmentCondition.ok },
-    { qrTag: 'EQ011', type: 'מקפיא', status: EquipmentStatus.warehouse, condition: EquipmentCondition.ok },
-    { qrTag: 'EQ012', type: 'מכונת כביסה', status: EquipmentStatus.at_customer, siteId: createdSites[3].id, condition: EquipmentCondition.wearout },
+    { qrTag: 'EQ001', type: 'מכונה גדולה', status: EquipmentStatus.at_customer, siteId: createdSites[0].id, condition: EquipmentCondition.ok },
+    { qrTag: 'EQ002', type: 'מכונה גדולה', status: EquipmentStatus.at_customer, siteId: createdSites[0].id, condition: EquipmentCondition.ok },
+    { qrTag: 'EQ003', type: 'מכונה בינונית', status: EquipmentStatus.at_customer, siteId: createdSites[1].id, condition: EquipmentCondition.ok },
+    { qrTag: 'EQ004', type: 'מכונה בינונית', status: EquipmentStatus.at_customer, siteId: createdSites[1].id, condition: EquipmentCondition.wearout },
+    { qrTag: 'EQ005', type: 'מכונה קטנה', status: EquipmentStatus.at_customer, siteId: createdSites[2].id, condition: EquipmentCondition.ok },
+    { qrTag: 'EQ006', type: 'מכונה גדולה', status: EquipmentStatus.warehouse, condition: EquipmentCondition.ok },
+    { qrTag: 'EQ007', type: 'מכונה בינונית', status: EquipmentStatus.in_repair, condition: EquipmentCondition.not_ok },
+    { qrTag: 'EQ008', type: 'מכונה קטנה', status: EquipmentStatus.at_customer, siteId: createdSites[3].id, condition: EquipmentCondition.ok },
+    { qrTag: 'EQ009', type: 'מכונה גדולה', status: EquipmentStatus.at_customer, siteId: createdSites[4].id, condition: EquipmentCondition.ok },
+    { qrTag: 'EQ010', type: 'מכונה בינונית', status: EquipmentStatus.warehouse, condition: EquipmentCondition.ok },
+    { qrTag: 'EQ011', type: 'מכונה קטנה', status: EquipmentStatus.warehouse, condition: EquipmentCondition.ok },
+    { qrTag: 'EQ012', type: 'מכונה גדולה', status: EquipmentStatus.at_customer, siteId: createdSites[3].id, condition: EquipmentCondition.wearout },
   ];
 
   const createdEquipment = [];
@@ -191,143 +235,91 @@ async function main() {
   }
   console.log('✅ Sample equipment created');
 
-  const workOrders = [
-    {
-      id: 'wo-1',
-      type: WorkOrderType.installation,
-      siteId: createdSites[0].id,
-      technicianId: technician.id,
-      status: WorkOrderStatus.open,
-      plannedDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
-      plannedRemovalDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 'wo-2',
-      type: WorkOrderType.inspection,
-      siteId: createdSites[1].id,
-      technicianId: technician.id,
-      status: WorkOrderStatus.in_progress,
-      plannedDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 'wo-3',
-      type: WorkOrderType.removal,
-      siteId: createdSites[2].id,
-      technicianId: technician2.id,
-      status: WorkOrderStatus.open,
-      plannedDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      plannedRemovalDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 'wo-4',
-      type: WorkOrderType.installation,
-      siteId: createdSites[3].id,
-      technicianId: technician2.id,
-      status: WorkOrderStatus.completed,
-      plannedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      actualDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      done: 'התקנה בוצעה בהצלחה. המזגן פועל.',
-      plannedRemovalDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 'wo-5',
-      type: WorkOrderType.inspection,
-      siteId: createdSites[4].id,
-      technicianId: technician.id,
-      status: WorkOrderStatus.completed,
-      plannedDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-      actualDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-      done: 'המקרר תקין. יש להחליף גומיות בעוד 3 חודשים.',
-    },
-  ];
+  const techUser = await prisma.user.findFirst({ where: { username: 'tech' } });
+  const tech2User = await prisma.user.findFirst({ where: { username: 'tech2' } });
 
-  const createdWorkOrders = [];
-  for (const wo of workOrders) {
-    const created = await prisma.workOrder.upsert({
-      where: { id: wo.id },
-      update: {},
-      create: wo,
-    });
-    createdWorkOrders.push(created);
+  if (techUser && tech2User) {
+    const workOrders = [
+      {
+        id: 'wo-1',
+        type: WorkOrderType.installation,
+        siteId: createdSites[0].id,
+        technicianId: techUser.id,
+        status: WorkOrderStatus.open,
+        plannedDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
+        plannedRemovalDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: 'wo-2',
+        type: WorkOrderType.inspection,
+        siteId: createdSites[1].id,
+        technicianId: techUser.id,
+        status: WorkOrderStatus.in_progress,
+        plannedDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: 'wo-3',
+        type: WorkOrderType.removal,
+        siteId: createdSites[2].id,
+        technicianId: tech2User.id,
+        status: WorkOrderStatus.open,
+        plannedDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        plannedRemovalDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: 'wo-4',
+        type: WorkOrderType.installation,
+        siteId: createdSites[3].id,
+        technicianId: tech2User.id,
+        status: WorkOrderStatus.completed,
+        plannedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        actualDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        done: 'התקנה בוצעה בהצלחה. המכונה פועלת.',
+        plannedRemovalDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: 'wo-5',
+        type: WorkOrderType.inspection,
+        siteId: createdSites[4].id,
+        technicianId: techUser.id,
+        status: WorkOrderStatus.completed,
+        plannedDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        actualDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        done: 'המכונה תקינה. יש לבצע תחזוקה בעוד 3 חודשים.',
+      },
+    ];
+
+    const createdWorkOrders = [];
+    for (const wo of workOrders) {
+      const created = await prisma.workOrder.upsert({
+        where: { id: wo.id },
+        update: {},
+        create: wo,
+      });
+      createdWorkOrders.push(created);
+    }
+    console.log('✅ Sample work orders created');
+
+    const checklistItems = [
+      { workOrderId: createdWorkOrders[0].id, itemName: 'בדיקת מתח חשמל', isChecked: false },
+      { workOrderId: createdWorkOrders[0].id, itemName: 'חיבור ניקוז', isChecked: false },
+      { workOrderId: createdWorkOrders[0].id, itemName: 'בדיקת פעולה', isChecked: false },
+      { workOrderId: createdWorkOrders[0].id, itemName: 'הדרכת לקוח', isChecked: false },
+      { workOrderId: createdWorkOrders[1].id, itemName: 'בדיקת טמפרטורה', isChecked: true, value: 'תקין' },
+      { workOrderId: createdWorkOrders[1].id, itemName: 'בדיקת פילטרים', isChecked: true },
+      { workOrderId: createdWorkOrders[1].id, itemName: 'ניקוי מערכת', isChecked: false },
+      { workOrderId: createdWorkOrders[2].id, itemName: 'ניתוק חשמל', isChecked: false },
+      { workOrderId: createdWorkOrders[2].id, itemName: 'פירוק הציוד', isChecked: false },
+      { workOrderId: createdWorkOrders[2].id, itemName: 'אישור לקוח', isChecked: false },
+    ];
+
+    for (const item of checklistItems) {
+      await prisma.checklistItem.create({
+        data: item,
+      });
+    }
+    console.log('✅ Checklist items created');
   }
-  console.log('✅ Sample work orders created');
-
-  const checklistItems = [
-    { workOrderId: createdWorkOrders[0].id, itemName: 'בדיקת מתח חשמל', isChecked: false },
-    { workOrderId: createdWorkOrders[0].id, itemName: 'חיבור גז', isChecked: false },
-    { workOrderId: createdWorkOrders[0].id, itemName: 'בדיקת קירור', isChecked: false },
-    { workOrderId: createdWorkOrders[0].id, itemName: 'הדרכת לקוח', isChecked: false },
-    { workOrderId: createdWorkOrders[1].id, itemName: 'בדיקת טמפרטורה', isChecked: true, value: '-18 מעלות' },
-    { workOrderId: createdWorkOrders[1].id, itemName: 'בדיקת דלתות', isChecked: true },
-    { workOrderId: createdWorkOrders[1].id, itemName: 'ניקוי מערכת', isChecked: false },
-    { workOrderId: createdWorkOrders[2].id, itemName: 'ניתוק חשמל', isChecked: false },
-    { workOrderId: createdWorkOrders[2].id, itemName: 'פירוק הציוד', isChecked: false },
-    { workOrderId: createdWorkOrders[2].id, itemName: 'אישור לקוח', isChecked: false },
-  ];
-
-  for (const item of checklistItems) {
-    await prisma.checklistItem.create({
-      data: item,
-    });
-  }
-  console.log('✅ Checklist items created');
-
-  const activityLogs = [
-    {
-      equipmentId: createdEquipment[0].id,
-      siteId: createdSites[0].id,
-      userId: technician.id,
-      actionType: 'location_change' as const,
-      notes: 'Equipment installed at site',
-      timestamp: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    },
-    {
-      equipmentId: createdEquipment[0].id,
-      siteId: createdSites[0].id,
-      userId: technician.id,
-      actionType: 'workorder_completed' as const,
-      notes: 'Installation completed',
-      timestamp: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    },
-    {
-      equipmentId: createdEquipment[2].id,
-      siteId: createdSites[1].id,
-      userId: technician2.id,
-      actionType: 'location_change' as const,
-      notes: 'Equipment scanned at site',
-      timestamp: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-    },
-    {
-      workOrderId: createdWorkOrders[3].id,
-      siteId: createdSites[3].id,
-      userId: technician2.id,
-      actionType: 'workorder_created' as const,
-      notes: 'Work order created: installation',
-      timestamp: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
-    },
-    {
-      workOrderId: createdWorkOrders[3].id,
-      siteId: createdSites[3].id,
-      userId: technician2.id,
-      actionType: 'workorder_completed' as const,
-      notes: 'Work order completed: installation',
-      timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    },
-    {
-      equipmentId: createdEquipment[6].id,
-      userId: manager.id,
-      actionType: 'status_change' as const,
-      notes: 'Equipment sent for repair',
-      timestamp: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-    },
-  ];
-
-  for (const log of activityLogs) {
-    await prisma.activityLog.create({
-      data: log,
-    });
-  }
-  console.log('✅ Activity logs created');
 
   console.log('🎉 Seeding completed!');
 }
