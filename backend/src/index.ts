@@ -10,12 +10,23 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3001',
   'https://rentalsoft.onrender.com',
+  'https://rental-soft-three.vercel.app',
 ];
 
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false,
 }));
+
+app.options('*', cors());
 app.use(express.json());
 
 app.use('/api', routes);
