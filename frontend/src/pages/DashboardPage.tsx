@@ -57,43 +57,43 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="space-y-3 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+        <h1 className="text-xl sm:text-2xl font-bold text-surface-800">
           {t('dashboard.title')}
         </h1>
-        <p className="text-sm text-gray-500">{user?.name} • {new Date().toLocaleDateString('he-IL')}</p>
+        <p className="text-sm text-surface-500 mt-1">{user?.name} • {new Date().toLocaleDateString('he-IL')}</p>
       </div>
 
       {/* Stats Grid - 2x2 on mobile, 4 columns on desktop */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
-          <div className="text-2xl sm:text-3xl font-bold text-primary-600">{stats?.activeEquipment || 0}</div>
-          <div className="text-xs sm:text-sm text-gray-500">{t('dashboard.activeEquipment')}</div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100">
+          <div className="text-3xl sm:text-4xl font-bold text-primary-600">{stats?.activeEquipment || 0}</div>
+          <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.activeEquipment')}</div>
         </div>
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
-          <div className="text-2xl sm:text-3xl font-bold text-green-600">{stats?.sitesWithEquipment || 0}</div>
-          <div className="text-xs sm:text-sm text-gray-500">{t('dashboard.sitesWithEquipment')}</div>
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100">
+          <div className="text-3xl sm:text-4xl font-bold text-success-600">{stats?.sitesWithEquipment || 0}</div>
+          <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.sitesWithEquipment')}</div>
         </div>
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
-          <div className="text-2xl sm:text-3xl font-bold text-red-600">{stats?.overdueRemovals || 0}</div>
-          <div className="text-xs sm:text-sm text-gray-500">{t('dashboard.overdueRemovals')}</div>
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100">
+          <div className="text-3xl sm:text-4xl font-bold text-danger-600">{stats?.overdueRemovals || 0}</div>
+          <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.overdueRemovals')}</div>
         </div>
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
-          <div className="text-2xl sm:text-3xl font-bold text-orange-500">{stats?.upcomingRemovals || 0}</div>
-          <div className="text-xs sm:text-sm text-gray-500">{t('dashboard.upcomingRemovals')}</div>
+        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100">
+          <div className="text-3xl sm:text-4xl font-bold text-warning-500">{stats?.upcomingRemovals || 0}</div>
+          <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.upcomingRemovals')}</div>
         </div>
       </div>
 
       {/* Alerts Section */}
-      <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between mb-3 sm:mb-4">
-          <h2 className="text-base sm:text-lg font-semibold">{t('dashboard.alerts')}</h2>
+      <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-surface-100">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base sm:text-lg font-semibold text-surface-800">{t('dashboard.alerts')}</h2>
           {alerts.length > 0 && (
             <Link
               to="/alerts"
-              className="text-sm text-primary-600 hover:text-primary-700"
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
               {t('app.actions')} →
             </Link>

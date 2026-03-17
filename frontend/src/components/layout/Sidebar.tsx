@@ -10,6 +10,7 @@ const navItems = [
   { path: '/my-tasks', icon: '✅', label: 'myTasks', roles: ['technician'] },
   { path: '/map', icon: '🗺️', label: 'map', roles: ['manager', 'admin'] },
   { path: '/alerts', icon: '🔔', label: 'alerts', roles: ['manager', 'admin'] },
+  { path: '/settings', icon: '⚙️', label: 'settings', roles: ['manager', 'admin'] },
 ];
 
 interface SidebarProps {
@@ -25,43 +26,41 @@ export function Sidebar({ onClose }: SidebarProps) {
   );
 
   const handleLinkClick = () => {
-    // Call onClose for mobile - the navigation happens via NavLink
-    // The useEffect in MainLayout will close the sidebar on route change
     if (onClose) {
       onClose();
     }
   };
 
   return (
-    <aside className="w-64 bg-white border-e border-gray-200 h-full flex flex-col">
+    <aside className="w-64 bg-white/95 backdrop-blur-md border-e border-surface-200/50 h-full flex flex-col shadow-lg">
       {/* Close button for mobile */}
       <div className="lg:hidden flex justify-end p-2">
         <button
           onClick={() => onClose?.()}
-          className="p-2 rounded-lg hover:bg-gray-100"
+          className="p-2 rounded-xl hover:bg-surface-100 transition-colors"
           aria-label="Close menu"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
       
-      <nav className="flex-1 p-2 sm:p-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {filteredItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             onClick={handleLinkClick}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors min-h-[48px] ${
+              `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 min-h-[48px] ${
                 isActive
-                  ? 'bg-primary-50 text-primary-600 font-medium'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-500 text-white font-medium shadow-md shadow-primary-500/25'
+                  : 'text-surface-600 hover:bg-surface-100 hover:text-surface-800'
               }`
             }
           >
-            <span className="text-xl">{item.icon}</span>
+            <span className="text-lg">{item.icon}</span>
             <span>{t(`navigation.${item.label}`)}</span>
           </NavLink>
         ))}

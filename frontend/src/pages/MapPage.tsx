@@ -99,7 +99,9 @@ export function MapPage() {
   const handleSiteClick = (site: SiteWithStatus) => {
     setSelectedSiteId(site.id);
     setShowSiteList(true);
+    
     if (mapRef.current && site.latitude && site.longitude) {
+      // Center the map
       mapRef.current.setView([site.latitude, site.longitude], 15);
     }
     // On mobile, also close the list to show map
@@ -107,6 +109,41 @@ export function MapPage() {
       setShowSiteList(false);
     }
   };
+
+  // Open popup when selectedSiteId changes
+  useEffect(() => {
+    if (!selectedSiteId || !mapRef.current) return;
+    
+    const site = sites.find(s => s.id === selectedSiteId);
+    if (site && site.latitude && site.longitude) {
+      // Create a popup at the site location and open it
+      const popup = L.popup({
+        closeButton: true,
+        className: 'site-popup'
+      })
+        .setLatLng([site.latitude, site.longitude])
+        .setContent(`
+          <div class="text-center min-w-[150px] p-1">
+            <h3 class="font-semibold text-surface-800">${site.name}</h3>
+            <p class="text-sm text-surface-600">${site.address}</p>
+            ${site.statusCounts ? `
+              <div class="mt-2 flex justify-center gap-2 text-xs">
+                ${site.statusCounts.red > 0 ? `<span class="px-2 py-1 bg-danger-100 text-danger-700 rounded-full">🔴 ${site.statusCounts.red}</span>` : ''}
+                ${site.statusCounts.orange > 0 ? `<span class="px-2 py-1 bg-warning-100 text-warning-700 rounded-full">🟠 ${site.statusCounts.orange}</span>` : ''}
+                ${site.statusCounts.green > 0 ? `<span class="px-2 py-1 bg-success-100 text-success-700 rounded-full">🟢 ${site.statusCounts.green}</span>` : ''}
+              </div>
+            ` : ''}
+            ${site.isHighlighted ? `<span class="text-xs text-warning-600 font-medium">⚠️</span>` : ''}
+            <div class="mt-2 flex flex-col gap-1">
+              <a href="https://www.waze.com/ul?ll=${site.latitude},${site.longitude}&q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener noreferrer" class="w-full px-2 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors text-decoration-none block">🚗 ניווט</a>
+              <a href="/sites/${site.id}" class="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 transition-colors text-decoration-none block">פעולות</a>
+            </div>
+          </div>
+        `);
+      
+      mapRef.current.openPopup(popup);
+    }
+  }, [selectedSiteId, sites]);
 
   const handleNavigate = (site: SiteWithStatus) => {
     if (site.latitude && site.longitude) {

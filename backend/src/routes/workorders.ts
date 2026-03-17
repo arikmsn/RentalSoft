@@ -141,7 +141,10 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
 
     const existingWorkOrder = await prisma.workOrder.findUnique({
       where: { id: req.params.id },
-      select: { technicianId: true }
+      select: { 
+        technicianId: true,
+        status: true,
+      }
     });
 
     if (!existingWorkOrder) {
@@ -155,6 +158,21 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
     if (userRole === 'technician' && (type || technicianId || plannedDate)) {
       return res.status(403).json({ message: 'Forbidden: Only managers can reassign or reschedule work orders' });
     }
+
+    // B7: Prevent editing completed work orders except for status changes
+    if (existingWorkOrder.status === 'completed' && status) {
+      // Allow changing status from completed to open/in_progress
+      if (status !== 'open' && status !== 'in_progress') {
+        return res.status(400).json({ message: 'Cannot change status of a completed work order to anything other than open or in_progress' });
+      }
+    } else if (existingWorkOrder.status === 'completed' && (type || technicianId || plannedDate || done || todo || plannedRemovalDate)) {
+      // Block other field changes on completed work orders
+      return res.status(400).json({ message: 'Cannot edit a completed work order. Only status can be changed.' });
+    }
+
+    // Track status change for history
+    const previousStatus = existingWorkOrder.status;
+    const isStatusChange = status && status !== previousStatus;
 
     const workOrder = await prisma.workOrder.update({
       where: { id: req.params.id },
@@ -174,9 +192,38 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
       },
     });
 
+    // B8: Create status history entry when status changes
+    if (isStatusChange) {
+      await prisma.workOrderStatusHistory.create({
+        data: {
+          workOrderId: workOrder.id,
+          previousStatus,
+          newStatus: status,
+          changedById: userId,
+        },
+      });
+    }
+
     res.json(workOrder);
   } catch (error) {
     console.error('Update work order error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// B8: Get work order status history
+router.get('/:id/history', authenticate, isTechnicianOrHigher, async (req, res) => {
+  try {
+    const history = await prisma.workOrderStatusHistory.findMany({
+      where: { workOrderId: req.params.id },
+      include: {
+        changedBy: { select: { name: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    res.json(history);
+  } catch (error) {
+    console.error('Get work order history error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -189,7 +236,7 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res) => {
 
     const existingWorkOrder = await prisma.workOrder.findUnique({
       where: { id: req.params.id },
-      select: { technicianId: true }
+      select: { technicianId: true, status: true }
     });
 
     if (!existingWorkOrder) {
@@ -199,6 +246,8 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res) => {
     if (userRole === 'technician' && existingWorkOrder.technicianId !== userId) {
       return res.status(403).json({ message: 'Forbidden: You can only complete your own work orders' });
     }
+
+    const previousStatus = existingWorkOrder.status;
 
     const workOrder = await prisma.workOrder.update({
       where: { id: req.params.id },
@@ -211,6 +260,16 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res) => {
       include: {
         site: true,
         technician: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    // B8: Create status history entry for completion
+    await prisma.workOrderStatusHistory.create({
+      data: {
+        workOrderId: workOrder.id,
+        previousStatus,
+        newStatus: 'completed',
+        changedById: userId,
       },
     });
 

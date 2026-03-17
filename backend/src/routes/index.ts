@@ -6,6 +6,7 @@ import workOrdersRoutes from './workorders';
 import dashboardRoutes from './dashboard';
 import demoRoutes from './demo';
 import usersRoutes from './users';
+import settingsRoutes from './settings';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/workorders', workOrdersRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/demo', demoRoutes);
 router.use('/users', usersRoutes);
+router.use('/settings', settingsRoutes);
 
 export default router;

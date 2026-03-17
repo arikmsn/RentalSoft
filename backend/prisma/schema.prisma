@@ -66,6 +66,7 @@ model User {
 
   workOrders      WorkOrder[]
   activityLogs    ActivityLog[]
+  statusChanges   WorkOrderStatusHistory[]
 }
 
 model Equipment {
@@ -139,6 +140,7 @@ model WorkOrder {
   technician User          @relation(fields: [technicianId], references: [id])
   checklist  ChecklistItem[]
   activityLogs ActivityLog[]
+  statusHistory WorkOrderStatusHistory[]
 }
 
 model ChecklistItem {
@@ -169,4 +171,65 @@ model ActivityLog {
   site       Site?       @relation(fields: [siteId], references: [id])
   workOrder  WorkOrder?  @relation(fields: [workOrderId], references: [id])
   user       User        @relation(fields: [userId], references: [id])
+}
+
+model SettingsChecklistItem {
+  id          String   @id @default(uuid())
+  name        String
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SettingsWorkOrderType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SettingsEquipmentType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SettingsEquipmentStatus {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SettingsEquipmentCondition {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WorkOrderStatusHistory {
+  id              String   @id @default(uuid())
+  workOrderId     String
+  previousStatus  String?
+  newStatus      String
+  changedById    String
+  comment        String?
+  createdAt      DateTime @default(now())
+
+  workOrder      WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  changedBy      User      @relation(fields: [changedById], references: [id])
 }

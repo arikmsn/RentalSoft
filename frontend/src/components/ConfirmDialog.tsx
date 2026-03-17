@@ -32,10 +32,15 @@ export function ConfirmDialog({
   }[variant];
 
   return (
-    <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-float w-full max-w-sm p-6 animate-scale-in">
+    <div 
+      className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <div className="bg-white rounded-2xl shadow-float w-full max-w-sm p-4 sm:p-6 animate-scale-in">
         <h3 className="text-lg font-bold text-surface-800 mb-2">{title}</h3>
-        <p className="text-surface-600 mb-6">{message}</p>
+        <p className="text-surface-600 mb-6 text-sm sm:text-base">{message}</p>
         
         <div className="flex gap-3">
           <button

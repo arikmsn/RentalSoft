@@ -45,6 +45,7 @@ export function EquipmentListPage() {
 
   const handleDeleteEquipment = () => {
     if (!selectedEquipment) return;
+    setShowDetails(false);
     setShowDeleteConfirm(true);
   };
 
@@ -52,7 +53,6 @@ export function EquipmentListPage() {
     if (!selectedEquipment) return;
     try {
       await equipmentService.delete(selectedEquipment.id);
-      setShowDetails(false);
       setSelectedEquipment(null);
       const data = await equipmentService.getAll();
       setEquipment(data);

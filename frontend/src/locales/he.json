@@ -123,7 +123,7 @@
   "workOrders": {
     "title": "עבודות",
     "addNew": "עבודה חדשה",
-    "type": "סוג תעבודה",
+    "type": "עבודה",
     "site": "אתר",
     "technician": "טכנאי",
     "plannedDate": "תאריך מתוכנן",
@@ -239,5 +239,17 @@
     "initializing": "מפעיל מצלמה...",
     "cameraError": "לא ניתן לגשת למצלמה. ודא שיש הרשאה.",
     "instructions": "החזק את מצלמה מול קוד QR"
+  },
+  "settings": {
+    "title": "הגדרות",
+    "checklist": "רשימת בדיקה",
+    "workOrderTypes": "סוגי עבודות",
+    "equipmentTypes": "סוגי ציוד",
+    "equipmentStatuses": "סטטוס ציוד",
+    "equipmentConditions": "מצב ציוד",
+    "technicians": "טכנאים",
+    "name": "שם",
+    "code": "קוד",
+    "active": "פעיל"
   }
 }

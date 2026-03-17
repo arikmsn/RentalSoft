@@ -10,7 +10,17 @@ import {
   MapPage,
   AlertsPage,
   MyTasksPage,
+  SettingsPage,
 } from './pages';
+import { useAuthStore } from './stores/authStore';
+
+function SettingsRoute() {
+  const { user } = useAuthStore();
+  if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <SettingsPage />;
+}
 
 function App() {
   return (
@@ -28,6 +38,7 @@ function App() {
         <Route path="/map" element={<MapPage />} />
         <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/my-tasks" element={<MyTasksPage />} />
+        <Route path="/settings" element={<SettingsRoute />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

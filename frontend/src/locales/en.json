@@ -123,7 +123,7 @@
   "workOrders": {
     "title": "Work Orders",
     "addNew": "New Work Order",
-    "type": "Work Order Type",
+    "type": "Work",
     "site": "Site",
     "technician": "Technician",
     "plannedDate": "Planned Date",
@@ -239,5 +239,17 @@
     "initializing": "Initializing camera...",
     "cameraError": "Unable to access camera. Please ensure permissions are granted.",
     "instructions": "Point camera at QR code"
+  },
+  "settings": {
+    "title": "Settings",
+    "checklist": "Checklist Items",
+    "workOrderTypes": "Work Order Types",
+    "equipmentTypes": "Equipment Types",
+    "equipmentStatuses": "Equipment Statuses",
+    "equipmentConditions": "Equipment Conditions",
+    "technicians": "Technicians",
+    "name": "Name",
+    "code": "Code",
+    "active": "Active"
   }
 }

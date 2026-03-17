@@ -109,6 +109,7 @@ export function SitesListPage() {
   };
 
   const handleDeleteClick = (site: Site) => {
+    setShowEditForm(false);
     setSiteToDelete(site);
     setShowDeleteConfirm(true);
   };

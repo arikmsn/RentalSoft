@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 
 const mobileNavItems = [
-  { path: '/my-tasks', icon: '✅', label: 'myTasks', roles: ['technician'] },
-  { path: '/workorders', icon: '📋', label: 'workOrders', roles: ['technician'] },
-  { path: '/equipment', icon: '📦', label: 'equipment', roles: ['technician'] },
+  { path: '/workorders', icon: '📋', label: 'workOrders', roles: ['manager', 'technician', 'admin'] },
+  { path: '/equipment', icon: '📦', label: 'equipment', roles: ['manager', 'technician', 'admin'] },
+  { path: '/map', icon: '🗺️', label: 'map', roles: ['manager', 'admin'] },
   { path: '/sites', icon: '📍', label: 'sites', roles: ['manager', 'technician', 'admin'] },
-  { path: '/dashboard', icon: '📊', label: 'dashboard', roles: ['manager', 'admin'] },
+  { path: '/my-tasks', icon: '✅', label: 'myTasks', roles: ['technician'] },
 ];
 
 export function MobileNav() {
@@ -23,7 +23,7 @@ export function MobileNav() {
   }
 
   return (
-    <nav className="lg:hidden fixed bottom-0 start-0 end-0 bg-white border-t border-gray-200 z-30 safe-area-bottom">
+    <nav className="lg:hidden fixed bottom-0 start-0 end-0 bg-white border-t border-surface-200 z-30 safe-area-bottom shadow-lg">
       <div className="flex justify-around py-1.5">
         {filteredItems.map((item) => (
           <NavLink
@@ -33,7 +33,7 @@ export function MobileNav() {
               `flex flex-col items-center gap-0.5 px-2 py-2 rounded-lg transition-colors min-w-[60px] min-h-[56px] justify-center ${
                 isActive
                   ? 'text-primary-600 bg-primary-50'
-                  : 'text-gray-600'
+                  : 'text-surface-600'
               }`
             }
           >

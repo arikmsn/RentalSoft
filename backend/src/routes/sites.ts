@@ -215,8 +215,14 @@ router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, r
     });
 
     res.json({ message: 'Site deleted' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete site error:', error);
+    // P2003 is the Prisma error code for FK constraint violation
+    if (error.code === 'P2003') {
+      return res.status(400).json({ 
+        message: 'Cannot delete site - it has related equipment or work orders. Please remove all related records first.' 
+      });
+    }
     res.status(500).json({ message: 'Server error' });
   }
 });

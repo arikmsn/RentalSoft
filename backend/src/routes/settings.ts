@@ -1,0 +1,376 @@
+import { Router, Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { authenticate, authorize } from '../middleware/auth';
+
+const router = Router();
+const prisma = new PrismaClient();
+
+router.use(authenticate);
+router.use(authorize('admin', 'manager'));
+
+// Checklist Items
+router.get('/checklist', async (req: Request, res: Response) => {
+  try {
+    const { isActive } = req.query;
+    const where = isActive !== undefined ? { isActive: isActive === 'true' } : {};
+    const items = await prisma.settingsChecklistItem.findMany({
+      where,
+      orderBy: { sortOrder: 'asc' },
+    });
+    res.json(items);
+  } catch (error) {
+    console.error('Error fetching checklist items:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/checklist', async (req: Request, res: Response) => {
+  try {
+    const { name, isActive, sortOrder } = req.body;
+    const item = await prisma.settingsChecklistItem.create({
+      data: { name, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
+    });
+    res.json(item);
+  } catch (error) {
+    console.error('Error creating checklist item:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/checklist/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, isActive, sortOrder } = req.body;
+    const item = await prisma.settingsChecklistItem.update({
+      where: { id },
+      data: { name, isActive, sortOrder },
+    });
+    res.json(item);
+  } catch (error) {
+    console.error('Error updating checklist item:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/checklist/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.settingsChecklistItem.delete({ where: { id } });
+    res.json({ message: 'Deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting checklist item:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Work Order Types
+router.get('/work-order-types', async (req: Request, res: Response) => {
+  try {
+    const { isActive } = req.query;
+    const where = isActive !== undefined ? { isActive: isActive === 'true' } : {};
+    const types = await prisma.settingsWorkOrderType.findMany({
+      where,
+      orderBy: { sortOrder: 'asc' },
+    });
+    res.json(types);
+  } catch (error) {
+    console.error('Error fetching work order types:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/work-order-types', async (req: Request, res: Response) => {
+  try {
+    const { name, isActive, sortOrder } = req.body;
+    const type = await prisma.settingsWorkOrderType.create({
+      data: { name, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
+    });
+    res.json(type);
+  } catch (error) {
+    console.error('Error creating work order type:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/work-order-types/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, isActive, sortOrder } = req.body;
+    const type = await prisma.settingsWorkOrderType.update({
+      where: { id },
+      data: { name, isActive, sortOrder },
+    });
+    res.json(type);
+  } catch (error) {
+    console.error('Error updating work order type:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/work-order-types/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.settingsWorkOrderType.delete({ where: { id } });
+    res.json({ message: 'Deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting work order type:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Equipment Types
+router.get('/equipment-types', async (req: Request, res: Response) => {
+  try {
+    const { isActive } = req.query;
+    const where = isActive !== undefined ? { isActive: isActive === 'true' } : {};
+    const types = await prisma.settingsEquipmentType.findMany({
+      where,
+      orderBy: { sortOrder: 'asc' },
+    });
+    res.json(types);
+  } catch (error) {
+    console.error('Error fetching equipment types:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/equipment-types', async (req: Request, res: Response) => {
+  try {
+    const { name, code, isActive, sortOrder } = req.body;
+    const type = await prisma.settingsEquipmentType.create({
+      data: { name, code, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
+    });
+    res.json(type);
+  } catch (error) {
+    console.error('Error creating equipment type:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/equipment-types/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, code, isActive, sortOrder } = req.body;
+    const type = await prisma.settingsEquipmentType.update({
+      where: { id },
+      data: { name, code, isActive, sortOrder },
+    });
+    res.json(type);
+  } catch (error) {
+    console.error('Error updating equipment type:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/equipment-types/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.settingsEquipmentType.delete({ where: { id } });
+    res.json({ message: 'Deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting equipment type:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Equipment Statuses
+router.get('/equipment-statuses', async (req: Request, res: Response) => {
+  try {
+    const { isActive } = req.query;
+    const where = isActive !== undefined ? { isActive: isActive === 'true' } : {};
+    const statuses = await prisma.settingsEquipmentStatus.findMany({
+      where,
+      orderBy: { sortOrder: 'asc' },
+    });
+    res.json(statuses);
+  } catch (error) {
+    console.error('Error fetching equipment statuses:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/equipment-statuses', async (req: Request, res: Response) => {
+  try {
+    const { name, code, isActive, sortOrder } = req.body;
+    const status = await prisma.settingsEquipmentStatus.create({
+      data: { name, code, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
+    });
+    res.json(status);
+  } catch (error) {
+    console.error('Error creating equipment status:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/equipment-statuses/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, code, isActive, sortOrder } = req.body;
+    const status = await prisma.settingsEquipmentStatus.update({
+      where: { id },
+      data: { name, code, isActive, sortOrder },
+    });
+    res.json(status);
+  } catch (error) {
+    console.error('Error updating equipment status:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/equipment-statuses/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.settingsEquipmentStatus.delete({ where: { id } });
+    res.json({ message: 'Deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting equipment status:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Equipment Conditions
+router.get('/equipment-conditions', async (req: Request, res: Response) => {
+  try {
+    const { isActive } = req.query;
+    const where = isActive !== undefined ? { isActive: isActive === 'true' } : {};
+    const conditions = await prisma.settingsEquipmentCondition.findMany({
+      where,
+      orderBy: { sortOrder: 'asc' },
+    });
+    res.json(conditions);
+  } catch (error) {
+    console.error('Error fetching equipment conditions:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/equipment-conditions', async (req: Request, res: Response) => {
+  try {
+    const { name, code, isActive, sortOrder } = req.body;
+    const condition = await prisma.settingsEquipmentCondition.create({
+      data: { name, code, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
+    });
+    res.json(condition);
+  } catch (error) {
+    console.error('Error creating equipment condition:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/equipment-conditions/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, code, isActive, sortOrder } = req.body;
+    const condition = await prisma.settingsEquipmentCondition.update({
+      where: { id },
+      data: { name, code, isActive, sortOrder },
+    });
+    res.json(condition);
+  } catch (error) {
+    console.error('Error updating equipment condition:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/equipment-conditions/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.settingsEquipmentCondition.delete({ where: { id } });
+    res.json({ message: 'Deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting equipment condition:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Technicians (Users with role technician)
+router.get('/technicians', async (req: Request, res: Response) => {
+  try {
+    const technicians = await prisma.user.findMany({
+      where: { role: 'technician' },
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        phone: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+    res.json(technicians);
+  } catch (error) {
+    console.error('Error fetching technicians:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/technicians', async (req: Request, res: Response) => {
+  try {
+    const { name, username, email, password, phone, isActive } = req.body;
+    const hashedPassword = await bcrypt.hash(password || 'technician123', 10);
+    const technician = await prisma.user.create({
+      data: {
+        name,
+        username,
+        email: email || `${username}@rentalsort.local`,
+        password: hashedPassword,
+        phone,
+        isActive: isActive ?? true,
+        role: 'technician',
+      },
+    });
+    res.json({
+      id: technician.id,
+      name: technician.name,
+      username: technician.username,
+      email: technician.email,
+      phone: technician.phone,
+      isActive: technician.isActive,
+    });
+  } catch (error) {
+    console.error('Error creating technician:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/technicians/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, username, email, phone, isActive } = req.body;
+    const technician = await prisma.user.update({
+      where: { id },
+      data: { name, username, email, phone, isActive },
+    });
+    res.json({
+      id: technician.id,
+      name: technician.name,
+      username: technician.username,
+      email: technician.email,
+      phone: technician.phone,
+      isActive: technician.isActive,
+    });
+  } catch (error) {
+    console.error('Error updating technician:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/technicians/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    // Soft delete - just mark as inactive
+    await prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+    });
+    res.json({ message: 'Technician deactivated successfully' });
+  } catch (error) {
+    console.error('Error deleting technician:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+export default router;
