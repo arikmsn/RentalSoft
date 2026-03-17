@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import type { Equipment, EquipmentStatus, Site } from '../types';
 import { equipmentService } from '../services/equipmentService';
 import { siteService } from '../services/siteService';
@@ -21,6 +20,8 @@ export function EquipmentListPage() {
   const [filter, setFilter] = useState<EquipmentStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [showScanner, setShowScanner] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -30,6 +31,15 @@ export function EquipmentListPage() {
     siteId: '',
     condition: 'ok' as 'ok' | 'not_ok' | 'wearout',
   });
+  const [editFormData, setEditFormData] = useState({
+    qrTag: '',
+    type: '',
+    status: 'warehouse' as EquipmentStatus,
+    siteId: '',
+    condition: 'ok' as 'ok' | 'not_ok' | 'wearout',
+    plannedRemovalDate: '',
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -62,6 +72,41 @@ export function EquipmentListPage() {
       alert(err?.response?.data?.message || 'Failed to create equipment');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleViewDetails = (eq: Equipment) => {
+    setSelectedEquipment(eq);
+    setEditFormData({
+      qrTag: eq.qrTag,
+      type: eq.type,
+      status: eq.status,
+      siteId: eq.siteId || '',
+      condition: eq.condition,
+      plannedRemovalDate: eq.plannedRemovalDate ? new Date(eq.plannedRemovalDate).toISOString().split('T')[0] : '',
+    });
+    setShowDetails(true);
+  };
+
+  const handleUpdateEquipment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEquipment) return;
+    setSavingEdit(true);
+    try {
+      await equipmentService.update(selectedEquipment.id, {
+        ...editFormData,
+        siteId: editFormData.siteId || null,
+        plannedRemovalDate: editFormData.plannedRemovalDate ? new Date(editFormData.plannedRemovalDate) : undefined,
+      });
+      setShowDetails(false);
+      setSelectedEquipment(null);
+      const data = await equipmentService.getAll();
+      setEquipment(data);
+    } catch (err: any) {
+      console.error('Failed to update equipment:', err);
+      alert(err?.response?.data?.message || 'Failed to update equipment');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -130,10 +175,10 @@ export function EquipmentListPage() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredEquipment.map((eq) => (
-          <Link
+          <div
             key={eq.id}
-            to={`/equipment/${eq.id}`}
-            className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+            onClick={() => handleViewDetails(eq)}
+            className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer"
           >
             <div className="flex justify-between items-start mb-3">
               <div>
@@ -141,7 +186,7 @@ export function EquipmentListPage() {
                 <p className="text-gray-500 text-sm">{eq.type}</p>
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[eq.status]}`}>
-                {t(`equipment.statuses.${eq.status.replace('_', '')}`)}
+                {t(`equipment.statuses.${eq.status}`)}
               </span>
             </div>
             {eq.plannedRemovalDate && eq.status === 'at_customer' && (
@@ -158,7 +203,7 @@ export function EquipmentListPage() {
                 </div>
               </div>
             )}
-          </Link>
+          </div>
         ))}
       </div>
 
@@ -205,11 +250,9 @@ export function EquipmentListPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                 />
                 <datalist id="equipmentTypes">
-                  <option value="מזגן" />
-                  <option value="מקרר" />
-                  <option value="מקפיא" />
-                  <option value="מכונת כביסה" />
-                  <option value="מדיח" />
+                  <option value="מכונה גדולה" />
+                  <option value="מכונה בינונית" />
+                  <option value="מכונה קטנה" />
                 </datalist>
               </div>
               <div>
@@ -221,7 +264,8 @@ export function EquipmentListPage() {
                 >
                   <option value="warehouse">{t('equipment.statuses.warehouse')}</option>
                   <option value="available">{t('equipment.statuses.available')}</option>
-                  <option value="in_repair">{t('equipment.statuses.inRepair')}</option>
+                  <option value="at_customer">{t('equipment.statuses.at_customer')}</option>
+                  <option value="in_repair">{t('equipment.statuses.in_repair')}</option>
                 </select>
               </div>
               <div>
@@ -278,6 +322,105 @@ export function EquipmentListPage() {
           }}
           onClose={() => setShowScanner(false)}
         />
+      )}
+
+      {showDetails && selectedEquipment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">{t('equipment.details')}</h2>
+            <form onSubmit={handleUpdateEquipment} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.qrTag')}</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.qrTag}
+                  onChange={(e) => setEditFormData({ ...editFormData, qrTag: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.type')}</label>
+                <input
+                  type="text"
+                  required
+                  list="equipmentTypes"
+                  value={editFormData.type}
+                  onChange={(e) => setEditFormData({ ...editFormData, type: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+                <datalist id="equipmentTypes">
+                  <option value="מכונה גדולה" />
+                  <option value="מכונה בינונית" />
+                  <option value="מכונה קטנה" />
+                </datalist>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.status')}</label>
+                <select
+                  value={editFormData.status}
+                  onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as EquipmentStatus })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="warehouse">{t('equipment.statuses.warehouse')}</option>
+                  <option value="available">{t('equipment.statuses.available')}</option>
+                  <option value="at_customer">{t('equipment.statuses.at_customer')}</option>
+                  <option value="in_repair">{t('equipment.statuses.in_repair')}</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.site')}</label>
+                <select
+                  value={editFormData.siteId}
+                  onChange={(e) => setEditFormData({ ...editFormData, siteId: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">-- {t('app.select')} --</option>
+                  {sites.map((site) => (
+                    <option key={site.id} value={site.id}>{site.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.condition')}</label>
+                <select
+                  value={editFormData.condition}
+                  onChange={(e) => setEditFormData({ ...editFormData, condition: e.target.value as 'ok' | 'not_ok' | 'wearout' })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="ok">{t('equipment.conditions.ok')}</option>
+                  <option value="not_ok">{t('equipment.conditions.notOk')}</option>
+                  <option value="wearout">{t('equipment.conditions.wearout')}</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.plannedRemoval')}</label>
+                <input
+                  type="date"
+                  value={editFormData.plannedRemovalDate}
+                  onChange={(e) => setEditFormData({ ...editFormData, plannedRemovalDate: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDetails(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  {t('app.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {savingEdit ? t('app.loading') : t('app.save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

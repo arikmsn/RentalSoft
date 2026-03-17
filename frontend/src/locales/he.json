@@ -16,6 +16,7 @@
     "next": "הבא",
     "previous": "קודם",
     "confirm": "אישור",
+    "confirmDelete": "האם אתה בטוח שברצונך למחוק",
     "yes": "כן",
     "no": "לא",
     "refresh": "רענן",
@@ -55,7 +56,7 @@
     "status": "סטטוס",
     "site": "אתר",
     "lastScan": "סריקה אחרונה",
-    "plannedRemoval": "תכנון הסרה",
+    "plannedRemoval": "מתפנה בתאריך",
     "actualRemoval": "הסרה בפועל",
     "installationDate": "תאריך התקנה",
     "condition": "מצב",
@@ -63,9 +64,11 @@
     "details": "פרטי ציוד",
     "statuses": {
       "warehouse": "במחסן",
+      "at_customer": "אצל לקוח",
+      "in_repair": "בתיקון",
+      "available": "זמין",
       "atCustomer": "אצל לקוח",
       "inRepair": "בתיקון",
-      "available": "זמין",
       "atcustomer": "אצל לקוח",
       "inrepair": "בתיקון"
     },
@@ -87,6 +90,11 @@
       "yellow": "בינוני",
       "orange": "קרוב להסרה",
       "red": "באיחור"
+    },
+    "types": {
+      "largeMachine": "מכונה גדולה",
+      "mediumMachine": "מכונה בינונית",
+      "smallMachine": "מכונה קטנה"
     }
   },
   "sites": {
@@ -129,8 +137,9 @@
     },
     "statuses": {
       "open": "פתוח",
-      "inProgress": "בביצוע",
-      "completed": "הושלם"
+      "in_progress": "בביצוע",
+      "completed": "הושלם",
+      "inProgress": "בביצוע"
     },
     "removalOptions": {
       "oneWeek": "שבוע",
@@ -159,6 +168,9 @@
   },
   "alerts": {
     "title": "התראות",
+    "past_removal": "ציוד שעבר תאריך הסרה",
+    "close_to_removal": "ציוד קרוב להסרה",
+    "long_stay": "ציוד שהושאר זמן רב",
     "pastRemoval": "ציוד שעבר תאריך הסרה",
     "closeToRemoval": "ציוד קרוב להסרה",
     "longStay": "ציוד שהושאר זמן רב",

@@ -3,15 +3,20 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Site } from '../types';
 import { siteService } from '../services/siteService';
+import { useAuthStore } from '../stores/authStore';
 
 export function SitesListPage() {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingSite, setEditingSite] = useState<Site | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -22,6 +27,19 @@ export function SitesListPage() {
     rating: 3,
     isHighlighted: false,
   });
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    address: '',
+    city: '',
+    floor: '',
+    contact1Name: '',
+    contact1Phone: '',
+    rating: 3,
+    isHighlighted: false,
+  });
+
+  const canEdit = user?.role === 'manager' || user?.role === 'admin';
+  const canDelete = user?.role === 'manager' || user?.role === 'admin';
 
   useEffect(() => {
     fetchSites();
@@ -54,6 +72,52 @@ export function SitesListPage() {
       alert(err?.response?.data?.message || 'Failed to create site');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleEditClick = (site: Site) => {
+    setEditingSite(site);
+    setEditFormData({
+      name: site.name,
+      address: site.address,
+      city: site.city,
+      floor: site.floor || '',
+      contact1Name: site.contact1Name || '',
+      contact1Phone: site.contact1Phone || '',
+      rating: site.rating || 3,
+      isHighlighted: site.isHighlighted,
+    });
+    setShowEditForm(true);
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSite) return;
+    setSaving(true);
+    try {
+      await siteService.update(editingSite.id, editFormData);
+      setShowEditForm(false);
+      setEditingSite(null);
+      fetchSites();
+    } catch (err: any) {
+      console.error('Failed to update site:', err);
+      alert(err?.response?.data?.message || 'Failed to update site');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (site: Site) => {
+    if (!confirm(t('app.confirmDelete') + '?')) return;
+    setDeletingId(site.id);
+    try {
+      await siteService.delete(site.id);
+      fetchSites();
+    } catch (err: any) {
+      console.error('Failed to delete site:', err);
+      alert(err?.response?.data?.message || 'Failed to delete site');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -140,17 +204,42 @@ export function SitesListPage() {
                   <span className="text-sm text-gray-600">{site.rating}</span>
                 </div>
               )}
-              {site.latitude && site.longitude && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNavigate(site);
-                  }}
-                  className="text-sm text-primary-600 hover:text-primary-700"
-                >
-                  {t('sites.navigate')}
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {canEdit && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleEditClick(site);
+                    }}
+                    className="text-sm text-primary-600 hover:text-primary-700"
+                  >
+                    {t('app.edit')}
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDelete(site);
+                    }}
+                    disabled={deletingId === site.id}
+                    className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50"
+                  >
+                    {deletingId === site.id ? t('app.loading') : t('app.delete')}
+                  </button>
+                )}
+                {site.latitude && site.longitude && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleNavigate(site);
+                    }}
+                    className="text-sm text-primary-600 hover:text-primary-700"
+                  >
+                    {t('sites.navigate')}
+                  </button>
+                )}
+              </div>
             </div>
           </Link>
         ))}
@@ -253,6 +342,113 @@ export function SitesListPage() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  {t('app.cancel')}
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {saving ? t('app.loading') : t('app.save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEditForm && editingSite && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">{t('app.edit')}</h2>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.name')}</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.address')}</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.address}
+                  onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.city')}</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.city}
+                  onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.floor')}</label>
+                <input
+                  type="text"
+                  value={editFormData.floor}
+                  onChange={(e) => setEditFormData({ ...editFormData, floor: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.contact1')}</label>
+                <input
+                  type="text"
+                  value={editFormData.contact1Name}
+                  onChange={(e) => setEditFormData({ ...editFormData, contact1Name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.phone1')}</label>
+                <input
+                  type="tel"
+                  value={editFormData.contact1Phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, contact1Phone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.rating')}</label>
+                <select
+                  value={editFormData.rating}
+                  onChange={(e) => setEditFormData({ ...editFormData, rating: Number(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                  <option value={3}>3</option>
+                  <option value={4}>4</option>
+                  <option value={5}>5</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="editIsHighlighted"
+                  checked={editFormData.isHighlighted}
+                  onChange={(e) => setEditFormData({ ...editFormData, isHighlighted: e.target.checked })}
+                  className="w-4 h-4 text-primary-600"
+                />
+                <label htmlFor="editIsHighlighted" className="text-sm text-gray-700">{t('sites.highlight')}</label>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditForm(false)}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   {t('app.cancel')}

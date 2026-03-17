@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
@@ -29,21 +29,24 @@ const statusColors = {
   green: '#22c55e',
 };
 
-const getMarkerIcon = (status?: 'red' | 'orange' | 'green') => {
+const getMarkerIcon = (status?: 'red' | 'orange' | 'green', selected?: boolean) => {
   const color = statusColors[status || 'green'];
+  const size = selected ? 32 : 24;
+  const borderWidth = selected ? 4 : 3;
   return L.divIcon({
     className: 'custom-marker',
     html: `<div style="
       background-color: ${color};
-      width: 24px;
-      height: 24px;
+      width: ${size}px;
+      height: ${size}px;
       border-radius: 50%;
-      border: 3px solid white;
+      border: ${borderWidth} solid white;
       box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      ${selected ? 'z-index: 1000;' : ''}
     "></div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    popupAnchor: [0, -12],
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+    popupAnchor: [0, -size/2],
   });
 };
 
@@ -52,6 +55,8 @@ export function MapPage() {
   const [sites, setSites] = useState<SiteWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSiteList, setShowSiteList] = useState(false);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
     const fetchSites = async () => {
@@ -66,6 +71,13 @@ export function MapPage() {
     };
     fetchSites();
   }, []);
+
+  const handleSiteClick = (site: SiteWithStatus) => {
+    setSelectedSiteId(site.id);
+    if (mapRef.current && site.latitude && site.longitude) {
+      mapRef.current.setView([site.latitude, site.longitude], 15);
+    }
+  };
 
   const handleNavigate = (site: SiteWithStatus) => {
     if (site.latitude && site.longitude) {
@@ -106,6 +118,7 @@ export function MapPage() {
             center={defaultCenter}
             zoom={7}
             style={{ height: '100%', width: '100%' }}
+            ref={mapRef}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -115,7 +128,10 @@ export function MapPage() {
               <Marker
                 key={site.id}
                 position={[site.latitude!, site.longitude!]}
-                icon={getMarkerIcon(site.overallStatus)}
+                icon={getMarkerIcon(site.overallStatus, selectedSiteId === site.id)}
+                eventHandlers={{
+                  click: () => setSelectedSiteId(site.id),
+                }}
               >
                 <Popup>
                   <div className="text-center min-w-[150px]">
@@ -166,7 +182,12 @@ export function MapPage() {
               {sites.map((site) => (
                 <div
                   key={site.id}
-                  className="p-2 sm:p-3 border border-gray-100 rounded-lg hover:bg-gray-50"
+                  onClick={() => handleSiteClick(site)}
+                  className={`p-2 sm:p-3 border border-gray-100 rounded-lg cursor-pointer transition-colors ${
+                    selectedSiteId === site.id 
+                      ? 'bg-primary-50 border-primary-300' 
+                      : 'hover:bg-gray-50'
+                  }`}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0">
@@ -174,10 +195,14 @@ export function MapPage() {
                         <h3 className="font-medium text-sm truncate">{site.name}</h3>
                         {site.isHighlighted && <span className="text-yellow-500">⭐</span>}
                       </div>
-                      <p className="text-xs text-gray-500 truncate">{site.address}, {site.city}</p>
+                      <p className="text-xs text-gray-600 font-medium">{site.city}</p>
+                      <p className="text-xs text-gray-400 truncate">{site.address}</p>
                     </div>
                     <button
-                      onClick={() => handleNavigate(site)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigate(site);
+                      }}
                       className="ml-2 px-2 py-1 bg-blue-500 text-white rounded text-xs font-medium whitespace-nowrap min-h-[32px]"
                     >
                       🚗

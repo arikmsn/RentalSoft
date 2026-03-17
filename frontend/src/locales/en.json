@@ -16,6 +16,7 @@
     "next": "Next",
     "previous": "Previous",
     "confirm": "Confirm",
+    "confirmDelete": "Are you sure you want to delete",
     "yes": "Yes",
     "no": "No",
     "refresh": "Refresh",
@@ -55,7 +56,7 @@
     "status": "Status",
     "site": "Site",
     "lastScan": "Last Scan",
-    "plannedRemoval": "Planned Removal",
+    "plannedRemoval": "Available on date",
     "actualRemoval": "Actual Removal",
     "installationDate": "Installation Date",
     "condition": "Condition",
@@ -63,9 +64,11 @@
     "details": "Equipment Details",
     "statuses": {
       "warehouse": "In Warehouse",
+      "at_customer": "At Customer",
+      "in_repair": "In Repair",
+      "available": "Available",
       "atCustomer": "At Customer",
       "inRepair": "In Repair",
-      "available": "Available",
       "atcustomer": "At Customer",
       "inrepair": "In Repair"
     },
@@ -87,6 +90,11 @@
       "yellow": "Medium",
       "orange": "Close to removal",
       "red": "Overdue"
+    },
+    "types": {
+      "largeMachine": "Large Machine",
+      "mediumMachine": "Medium Machine",
+      "smallMachine": "Small Machine"
     }
   },
   "sites": {
@@ -129,8 +137,9 @@
     },
     "statuses": {
       "open": "Open",
-      "inProgress": "In Progress",
-      "completed": "Completed"
+      "in_progress": "In Progress",
+      "completed": "Completed",
+      "inProgress": "In Progress"
     },
     "removalOptions": {
       "oneWeek": "1 Week",
@@ -159,6 +168,9 @@
   },
   "alerts": {
     "title": "Alerts",
+    "past_removal": "Equipment past removal date",
+    "close_to_removal": "Equipment close to removal",
+    "long_stay": "Equipment at site for long time",
     "pastRemoval": "Equipment past removal date",
     "closeToRemoval": "Equipment close to removal",
     "longStay": "Equipment at site for long time",

@@ -175,7 +175,7 @@ export function WorkOrdersListPage() {
                 </div>
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[wo.status]}`}>
-                {t(`workOrders.statuses.${wo.status.replace('_', '')}`)}
+                {t(`workOrders.statuses.${wo.status}`)}
               </span>
             </div>
           </Link>

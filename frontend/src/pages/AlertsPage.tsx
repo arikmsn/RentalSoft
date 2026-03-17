@@ -95,7 +95,7 @@ export function AlertsPage() {
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="font-semibold">
-                  {t(`alerts.${alert.type.replace('_', '')}`)}
+                  {t(`alerts.${alert.type}`)}
                 </h3>
                 <p className="text-sm mt-1">
                   {alert.daysRemaining > 0
