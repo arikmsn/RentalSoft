@@ -143,7 +143,7 @@ export function SitesListPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">{t('app.loading')}</div>
+        <div className="text-surface-500">{t('app.loading')}</div>
       </div>
     );
   }
@@ -151,10 +151,10 @@ export function SitesListPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="text-red-500 text-center px-4">{error}</div>
+        <div className="text-danger-500 text-center px-4">{error}</div>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg"
+          className="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200"
         >
           {t('app.refresh')}
         </button>
@@ -165,12 +165,12 @@ export function SitesListPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">{t('sites.title')}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-surface-800">{t('sites.title')}</h1>
         <button
           onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md active:scale-[0.98]"
         >
-          {t('sites.addNew')}
+          + {t('sites.addNew')}
         </button>
       </div>
 
@@ -179,7 +179,7 @@ export function SitesListPage() {
         placeholder={t('app.search')}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+        className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 placeholder:text-surface-400"
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -187,34 +187,34 @@ export function SitesListPage() {
           <div
             key={site.id}
             onClick={() => canEdit && handleEditClick(site)}
-            className={`bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow ${canEdit ? 'cursor-pointer' : ''}`}
+            className={`bg-white rounded-2xl p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100 ${canEdit ? 'cursor-pointer' : ''}`}
           >
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-semibold text-lg">{site.name}</h3>
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="font-semibold text-lg text-surface-800">{site.name}</h3>
               {site.isHighlighted && (
-                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                <span className="px-2.5 py-1 bg-warning-100 text-warning-700 text-xs rounded-full font-medium">
                   ⭐
                 </span>
               )}
             </div>
-            <p className="text-gray-500 text-sm">{site.address}</p>
-            <p className="text-gray-400 text-sm">{site.city}</p>
+            <p className="text-surface-500 text-sm">{site.address}</p>
+            <p className="text-surface-400 text-sm mt-1">{site.city}</p>
             
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 pt-3 border-t border-surface-100 flex items-center justify-between">
               {site.rating && (
                 <div className="flex items-center gap-1">
-                  <span className="text-yellow-500">★</span>
-                  <span className="text-sm text-gray-600">{site.rating}</span>
+                  <span className="text-warning-500">★</span>
+                  <span className="text-sm text-surface-600 font-medium">{site.rating}</span>
                 </div>
               )}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ms-auto">
                 {site.latitude && site.longitude && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleNavigate(site);
                     }}
-                    className="text-sm text-primary-600 hover:text-primary-700"
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium px-3 py-1.5 hover:bg-primary-50 rounded-lg transition-colors"
                   >
                     {t('sites.navigate')}
                   </button>
@@ -226,80 +226,80 @@ export function SitesListPage() {
       </div>
 
       {filteredSites.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-surface-500">
           {t('errors.notFound')}
         </div>
       )}
 
       {/* Add Site Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">{t('sites.addNew')}</h2>
+        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
+            <h2 className="text-xl font-bold mb-5 text-surface-800">{t('sites.addNew')}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.name')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.name')}</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.address')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
                 <input
                   type="text"
                   required
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.city')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.city')}</label>
                 <input
                   type="text"
                   required
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.floor')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
                 <input
                   type="text"
                   value={formData.floor}
                   onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.contact1')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.contact1')}</label>
                 <input
                   type="text"
                   value={formData.contact1Name}
                   onChange={(e) => setFormData({ ...formData, contact1Name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.phone1')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.phone1')}</label>
                 <input
                   type="tel"
                   value={formData.contact1Phone}
                   onChange={(e) => setFormData({ ...formData, contact1Phone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.rating')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.rating')}</label>
                 <select
                   value={formData.rating}
                   onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   <option value={1}>1</option>
                   <option value={2}>2</option>
@@ -308,28 +308,28 @@ export function SitesListPage() {
                   <option value={5}>5</option>
                 </select>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
                   id="isHighlighted"
                   checked={formData.isHighlighted}
                   onChange={(e) => setFormData({ ...formData, isHighlighted: e.target.checked })}
-                  className="w-4 h-4 text-primary-600"
+                  className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
                 />
-                <label htmlFor="isHighlighted" className="text-sm text-gray-700">{t('sites.highlight')}</label>
+                <label htmlFor="isHighlighted" className="text-sm text-surface-700">{t('sites.highlight')}</label>
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
                 >
                   {t('app.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200"
                 >
                   {saving ? t('app.loading') : t('app.save')}
                 </button>
@@ -340,16 +340,16 @@ export function SitesListPage() {
       )}
 
       {showEditForm && editingSite && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">{t('app.edit')}</h2>
+        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-xl font-bold text-surface-800">{t('app.edit')}</h2>
               {canDelete && (
                 <button
                   type="button"
                   onClick={() => handleDelete(editingSite)}
                   disabled={deletingId === editingSite.id}
-                  className="text-red-600 hover:text-red-700 p-1"
+                  className="text-danger-600 hover:text-danger-700 p-2 rounded-lg hover:bg-danger-50 transition-colors"
                   title={t('app.delete')}
                 >
                   🗑️
@@ -358,68 +358,68 @@ export function SitesListPage() {
             </div>
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.name')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.name')}</label>
                 <input
                   type="text"
                   required
                   value={editFormData.name}
                   onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.address')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
                 <input
                   type="text"
                   required
                   value={editFormData.address}
                   onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.city')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.city')}</label>
                 <input
                   type="text"
                   required
                   value={editFormData.city}
                   onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.floor')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
                 <input
                   type="text"
                   value={editFormData.floor}
                   onChange={(e) => setEditFormData({ ...editFormData, floor: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.contact1')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.contact1')}</label>
                 <input
                   type="text"
                   value={editFormData.contact1Name}
                   onChange={(e) => setEditFormData({ ...editFormData, contact1Name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.phone1')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.phone1')}</label>
                 <input
                   type="tel"
                   value={editFormData.contact1Phone}
                   onChange={(e) => setEditFormData({ ...editFormData, contact1Phone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sites.rating')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.rating')}</label>
                 <select
                   value={editFormData.rating}
                   onChange={(e) => setEditFormData({ ...editFormData, rating: Number(e.target.value) })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   <option value={1}>1</option>
                   <option value={2}>2</option>
@@ -428,28 +428,28 @@ export function SitesListPage() {
                   <option value={5}>5</option>
                 </select>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
                   id="editIsHighlighted"
                   checked={editFormData.isHighlighted}
                   onChange={(e) => setEditFormData({ ...editFormData, isHighlighted: e.target.checked })}
-                  className="w-4 h-4 text-primary-600"
+                  className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
                 />
-                <label htmlFor="editIsHighlighted" className="text-sm text-gray-700">{t('sites.highlight')}</label>
+                <label htmlFor="editIsHighlighted" className="text-sm text-surface-700">{t('sites.highlight')}</label>
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowEditForm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
                 >
                   {t('app.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200"
                 >
                   {saving ? t('app.loading') : t('app.save')}
                 </button>

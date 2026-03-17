@@ -6,10 +6,10 @@ import { siteService } from '../services/siteService';
 import { QRScanner } from '../components/qr/QRScanner';
 
 const statusColors: Record<EquipmentStatus, string> = {
-  warehouse: 'bg-blue-100 text-blue-800',
-  at_customer: 'bg-green-100 text-green-800',
-  in_repair: 'bg-red-100 text-red-800',
-  available: 'bg-gray-100 text-gray-800',
+  warehouse: 'bg-primary-100 text-primary-700',
+  at_customer: 'bg-success-100 text-success-700',
+  in_repair: 'bg-danger-100 text-danger-700',
+  available: 'bg-surface-100 text-surface-600',
 };
 
 export function EquipmentListPage() {
@@ -159,7 +159,7 @@ export function EquipmentListPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">{t('app.loading')}</div>
+        <div className="text-surface-500">{t('app.loading')}</div>
       </div>
     );
   }
@@ -167,12 +167,12 @@ export function EquipmentListPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">{t('equipment.title')}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-surface-800">{t('equipment.title')}</h1>
         <button
           onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md active:scale-[0.98]"
         >
-          {t('equipment.addNew')}
+          + {t('equipment.addNew')}
         </button>
       </div>
 
@@ -182,12 +182,12 @@ export function EquipmentListPage() {
           placeholder={t('app.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          className="flex-1 px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 placeholder:text-surface-400"
         />
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as EquipmentStatus | 'all')}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          className="px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 min-h-[48px]"
         >
           <option value="all">{t('equipment.filters.all')}</option>
           <option value="at_customer">{t('equipment.filters.atCustomer')}</option>
@@ -201,24 +201,24 @@ export function EquipmentListPage() {
           <div
             key={eq.id}
             onClick={() => handleViewDetails(eq)}
-            className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer"
+            className="bg-white rounded-2xl p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100 cursor-pointer"
           >
             <div className="flex justify-between items-start mb-3">
               <div>
-                <h3 className="font-semibold text-lg">{eq.qrTag}</h3>
-                <p className="text-gray-500 text-sm">{eq.type}</p>
+                <h3 className="font-semibold text-lg text-surface-800">{eq.qrTag}</h3>
+                <p className="text-surface-500 text-sm mt-0.5">{eq.type}</p>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[eq.status]}`}>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[eq.status]}`}>
                 {t(`equipment.statuses.${eq.status}`)}
               </span>
             </div>
             {eq.plannedRemovalDate && eq.status === 'at_customer' && (
-              <div className="mt-3">
-                <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <div className="mt-4 pt-3 border-t border-surface-100">
+                <div className="flex justify-between text-xs text-surface-500 mb-2">
                   <span>{t('equipment.plannedRemoval')}</span>
-                  <span>{new Date(eq.plannedRemovalDate).toLocaleDateString('he-IL')}</span>
+                  <span className="font-medium">{new Date(eq.plannedRemovalDate).toLocaleDateString('he-IL')}</span>
                 </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-surface-100 rounded-full overflow-hidden">
                   <div
                     className={`h-full ${getProgressColor(eq.plannedRemovalDate)} transition-all`}
                     style={{ width: '50%' }}
@@ -231,31 +231,31 @@ export function EquipmentListPage() {
       </div>
 
       {filteredEquipment.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-surface-500">
           {t('errors.notFound')}
         </div>
       )}
 
       {/* Add Equipment Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">{t('equipment.addNew')}</h2>
+        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
+            <h2 className="text-xl font-bold mb-5 text-surface-800">{t('equipment.addNew')}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.qrTag')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.qrTag')}</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     required
                     value={formData.qrTag}
                     onChange={(e) => setFormData({ ...formData, qrTag: e.target.value })}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    className="flex-1 px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                   />
                   <button
                     type="button"
                     onClick={() => setShowScanner(true)}
-                    className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200"
+                    className="px-4 py-3 bg-surface-100 border border-surface-200 rounded-xl hover:bg-surface-200 transition-colors"
                     title={t('workOrder.scanQR')}
                   >
                     📷
@@ -263,14 +263,14 @@ export function EquipmentListPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.type')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.type')}</label>
                 <input
                   type="text"
                   required
                   list="equipmentTypes"
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
                 <datalist id="equipmentTypes">
                   <option value="מכונה גדולה" />
@@ -279,11 +279,11 @@ export function EquipmentListPage() {
                 </datalist>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.status')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.status')}</label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as EquipmentStatus })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   <option value="warehouse">{t('equipment.statuses.warehouse')}</option>
                   <option value="available">{t('equipment.statuses.available')}</option>
@@ -292,11 +292,11 @@ export function EquipmentListPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.site')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.site')}</label>
                 <select
                   value={formData.siteId}
                   onChange={(e) => setFormData({ ...formData, siteId: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   <option value="">-- {t('app.select')} --</option>
                   {sites.map((site) => (
@@ -305,29 +305,29 @@ export function EquipmentListPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.condition')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.condition')}</label>
                 <select
                   value={formData.condition}
                   onChange={(e) => setFormData({ ...formData, condition: e.target.value as 'ok' | 'not_ok' | 'wearout' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   <option value="ok">{t('equipment.conditions.ok')}</option>
                   <option value="not_ok">{t('equipment.conditions.notOk')}</option>
                   <option value="wearout">{t('equipment.conditions.wearout')}</option>
                 </select>
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
                 >
                   {t('app.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200"
                 >
                   {saving ? t('app.loading') : t('app.save')}
                 </button>
@@ -348,15 +348,15 @@ export function EquipmentListPage() {
       )}
 
       {showDetails && selectedEquipment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">{t('equipment.details')}</h2>
+        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-xl font-bold text-surface-800">{t('equipment.details')}</h2>
               <button
                 type="button"
                 onClick={handleDeleteEquipment}
                 disabled={deleting}
-                className="text-red-600 hover:text-red-700 p-1"
+                className="text-danger-600 hover:text-danger-700 p-2 rounded-lg hover:bg-danger-50 transition-colors"
                 title={t('app.delete')}
               >
                 🗑️
@@ -364,24 +364,24 @@ export function EquipmentListPage() {
             </div>
             <form onSubmit={handleUpdateEquipment} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.qrTag')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.qrTag')}</label>
                 <input
                   type="text"
                   required
                   value={editFormData.qrTag}
                   onChange={(e) => setEditFormData({ ...editFormData, qrTag: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.type')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.type')}</label>
                 <input
                   type="text"
                   required
                   list="equipmentTypes"
                   value={editFormData.type}
                   onChange={(e) => setEditFormData({ ...editFormData, type: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
                 <datalist id="equipmentTypes">
                   <option value="מכונה גדולה" />
@@ -390,11 +390,11 @@ export function EquipmentListPage() {
                 </datalist>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.status')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.status')}</label>
                 <select
                   value={editFormData.status}
                   onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as EquipmentStatus })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   <option value="warehouse">{t('equipment.statuses.warehouse')}</option>
                   <option value="available">{t('equipment.statuses.available')}</option>
@@ -403,11 +403,11 @@ export function EquipmentListPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.site')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.site')}</label>
                 <select
                   value={editFormData.siteId}
                   onChange={(e) => setEditFormData({ ...editFormData, siteId: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   <option value="">-- {t('app.select')} --</option>
                   {sites.map((site) => (
@@ -416,11 +416,11 @@ export function EquipmentListPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.condition')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.condition')}</label>
                 <select
                   value={editFormData.condition}
                   onChange={(e) => setEditFormData({ ...editFormData, condition: e.target.value as 'ok' | 'not_ok' | 'wearout' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   <option value="ok">{t('equipment.conditions.ok')}</option>
                   <option value="not_ok">{t('equipment.conditions.notOk')}</option>
@@ -428,26 +428,26 @@ export function EquipmentListPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.plannedRemoval')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.plannedRemoval')}</label>
                 <input
                   type="date"
                   value={editFormData.plannedRemovalDate}
                   onChange={(e) => setEditFormData({ ...editFormData, plannedRemovalDate: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowDetails(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
                 >
                   {t('app.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={savingEdit}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200"
                 >
                   {savingEdit ? t('app.loading') : t('app.save')}
                 </button>

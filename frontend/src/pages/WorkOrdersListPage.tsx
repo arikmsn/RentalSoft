@@ -8,9 +8,9 @@ import { api } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 
 const statusColors: Record<WorkOrderStatus, string> = {
-  open: 'bg-blue-100 text-blue-800',
-  in_progress: 'bg-yellow-100 text-yellow-800',
-  completed: 'bg-green-100 text-green-800',
+  open: 'bg-primary-100 text-primary-700',
+  in_progress: 'bg-warning-100 text-warning-700',
+  completed: 'bg-success-100 text-success-700',
 };
 
 const typeIcons: Record<string, string> = {
@@ -91,7 +91,7 @@ export function WorkOrdersListPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">{t('app.loading')}</div>
+        <div className="text-surface-500">{t('app.loading')}</div>
       </div>
     );
   }
@@ -101,13 +101,13 @@ export function WorkOrdersListPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">{t('workOrders.title')}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-surface-800">{t('workOrders.title')}</h1>
         {canCreate && (
           <button
             onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md active:scale-[0.98]"
           >
-            {t('workOrders.addNew')}
+            + {t('workOrders.addNew')}
           </button>
         )}
       </div>
@@ -115,40 +115,40 @@ export function WorkOrdersListPage() {
       <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
             filter === 'all'
-              ? 'bg-primary-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              ? 'bg-primary-600 text-white shadow-sm'
+              : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
           }`}
         >
           {t('equipment.filters.all')}
         </button>
         <button
           onClick={() => setFilter('open')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
             filter === 'open'
-              ? 'bg-primary-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              ? 'bg-primary-600 text-white shadow-sm'
+              : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
           }`}
         >
           {t('workOrders.statuses.open')}
         </button>
         <button
           onClick={() => setFilter('in_progress')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
             filter === 'in_progress'
-              ? 'bg-primary-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              ? 'bg-primary-600 text-white shadow-sm'
+              : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
           }`}
         >
           {t('workOrders.statuses.inProgress')}
         </button>
         <button
           onClick={() => setFilter('completed')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
             filter === 'completed'
-              ? 'bg-primary-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              ? 'bg-primary-600 text-white shadow-sm'
+              : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
           }`}
         >
           {t('workOrders.statuses.completed')}
@@ -160,21 +160,21 @@ export function WorkOrdersListPage() {
           <Link
             key={wo.id}
             to={`/workorders/${wo.id}`}
-            className="block bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+            className="block bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3">
-                <span className="text-2xl">{typeIcons[wo.type]}</span>
+                <span className="text-2xl sm:text-3xl">{typeIcons[wo.type]}</span>
                 <div>
-                  <h3 className="font-semibold">
+                  <h3 className="font-semibold text-surface-800">
                     {t(`workOrders.types.${wo.type}`)}
                   </h3>
-                  <p className="text-sm text-gray-500">
-                    {t('workOrders.plannedDate')}: {new Date(wo.plannedDate).toLocaleDateString('he-IL')}
+                  <p className="text-sm text-surface-500 mt-1">
+                    {t('workOrders.plannedDate')}: <span className="font-medium">{new Date(wo.plannedDate).toLocaleDateString('he-IL')}</span>
                   </p>
                 </div>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[wo.status]}`}>
+              <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[wo.status]}`}>
                 {t(`workOrders.statuses.${wo.status}`)}
               </span>
             </div>
@@ -183,23 +183,23 @@ export function WorkOrdersListPage() {
       </div>
 
       {filteredWorkOrders.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-surface-500">
           {t('errors.notFound')}
         </div>
       )}
 
       {/* Add Work Order Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">{t('workOrders.addNew')}</h2>
+        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
+            <h2 className="text-xl font-bold mb-5 text-surface-800">{t('workOrders.addNew')}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.type')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('workOrders.type')}</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   <option value="installation">{t('workOrders.types.installation')}</option>
                   <option value="inspection">{t('workOrders.types.inspection')}</option>
@@ -208,12 +208,12 @@ export function WorkOrdersListPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.site')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('workOrders.site')}</label>
                 <select
                   required
                   value={formData.siteId}
                   onChange={(e) => setFormData({ ...formData, siteId: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   <option value="">-- {t('app.select')} --</option>
                   {sites.map((site) => (
@@ -222,12 +222,12 @@ export function WorkOrdersListPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.technician')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('workOrders.technician')}</label>
                 <select
                   required
                   value={formData.technicianId}
                   onChange={(e) => setFormData({ ...formData, technicianId: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   <option value="">-- {t('app.select')} --</option>
                   {technicians.map((tech) => (
@@ -236,38 +236,38 @@ export function WorkOrdersListPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.plannedDate')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('workOrders.plannedDate')}</label>
                 <input
                   type="datetime-local"
                   required
                   value={formData.plannedDate}
                   onChange={(e) => setFormData({ ...formData, plannedDate: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
               {(formData.type === 'installation' || formData.type === 'removal') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.plannedRemoval')}</label>
+                  <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.plannedRemoval')}</label>
                   <input
                     type="date"
                     value={formData.plannedRemovalDate}
                     onChange={(e) => setFormData({ ...formData, plannedRemovalDate: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                   />
                 </div>
               )}
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
                 >
                   {t('app.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200"
                 >
                   {saving ? t('app.loading') : t('app.save')}
                 </button>

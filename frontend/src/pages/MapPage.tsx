@@ -115,7 +115,7 @@ export function MapPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">{t('app.loading')}</div>
+        <div className="text-surface-500">{t('app.loading')}</div>
       </div>
     );
   }
@@ -125,10 +125,10 @@ export function MapPage() {
   return (
     <div className="space-y-3 sm:space-y-4 h-[calc(100vh-140px)] sm:h-auto">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t('map.title')}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-surface-800">{t('map.title')}</h1>
         <button
           onClick={() => setShowSiteList(!showSiteList)}
-          className="lg:hidden px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-medium min-h-[40px]"
+          className="lg:hidden px-4 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-medium min-h-[44px] shadow-sm hover:shadow-md transition-all"
         >
           {showSiteList ? t('map.title') : `📋 ${filteredSites.length}`}
         </button>
@@ -137,7 +137,7 @@ export function MapPage() {
       {/* Mobile: Toggle between map and list, Desktop: Map takes most space */}
       <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 h-full">
         {/* Map - takes most space on desktop (3/4) */}
-        <div className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden ${showSiteList ? 'hidden lg:block' : ''} flex-1 min-h-[300px] sm:min-h-[400px] lg:flex-[3] ${isMobileSidebarOpen ? 'pointer-events-none' : ''}`}>
+        <div className={`bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden ${showSiteList ? 'hidden lg:block' : ''} flex-1 min-h-[300px] sm:min-h-[400px] lg:flex-[3] ${isMobileSidebarOpen ? 'pointer-events-none' : ''}`}>
           <MapContainer
             center={defaultCenter}
             zoom={7}
@@ -158,35 +158,35 @@ export function MapPage() {
                 }}
               >
                 <Popup>
-                  <div className="text-center min-w-[150px]">
-                    <h3 className="font-semibold">{site.name}</h3>
-                    <p className="text-sm text-gray-600">{site.address}</p>
+                  <div className="text-center min-w-[150px] p-1">
+                    <h3 className="font-semibold text-surface-800">{site.name}</h3>
+                    <p className="text-sm text-surface-600">{site.address}</p>
                     {site.statusCounts && (
                       <div className="mt-2 flex justify-center gap-2 text-xs">
                         {site.statusCounts.red > 0 && (
-                          <span className="px-2 py-1 bg-red-100 text-red-700 rounded">🔴 {site.statusCounts.red}</span>
+                          <span className="px-2 py-1 bg-danger-100 text-danger-700 rounded-full">🔴 {site.statusCounts.red}</span>
                         )}
                         {site.statusCounts.orange > 0 && (
-                          <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded">🟠 {site.statusCounts.orange}</span>
+                          <span className="px-2 py-1 bg-warning-100 text-warning-700 rounded-full">🟠 {site.statusCounts.orange}</span>
                         )}
                         {site.statusCounts.green > 0 && (
-                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded">🟢 {site.statusCounts.green}</span>
+                          <span className="px-2 py-1 bg-success-100 text-success-700 rounded-full">🟢 {site.statusCounts.green}</span>
                         )}
                       </div>
                     )}
                     {site.isHighlighted && (
-                      <span className="text-xs text-red-600">⚠️ {t('sites.highlight')}</span>
+                      <span className="text-xs text-warning-600 font-medium">⚠️ {t('sites.highlight')}</span>
                     )}
                     <div className="mt-2 flex flex-col gap-1">
                       <button
                         onClick={() => handleNavigate(site)}
-                        className="w-full px-2 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                        className="w-full px-2 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
                       >
                         🚗 {t('sites.navigate')}
                       </button>
                       <Link
                         to={`/sites/${site.id}`}
-                        className="w-full px-2 py-1.5 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200"
+                        className="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 transition-colors"
                       >
                         {t('app.actions')}
                       </Link>
@@ -199,42 +199,42 @@ export function MapPage() {
         </div>
 
         {/* Site List - sidebar on desktop (1/4), overlay on mobile */}
-        <div className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-auto ${showSiteList ? 'block' : 'hidden lg:block'} ${showSiteList ? 'max-h-[50vh]' : 'lg:max-h-[600px]'} lg:flex-1`}>
+        <div className={`bg-white rounded-2xl shadow-card border border-surface-100 overflow-auto ${showSiteList ? 'block' : 'hidden lg:block'} ${showSiteList ? 'max-h-[50vh]' : 'lg:max-h-[600px]'} lg:flex-1`}>
           <div className="p-3 sm:p-4">
             <input
               type="text"
               placeholder={t('app.search')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-3 py-2 mb-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm"
+              className="w-full px-4 py-3 mb-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm bg-white text-surface-800 placeholder:text-surface-400"
             />
-            <h2 className="font-semibold mb-3 hidden lg:block">{t('sites.title')} ({filteredSites.length})</h2>
+            <h2 className="font-semibold mb-3 text-surface-800 hidden lg:block">{t('sites.title')} ({filteredSites.length})</h2>
             <div className="space-y-2">
               {filteredSites.map((site) => (
                 <div
                   key={site.id}
                   onClick={() => handleSiteClick(site)}
-                  className={`p-2 sm:p-3 border border-gray-100 rounded-lg cursor-pointer transition-colors ${
+                  className={`p-3 sm:p-4 border rounded-xl cursor-pointer transition-all duration-200 ${
                     selectedSiteId === site.id 
-                      ? 'bg-primary-50 border-primary-300' 
-                      : 'hover:bg-gray-50'
+                      ? 'bg-primary-50 border-primary-300 shadow-sm' 
+                      : 'border-surface-100 hover:bg-surface-50 hover:border-surface-200'
                   }`}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1">
-                        <h3 className="font-medium text-sm truncate">{site.name}</h3>
-                        {site.isHighlighted && <span className="text-yellow-500">⭐</span>}
+                        <h3 className="font-medium text-sm text-surface-800 truncate">{site.name}</h3>
+                        {site.isHighlighted && <span className="text-warning-500">⭐</span>}
                       </div>
-                      <p className="text-xs text-gray-600 font-medium">{site.city}</p>
-                      <p className="text-xs text-gray-400 truncate">{site.address}</p>
+                      <p className="text-xs text-surface-600 font-medium mt-0.5">{site.city}</p>
+                      <p className="text-xs text-surface-400 truncate mt-0.5">{site.address}</p>
                     </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleNavigate(site);
                       }}
-                      className="ml-2 px-2 py-1 bg-blue-500 text-white rounded text-xs font-medium whitespace-nowrap min-h-[32px]"
+                      className="ms-2 px-3 py-2 bg-primary-600 text-white rounded-lg text-xs font-medium whitespace-nowrap min-h-[36px] hover:bg-primary-700 transition-colors"
                     >
                       🚗
                     </button>
@@ -247,24 +247,24 @@ export function MapPage() {
       </div>
 
       {/* Legend - hidden on mobile to save space */}
-      <div className="hidden sm:block bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
-        <h2 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base">{t('map.legend')}</h2>
-        <div className="flex flex-wrap gap-3 sm:gap-4">
-          <div className="flex items-center gap-1.5">
-            <span>🟢</span>
-            <span className="text-xs sm:text-sm">{t('equipment.progress.green')}</span>
+      <div className="hidden sm:block bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-surface-100">
+        <h2 className="font-semibold mb-3 text-surface-800 text-sm sm:text-base">{t('map.legend')}</h2>
+        <div className="flex flex-wrap gap-4 sm:gap-6">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-success-500"></span>
+            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.green')}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span>🟡</span>
-            <span className="text-xs sm:text-sm">{t('equipment.progress.yellow')}</span>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-warning-400"></span>
+            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.yellow')}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span>🟠</span>
-            <span className="text-xs sm:text-sm">{t('equipment.progress.orange')}</span>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-warning-500"></span>
+            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.orange')}</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span>🔴</span>
-            <span className="text-xs sm:text-sm">{t('equipment.progress.red')}</span>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-danger-500"></span>
+            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.red')}</span>
           </div>
         </div>
       </div>
