@@ -122,8 +122,9 @@ export function SettingsPage() {
       setEditingItem(null);
       setFormData({ name: '', code: '', isActive: true, sortOrder: 0, username: '', email: '', phone: '', password: '' });
       fetchItems();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving item:', error);
+      alert(error?.response?.data?.message || t('errors.serverError'));
     } finally {
       setSaving(false);
     }
@@ -175,8 +176,11 @@ export function SettingsPage() {
       }
       await api.delete(url);
       fetchItems();
-    } catch (error) {
+      setShowDeleteConfirm(false);
+      setItemToDelete(null);
+    } catch (error: any) {
       console.error('Error deleting item:', error);
+      alert(error?.response?.data?.message || t('errors.serverError'));
     } finally {
       setShowDeleteConfirm(false);
       setItemToDelete(null);
