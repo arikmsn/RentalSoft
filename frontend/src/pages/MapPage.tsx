@@ -98,8 +98,13 @@ export function MapPage() {
 
   const handleSiteClick = (site: SiteWithStatus) => {
     setSelectedSiteId(site.id);
+    setShowSiteList(true);
     if (mapRef.current && site.latitude && site.longitude) {
       mapRef.current.setView([site.latitude, site.longitude], 15);
+    }
+    // On mobile, also close the list to show map
+    if (window.innerWidth < 1024) {
+      setShowSiteList(false);
     }
   };
 
@@ -123,8 +128,8 @@ export function MapPage() {
   const defaultCenter: [number, number] = [31.0461, 34.8516];
 
   return (
-    <div className="space-y-3 sm:space-y-4 h-[calc(100vh-140px)] sm:h-auto">
-      <div className="flex items-center justify-between">
+    <div className="space-y-3 sm:space-y-4 h-[calc(100vh-130px)] lg:h-auto flex flex-col">
+      <div className="flex items-center justify-between shrink-0">
         <h1 className="text-xl sm:text-2xl font-bold text-surface-800">{t('map.title')}</h1>
         <button
           onClick={() => setShowSiteList(!showSiteList)}
@@ -135,9 +140,9 @@ export function MapPage() {
       </div>
 
       {/* Mobile: Toggle between map and list, Desktop: Map takes most space */}
-      <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 h-full">
+      <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 flex-1 min-h-0">
         {/* Map - takes most space on desktop (3/4) */}
-        <div className={`bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden ${showSiteList ? 'hidden lg:block' : ''} flex-1 min-h-[300px] sm:min-h-[400px] lg:flex-[3] ${isMobileSidebarOpen ? 'pointer-events-none' : ''}`}>
+        <div className={`bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden ${showSiteList ? 'hidden lg:block' : ''} flex-1 min-h-[250px] lg:flex-[3] ${isMobileSidebarOpen ? 'pointer-events-none' : ''}`}>
           <MapContainer
             center={defaultCenter}
             zoom={7}

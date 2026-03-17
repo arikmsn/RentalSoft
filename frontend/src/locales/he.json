@@ -133,6 +133,9 @@
     "done": "בוצע",
     "todo": "לביצוע",
     "scanEquipment": "סרוק ציוד",
+    "filters": {
+      "active": "פתוחות / בביצוע"
+    },
     "types": {
       "installation": "התקנה",
       "inspection": "בדיקה",

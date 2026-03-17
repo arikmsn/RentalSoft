@@ -4,6 +4,7 @@ import type { Equipment, EquipmentStatus, Site } from '../types';
 import { equipmentService } from '../services/equipmentService';
 import { siteService } from '../services/siteService';
 import { QRScanner } from '../components/qr/QRScanner';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 const statusColors: Record<EquipmentStatus, string> = {
   warehouse: 'bg-primary-100 text-primary-700',
@@ -40,16 +41,15 @@ export function EquipmentListPage() {
     plannedRemovalDate: '',
   });
   const [savingEdit, setSavingEdit] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const handleDeleteEquipment = async () => {
+  const handleDeleteEquipment = () => {
     if (!selectedEquipment) return;
-    const hasSite = selectedEquipment.siteId;
-    const message = hasSite 
-      ? t('equipment.deleteWarning')
-      : t('app.confirmDelete') + '?';
-    if (!confirm(message)) return;
-    setDeleting(true);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedEquipment) return;
     try {
       await equipmentService.delete(selectedEquipment.id);
       setShowDetails(false);
@@ -60,7 +60,7 @@ export function EquipmentListPage() {
       console.error('Failed to delete equipment:', err);
       alert(err?.response?.data?.message || 'Failed to delete equipment');
     } finally {
-      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -148,13 +148,15 @@ export function EquipmentListPage() {
     return 'bg-green-500';
   };
 
-  const filteredEquipment = equipment.filter((eq) => {
-    const matchesFilter = filter === 'all' || eq.status === filter;
-    const matchesSearch = !search || 
-      eq.qrTag.toLowerCase().includes(search.toLowerCase()) ||
-      eq.type.toLowerCase().includes(search.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const filteredEquipment = equipment
+    .filter((eq) => {
+      const matchesFilter = filter === 'all' || eq.status === filter;
+      const matchesSearch = !search || 
+        eq.qrTag.toLowerCase().includes(search.toLowerCase()) ||
+        eq.type.toLowerCase().includes(search.toLowerCase());
+      return matchesFilter && matchesSearch;
+    })
+    .sort((a, b) => a.qrTag.localeCompare(b.qrTag, 'he'));
 
   if (loading) {
     return (
@@ -340,7 +342,11 @@ export function EquipmentListPage() {
       {showScanner && (
         <QRScanner
           onScan={(qrValue) => {
-            setFormData({ ...formData, qrTag: qrValue });
+            if (showDetails && selectedEquipment) {
+              setEditFormData({ ...editFormData, qrTag: qrValue });
+            } else {
+              setFormData({ ...formData, qrTag: qrValue });
+            }
             setShowScanner(false);
           }}
           onClose={() => setShowScanner(false)}
@@ -355,7 +361,6 @@ export function EquipmentListPage() {
               <button
                 type="button"
                 onClick={handleDeleteEquipment}
-                disabled={deleting}
                 className="text-danger-600 hover:text-danger-700 p-2 rounded-lg hover:bg-danger-50 transition-colors"
                 title={t('app.delete')}
               >
@@ -365,13 +370,23 @@ export function EquipmentListPage() {
             <form onSubmit={handleUpdateEquipment} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.qrTag')}</label>
-                <input
-                  type="text"
-                  required
-                  value={editFormData.qrTag}
-                  onChange={(e) => setEditFormData({ ...editFormData, qrTag: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.qrTag}
+                    onChange={(e) => setEditFormData({ ...editFormData, qrTag: e.target.value })}
+                    className="flex-1 px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowScanner(true)}
+                    className="px-4 py-3 bg-surface-100 border border-surface-200 rounded-xl hover:bg-surface-200 transition-colors"
+                    title={t('workOrder.scanQR')}
+                  >
+                    📷
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.type')}</label>
@@ -455,6 +470,18 @@ export function EquipmentListPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {showDeleteConfirm && selectedEquipment && (
+        <ConfirmDialog
+          isOpen={showDeleteConfirm}
+          title={t('app.delete')}
+          message={selectedEquipment.siteId ? t('equipment.deleteWarning') : t('app.confirmDelete') + '?'}
+          confirmLabel={t('app.delete')}
+          onConfirm={confirmDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+          variant="danger"
+        />
       )}
     </div>
   );

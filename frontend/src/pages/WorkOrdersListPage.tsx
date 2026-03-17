@@ -27,7 +27,7 @@ export function WorkOrdersListPage() {
   const [sites, setSites] = useState<Site[]>([]);
   const [technicians, setTechnicians] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<WorkOrderStatus | 'all'>('all');
+  const [filter, setFilter] = useState<'active' | 'completed' | 'all'>('active');
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -85,7 +85,10 @@ export function WorkOrdersListPage() {
   };
 
   const filteredWorkOrders = workOrders.filter((wo) => {
-    return filter === 'all' || wo.status === filter;
+    if (filter === 'all') return true;
+    if (filter === 'completed') return wo.status === 'completed';
+    if (filter === 'active') return wo.status === 'open' || wo.status === 'in_progress';
+    return true;
   });
 
   if (loading) {
@@ -114,34 +117,14 @@ export function WorkOrdersListPage() {
 
       <div className="flex gap-2 flex-wrap">
         <button
-          onClick={() => setFilter('all')}
+          onClick={() => setFilter('active')}
           className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
-            filter === 'all'
+            filter === 'active'
               ? 'bg-primary-600 text-white shadow-sm'
               : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
           }`}
         >
-          {t('equipment.filters.all')}
-        </button>
-        <button
-          onClick={() => setFilter('open')}
-          className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
-            filter === 'open'
-              ? 'bg-primary-600 text-white shadow-sm'
-              : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
-          }`}
-        >
-          {t('workOrders.statuses.open')}
-        </button>
-        <button
-          onClick={() => setFilter('in_progress')}
-          className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
-            filter === 'in_progress'
-              ? 'bg-primary-600 text-white shadow-sm'
-              : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
-          }`}
-        >
-          {t('workOrders.statuses.inProgress')}
+          {t('workOrders.filters.active')}
         </button>
         <button
           onClick={() => setFilter('completed')}
@@ -152,6 +135,16 @@ export function WorkOrdersListPage() {
           }`}
         >
           {t('workOrders.statuses.completed')}
+        </button>
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
+            filter === 'all'
+              ? 'bg-primary-600 text-white shadow-sm'
+              : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
+          }`}
+        >
+          {t('equipment.filters.all')}
         </button>
       </div>
 

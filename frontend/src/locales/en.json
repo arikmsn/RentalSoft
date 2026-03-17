@@ -133,6 +133,9 @@
     "done": "Done",
     "todo": "To Do",
     "scanEquipment": "Scan Equipment",
+    "filters": {
+      "active": "Open / In Progress"
+    },
     "types": {
       "installation": "Installation",
       "inspection": "Inspection",

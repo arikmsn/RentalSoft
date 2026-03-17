@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { Site } from '../types';
 import { siteService } from '../services/siteService';
 import { useAuthStore } from '../stores/authStore';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export function SitesListPage() {
   const { t } = useTranslation();
@@ -15,7 +16,8 @@ export function SitesListPage() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [siteToDelete, setSiteToDelete] = useState<Site | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -106,30 +108,35 @@ export function SitesListPage() {
     }
   };
 
-  const handleDelete = async (site: Site) => {
-    const hasEquipment = sites.some(s => s.id === site.id && (s as any)._count?.equipment > 0);
-    const message = hasEquipment 
-      ? t('sites.deleteWarning')
-      : t('app.confirmDelete') + '?';
-    if (!confirm(message)) return;
-    setDeletingId(site.id);
+  const handleDeleteClick = (site: Site) => {
+    setSiteToDelete(site);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!siteToDelete) return;
     try {
-      await siteService.delete(site.id);
+      await siteService.delete(siteToDelete.id);
+      setShowEditForm(false);
+      setEditingSite(null);
       fetchSites();
     } catch (err: any) {
       console.error('Failed to delete site:', err);
       alert(err?.response?.data?.message || 'Failed to delete site');
     } finally {
-      setDeletingId(null);
+      setShowDeleteConfirm(false);
+      setSiteToDelete(null);
     }
   };
 
-  const filteredSites = sites.filter((site) => {
-    return !search || 
-      site.name.toLowerCase().includes(search.toLowerCase()) ||
-      site.address.toLowerCase().includes(search.toLowerCase()) ||
-      site.city.toLowerCase().includes(search.toLowerCase());
-  });
+  const filteredSites = sites
+    .filter((site) => {
+      return !search || 
+        site.name.toLowerCase().includes(search.toLowerCase()) ||
+        site.address.toLowerCase().includes(search.toLowerCase()) ||
+        site.city.toLowerCase().includes(search.toLowerCase());
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'he'));
 
   const handleNavigate = (site: Site) => {
     if (site.latitude && site.longitude) {
@@ -344,11 +351,10 @@ export function SitesListPage() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-xl font-bold text-surface-800">{t('app.edit')}</h2>
-              {canDelete && (
+              {canDelete && editingSite && (
                 <button
                   type="button"
-                  onClick={() => handleDelete(editingSite)}
-                  disabled={deletingId === editingSite.id}
+                  onClick={() => handleDeleteClick(editingSite)}
                   className="text-danger-600 hover:text-danger-700 p-2 rounded-lg hover:bg-danger-50 transition-colors"
                   title={t('app.delete')}
                 >
@@ -457,6 +463,18 @@ export function SitesListPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {showDeleteConfirm && siteToDelete && (
+        <ConfirmDialog
+          isOpen={showDeleteConfirm}
+          title={t('app.delete')}
+          message={(siteToDelete as any)._count?.equipment > 0 ? t('sites.deleteWarning') : t('app.confirmDelete') + '?'}
+          confirmLabel={t('app.delete')}
+          onConfirm={confirmDelete}
+          onCancel={() => { setShowDeleteConfirm(false); setSiteToDelete(null); }}
+          variant="danger"
+        />
       )}
     </div>
   );
