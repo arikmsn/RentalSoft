@@ -1,3 +1,5 @@
+console.log('[QR] Scanner file loaded');
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
@@ -66,6 +68,8 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
   }, [t]);
 
   const startScanner = useCallback(async () => {
+    console.log('[QR] 🚀 Starting permission flow');
+    
     try {
       setStatus('requesting');
       setError(null);

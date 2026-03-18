@@ -23,6 +23,8 @@ function SettingsRoute() {
 }
 
 function App() {
+  console.log('[BUILD] RentalSoft QR build 2026-03-18-QR2');
+  
   return (
     <Routes>
       <Route path="/" element={<LoginPage />} />

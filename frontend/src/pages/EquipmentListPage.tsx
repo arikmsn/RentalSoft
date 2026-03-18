@@ -4,6 +4,7 @@ import type { Equipment, EquipmentStatus, Site } from '../types';
 import { equipmentService } from '../services/equipmentService';
 import { siteService } from '../services/siteService';
 import { QRScanner } from '../components/qr/QRScanner';
+import { QRErrorBoundary } from '../components/qr/QRErrorBoundary';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { api } from '../services/api';
 import { formatDate } from '../utils/date';
@@ -372,17 +373,19 @@ export function EquipmentListPage() {
       )}
 
       {showScanner && (
-        <QRScanner
-          onScan={(qrValue) => {
-            if (showDetails && selectedEquipment) {
-              setEditFormData({ ...editFormData, qrTag: qrValue });
-            } else {
-              setFormData({ ...formData, qrTag: qrValue });
-            }
-            setShowScanner(false);
-          }}
-          onClose={() => setShowScanner(false)}
-        />
+        <QRErrorBoundary>
+          <QRScanner
+            onScan={(qrValue) => {
+              if (showDetails && selectedEquipment) {
+                setEditFormData({ ...editFormData, qrTag: qrValue });
+              } else {
+                setFormData({ ...formData, qrTag: qrValue });
+              }
+              setShowScanner(false);
+            }}
+            onClose={() => setShowScanner(false)}
+          />
+        </QRErrorBoundary>
       )}
 
       {showDetails && selectedEquipment && (

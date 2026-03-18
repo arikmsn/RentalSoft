@@ -6,6 +6,7 @@ import type { ChecklistUpdate } from '../services/workOrderService';
 import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
 import { QRScanner } from '../components/qr';
+import { QRErrorBoundary } from '../components/qr/QRErrorBoundary';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { offlineApi } from '../services/offlineApi';
 import { workOrderService } from '../services/workOrderService';
@@ -339,10 +340,12 @@ export function WorkOrderDetailsPage() {
   return (
     <div className="space-y-4 pb-24 lg:pb-4">
       {scannerOpen && (
-        <QRScanner
-          onScan={handleScanQR}
-          onClose={() => setScannerOpen(false)}
-        />
+        <QRErrorBoundary>
+          <QRScanner
+            onScan={handleScanQR}
+            onClose={() => setScannerOpen(false)}
+          />
+        </QRErrorBoundary>
       )}
 
       {showEditForm && (
