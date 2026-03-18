@@ -81,6 +81,7 @@ model Equipment {
   actualRemovalDate   DateTime?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
+  currentWorkOrderId  String?
 
   site            Site?        @relation(fields: [siteId], references: [id])
   activityLogs    ActivityLog[]

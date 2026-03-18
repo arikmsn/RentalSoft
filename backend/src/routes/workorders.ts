@@ -119,16 +119,22 @@ async function updateEquipmentStatusForWorkOrder(workOrderId: string) {
   if (equipmentIds.length === 0) return;
 
   if (isActive) {
-    // Work order is active - set equipment to at_customer
+    // Work order is active - set equipment to at_customer and update currentWorkOrderId
     await prisma.equipment.updateMany({
       where: { id: { in: equipmentIds } },
-      data: { status: 'at_customer' },
+      data: { 
+        status: 'at_customer',
+        currentWorkOrderId: workOrderId,
+      },
     });
   } else if (workOrder.status === 'completed') {
-    // Work order completed - set equipment back to warehouse
+    // Work order completed - set equipment back to warehouse and clear currentWorkOrderId
     await prisma.equipment.updateMany({
       where: { id: { in: equipmentIds } },
-      data: { status: 'warehouse' },
+      data: { 
+        status: 'warehouse',
+        currentWorkOrderId: null,
+      },
     });
   }
 }
@@ -414,10 +420,13 @@ router.post('/:id/equipment', authenticate, authorize('manager', 'admin'), async
       data: { workOrderId, equipmentId },
     });
 
-    // Update equipment status to at_customer
+    // Update equipment status to at_customer and set currentWorkOrderId
     await prisma.equipment.update({
       where: { id: equipmentId },
-      data: { status: 'at_customer' },
+      data: { 
+        status: 'at_customer',
+        currentWorkOrderId: workOrderId,
+      },
     });
 
     const workOrder = await prisma.workOrder.findUnique({
@@ -453,11 +462,14 @@ router.delete('/:id/equipment/:equipmentId', authenticate, authorize('manager', 
       },
     });
 
-    // If not linked to any active work order, set back to warehouse
+    // If not linked to any active work order, set back to warehouse and clear currentWorkOrderId
     if (!otherLinks) {
       await prisma.equipment.update({
         where: { id: equipmentId },
-        data: { status: 'warehouse' },
+        data: { 
+          status: 'warehouse',
+          currentWorkOrderId: null,
+        },
       });
     }
 
