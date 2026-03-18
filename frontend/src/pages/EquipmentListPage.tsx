@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { Equipment, EquipmentStatus, Site } from '../types';
 import { equipmentService } from '../services/equipmentService';
 import { siteService } from '../services/siteService';
-import { QRScanner } from '../components/qr/QRScanner';
+import { BaseQrScanner } from '../components/qr/BaseQrScanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { api } from '../services/api';
 import { formatDate } from '../utils/date';
@@ -377,17 +377,33 @@ export function EquipmentListPage() {
       )}
 
       {showScanner && (
-        <QRScanner
-          onScan={(qrValue) => {
-            if (showDetails && selectedEquipment) {
-              setEditFormData({ ...editFormData, qrTag: qrValue });
-            } else {
-              setFormData({ ...formData, qrTag: qrValue });
-            }
-            setShowScanner(false);
-          }}
-          onClose={closeScanner}
-        />
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col">
+          <div className="flex items-center justify-between p-4 bg-black">
+            <h2 className="text-white font-semibold">{t('qrScanner.title')}</h2>
+            <button onClick={closeScanner} className="text-white p-2">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-auto p-4">
+            <BaseQrScanner
+              onScan={(qrValue) => {
+                if (showDetails && selectedEquipment) {
+                  setEditFormData({ ...editFormData, qrTag: qrValue });
+                } else {
+                  setFormData({ ...formData, qrTag: qrValue });
+                }
+                setShowScanner(false);
+              }}
+            />
+          </div>
+          
+          <div className="p-4 bg-black">
+            <p className="text-gray-400 text-center text-sm">{t('qrScanner.manualHint')}</p>
+          </div>
+        </div>
       )}
 
       {showDetails && selectedEquipment && (

@@ -5,7 +5,7 @@ import type { WorkOrder, WorkOrderStatus, WorkOrderType, Site, Equipment } from 
 import type { ChecklistUpdate } from '../services/workOrderService';
 import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
-import { QRScanner } from '../components/qr';
+import { BaseQrScanner } from '../components/qr/BaseQrScanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { offlineApi } from '../services/offlineApi';
 import { workOrderService } from '../services/workOrderService';
@@ -63,6 +63,15 @@ export function WorkOrderDetailsPage() {
     console.log('[QR] Closing scanner');
     setScannerOpen(false);
   }, []);
+  
+  const [manualCode, setManualCode] = useState('');
+  
+  const handleManualCodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (manualCode.trim()) {
+      handleScanQR(manualCode.trim());
+    }
+  };
   
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -344,10 +353,42 @@ export function WorkOrderDetailsPage() {
   return (
     <div className="space-y-4 pb-24 lg:pb-4">
       {scannerOpen && (
-        <QRScanner
-          onScan={handleScanQR}
-          onClose={closeScanner}
-        />
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col">
+          <div className="flex items-center justify-between p-4 bg-black">
+            <h2 className="text-white font-semibold">{t('qrScanner.title')}</h2>
+            <button onClick={closeScanner} className="text-white p-2">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-auto p-4">
+            <BaseQrScanner onScan={handleScanQR} />
+          </div>
+          
+          <div className="p-4 bg-black">
+            <form onSubmit={handleManualCodeSubmit} className="mb-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value)}
+                  placeholder={t('qr.equipmentCodeLabel')}
+                  className="flex-1 px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-primary-500 outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!manualCode.trim()}
+                  className="px-4 py-3 bg-primary-600 text-white rounded-lg disabled:opacity-50"
+                >
+                  {t('app.add')}
+                </button>
+              </div>
+            </form>
+            <p className="text-gray-400 text-center text-sm">{t('qrScanner.manualHint')}</p>
+          </div>
+        </div>
       )}
 
       {showEditForm && (
