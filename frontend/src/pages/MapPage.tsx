@@ -66,7 +66,7 @@ export function MapPage() {
   const { t } = useTranslation();
   const [sites, setSites] = useState<SiteWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSiteList, setShowSiteList] = useState(true);
+  const [showSiteList, setShowSiteList] = useState(false); // Start with map visible on mobile
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const mapRef = useRef<L.Map | null>(null);
@@ -121,13 +121,14 @@ export function MapPage() {
     .sort((a, b) => a.city.localeCompare(b.city, 'he'));
 
   const handleSiteClick = (site: SiteWithStatus) => {
+    console.log('[Map] handleSiteClick:', site.id, site.name);
     setSelectedSiteId(site.id);
     
     if (mapRef.current && site.latitude && site.longitude) {
       const lat = Number(site.latitude);
       const lng = Number(site.longitude);
       console.log('[Map] Centering on site:', site.name, 'lat:', lat, 'lng:', lng);
-      mapRef.current.setView([lat, lng], 15);
+      mapRef.current.flyTo([lat, lng], 15, { duration: 0.5 });
     }
     if (window.innerWidth < 1024) {
       setShowSiteList(false);
@@ -239,8 +240,8 @@ export function MapPage() {
         {/* Map Container */}
         <div 
           ref={mapContainerRef}
-          className={`flex-1 relative ${showSiteList ? 'hidden lg:block' : 'block'}`}
-          style={{ minHeight: '40vh' }}
+          className="flex-1 relative min-h-[50vh] lg:min-h-0"
+          style={{ height: '100%' }}
         >
           <MapContainer
             center={defaultCenter}
@@ -336,7 +337,7 @@ export function MapPage() {
         </div>
 
         {/* Site List - sidebar on desktop, below map on mobile */}
-        <div className={`bg-white overflow-auto lg:overflow-y-auto lg:flex-1 lg:max-w-[360px] ${showSiteList ? 'h-[50vh]' : 'h-0 lg:h-auto'}`}>
+        <div className={`bg-white overflow-auto lg:overflow-y-auto lg:flex-1 lg:max-w-[360px] ${showSiteList ? 'h-[50vh] lg:h-auto' : 'hidden lg:block'}`}>
           <div className="p-3 sm:p-4">
             <input
               type="text"

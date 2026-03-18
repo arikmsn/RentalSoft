@@ -1,7 +1,7 @@
 import { prisma } from '../src/config/database';
 
 const siteCoordinates: Record<string, { lat: number; lng: number }> = {
-  'אברהם בן עמי 6': { lat: 31.9539, lng: 34.8517 },
+  'אברהם בן עמי 6': { lat: 31.2420, lng: 34.7977 }, // Beer Sheva
   'הרב קוק 30': { lat: 32.0830, lng: 34.8879 },
   'הכלנית 3': { lat: 32.0550, lng: 34.8550 }, // Kiryat Ono
   'ז\'בוטינסקי 120': { lat: 32.0681, lng: 34.8111 },
@@ -37,7 +37,8 @@ async function populateCoordinates() {
   
   // First, update specific sites with better coordinates
   const betterCoords: Record<string, { lat: number; lng: number }> = {
-    'הכלנית 3': { lat: 32.0550, lng: 34.8550 }, // Kiryat Ono - corrected coordinates
+    'הכלנית 3': { lat: 32.0550, lng: 34.8550 }, // Kiryat Ono - corrected
+    'אברהם בן עמי 6': { lat: 31.2420, lng: 34.7977 }, // Beer Sheva - Abraham Ben Amram 6
   };
   
   for (const [address, coords] of Object.entries(betterCoords)) {
