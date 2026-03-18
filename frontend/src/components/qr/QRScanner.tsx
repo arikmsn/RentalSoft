@@ -10,6 +10,8 @@ interface QRScannerProps {
 }
 
 export function QRScanner({ onScan, onClose }: QRScannerProps) {
+  console.log('[QR] 🔧 Scanner component rendered');
+  
   const { t } = useTranslation();
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [status, setStatus] = useState<ScannerStatus>('idle');

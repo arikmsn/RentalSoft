@@ -290,7 +290,7 @@ export function EquipmentListPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowScanner(true)}
+                    onClick={() => { console.log('[QR] 📱 Opening scanner from EquipmentList'); setShowScanner(true); }}
                     className="px-4 py-3 bg-surface-100 border border-surface-200 rounded-xl hover:bg-surface-200 transition-colors"
                     title={t('workOrder.scanQR')}
                   >
@@ -412,7 +412,7 @@ export function EquipmentListPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowScanner(true)}
+                    onClick={() => { console.log('[QR] 📱 Opening scanner from EquipmentList edit'); setShowScanner(true); }}
                     className="px-4 py-3 bg-surface-100 border border-surface-200 rounded-xl hover:bg-surface-200 transition-colors"
                     title={t('workOrder.scanQR')}
                   >

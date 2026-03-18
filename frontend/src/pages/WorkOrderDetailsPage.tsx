@@ -577,7 +577,7 @@ export function WorkOrderDetailsPage() {
         )}
 
         <button
-          onClick={() => setScannerOpen(true)}
+          onClick={() => { console.log('[QR] 📱 Opening scanner from WorkOrderDetails'); setScannerOpen(true); }}
           className="w-full py-4 sm:py-5 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-primary-500 hover:text-primary-600 transition-colors flex flex-col items-center gap-2 min-h-[80px] justify-center"
         >
           <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
