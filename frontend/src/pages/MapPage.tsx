@@ -136,10 +136,26 @@ export function MapPage() {
           siteService.getWithEquipmentStatus() as Promise<SiteWithStatus[]>,
           siteService.getActiveWorkOrdersForMap(),
         ]);
-        setSites(sitesData.filter(s => s.latitude && s.longitude));
-        setActiveWorkOrders(workOrdersData.filter(wo => wo.site?.latitude && wo.site?.longitude));
+        
+        const validSites = sitesData.filter(s => s.latitude && s.longitude);
+        const validWorkOrders = workOrdersData.filter(wo => {
+          const hasCoords = wo.site?.latitude && wo.site?.longitude;
+          if (!hasCoords) {
+            console.log('[Map] Work order missing coordinates:', wo.id, wo.site?.name);
+          }
+          return hasCoords;
+        });
+        
+        console.log('[Map] Loaded:', {
+          sites: validSites.length,
+          workOrders: validWorkOrders.length,
+          totalWorkOrders: workOrdersData.length,
+        });
+        
+        setSites(validSites);
+        setActiveWorkOrders(validWorkOrders);
       } catch (error) {
-        console.error('Failed to fetch data:', error);
+        console.error('Failed to fetch map data:', error);
       } finally {
         setLoading(false);
       }

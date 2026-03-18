@@ -175,9 +175,17 @@ export function WorkOrdersListPage() {
                   </p>
                 </div>
               </div>
-              <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[wo.status]}`}>
-                {t(`workOrders.statuses.${wo.status}`)}
-              </span>
+              <div className="flex flex-col items-end gap-2">
+                <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[wo.status]}`}>
+                  {t(`workOrders.statuses.${wo.status}`)}
+                </span>
+                {wo.equipmentCount !== undefined && wo.equipmentCount > 0 && (
+                  <div className="flex items-center gap-1 text-xs text-surface-500 bg-surface-100 px-2 py-1 rounded-full">
+                    <span>🔧</span>
+                    <span>{wo.equipmentCount}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </Link>
         ))}

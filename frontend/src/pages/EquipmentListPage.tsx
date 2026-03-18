@@ -272,7 +272,7 @@ export function EquipmentListPage() {
               <div className="mt-3 pt-3 border-t border-surface-100">
                 <div className="flex items-center gap-2 text-xs">
                   <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded-full font-medium">
-                    משויך לעבודה #{eq.activeWorkOrder.id.slice(0, 8)}
+                    {t('equipment.assignedToWorkOrder')}
                   </span>
                   <span className="text-surface-600">
                     {eq.activeWorkOrder.site?.name}

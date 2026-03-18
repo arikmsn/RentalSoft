@@ -90,6 +90,7 @@
       "pastRemoval": "פירוק עבר",
       "closeToRemoval": "קרוב לפירוק"
     },
+    "assignedToWorkOrder": "משויך לעבודה",
     "progress": {
       "green": "יש זמן",
       "yellow": "בינוני",

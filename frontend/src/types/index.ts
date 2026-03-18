@@ -82,6 +82,7 @@ export interface WorkOrder {
   site?: Site;
   technician?: Technician;
   checklist?: ChecklistItem[];
+  equipmentCount?: number;
 }
 
 export interface ChecklistItem {

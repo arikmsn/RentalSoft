@@ -28,11 +28,19 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
       include: {
         site: true,
         technician: { select: { id: true, name: true } },
+        equipment: { select: { id: true } },
       },
       orderBy: { plannedDate: 'asc' },
     });
 
-    res.json(workOrders);
+    // Add equipment count to each work order
+    const workOrdersWithCount = workOrders.map(wo => ({
+      ...wo,
+      equipmentCount: wo.equipment.length,
+      equipment: undefined, // Don't send full equipment array in list
+    }));
+
+    res.json(workOrdersWithCount);
   } catch (error) {
     console.error('Get work orders error:', error);
     res.status(500).json({ message: 'Server error' });

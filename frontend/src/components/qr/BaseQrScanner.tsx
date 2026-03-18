@@ -12,11 +12,12 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isRunningRef = useRef(false);
   const isMountedRef = useRef(true);
+  const isCleanupRef = useRef(false);
   const regionId = 'qr-reader-target';
 
   const handleScan = useCallback((decodedText: string) => {
     console.log('[QR] BaseQrScanner found:', decodedText);
-    if (isMountedRef.current) {
+    if (isMountedRef.current && !isCleanupRef.current) {
       onScan(decodedText);
     }
   }, [onScan]);
@@ -24,10 +25,15 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
   useEffect(() => {
     console.log('[QR] BaseQrScanner useEffect running');
     isMountedRef.current = true;
+    isCleanupRef.current = false;
     isRunningRef.current = false;
+    
+    let mounted = true;
     
     const initScanner = async () => {
       try {
+        if (!mounted) return;
+        
         setStatus('Creating scanner...');
         
         const element = document.getElementById(regionId);
@@ -52,7 +58,9 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
             aspectRatio: 1.0,
           },
           (decodedText) => {
-            handleScan(decodedText);
+            if (mounted && !isCleanupRef.current) {
+              handleScan(decodedText);
+            }
           },
           () => {
             // QR parse error - ignore
@@ -61,13 +69,13 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
 
         isRunningRef.current = true;
         
-        if (isMountedRef.current) {
+        if (mounted) {
           setStatus('Ready - point at QR code');
         }
       } catch (err) {
         console.error('[QR] Start failed:', err);
         isRunningRef.current = false;
-        if (isMountedRef.current) {
+        if (mounted) {
           setStatus('Error: ' + String(err));
         }
       }
@@ -76,26 +84,37 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
     initScanner();
 
     return () => {
-      console.log('[QR] BaseQrScanner cleanup');
+      console.log('[QR] BaseQrScanner cleanup starting');
+      mounted = false;
+      isCleanupRef.current = true;
       isMountedRef.current = false;
       
-      const stopScanner = async () => {
-        if (scannerRef.current && isRunningRef.current) {
-          isRunningRef.current = false;
-          try {
-            await scannerRef.current.stop();
-            console.log('[QR] Scanner stopped');
-          } catch (err) {
-            const errStr = String(err);
-            if (!errStr.includes('not running') && !errStr.includes('undefined')) {
-              console.warn('[QR] Stop error:', err);
+      // Safely stop the scanner without throwing
+      const stopScanner = () => {
+        if (scannerRef.current) {
+          const scanner = scannerRef.current;
+          scannerRef.current = null;
+          
+          // Only try to stop if we actually started
+          if (isRunningRef.current) {
+            isRunningRef.current = false;
+            try {
+              // Clear any video element references first to prevent removeChild errors
+              const videoElement = document.getElementById(`${regionId}`);
+              if (videoElement && videoElement.parentNode) {
+                // Let Html5Qrcode handle cleanup - don't manually remove elements
+              }
+              scanner.stop().catch(() => {});
+            } catch (err) {
+              // Ignore all errors during cleanup
+              console.warn('[QR] Cleanup error (ignored):', err);
             }
           }
         }
-        scannerRef.current = null;
       };
       
       stopScanner();
+      console.log('[QR] BaseQrScanner cleanup done');
     };
   }, [handleScan]);
 
