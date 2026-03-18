@@ -128,6 +128,52 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
   }
 });
 
+router.get('/active-work-orders', authenticate, isTechnicianOrHigher, async (req, res) => {
+  try {
+    const workOrders = await prisma.workOrder.findMany({
+      where: {
+        status: { in: ['open', 'in_progress'] },
+        site: {
+          latitude: { not: null },
+          longitude: { not: null },
+        },
+      },
+      include: {
+        site: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            city: true,
+            latitude: true,
+            longitude: true,
+            contact1Phone: true,
+          },
+        },
+        technician: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { plannedDate: 'asc' },
+    });
+
+    const workOrdersWithLocation = workOrders.map(wo => ({
+      id: wo.id,
+      type: wo.type,
+      status: wo.status,
+      plannedDate: wo.plannedDate,
+      plannedRemovalDate: wo.plannedRemovalDate,
+      site: wo.site,
+      technician: wo.technician,
+    }));
+
+    res.json(workOrdersWithLocation);
+  } catch (error) {
+    console.error('Get active work orders for map error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
   try {
     const site = await prisma.site.findUnique({

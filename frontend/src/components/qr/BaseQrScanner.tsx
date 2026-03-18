@@ -30,6 +30,12 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
       try {
         setStatus('Creating scanner...');
         
+        const element = document.getElementById(regionId);
+        if (!element) {
+          console.warn('[QR] Scanner element not found');
+          return;
+        }
+        
         scannerRef.current = new Html5Qrcode(regionId, {
           formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
           verbose: false,
@@ -73,24 +79,23 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
       console.log('[QR] BaseQrScanner cleanup');
       isMountedRef.current = false;
       
-      // Only stop if scanner is actually running
-      if (scannerRef.current && isRunningRef.current) {
-        isRunningRef.current = false;
-        scannerRef.current
-          .stop()
-          .catch((err) => {
-            // Ignore "not running" errors during cleanup
-            if (!String(err).includes('not running')) {
-              console.error('[QR] Stop failed:', err);
+      const stopScanner = async () => {
+        if (scannerRef.current && isRunningRef.current) {
+          isRunningRef.current = false;
+          try {
+            await scannerRef.current.stop();
+            console.log('[QR] Scanner stopped');
+          } catch (err) {
+            const errStr = String(err);
+            if (!errStr.includes('not running') && !errStr.includes('undefined')) {
+              console.warn('[QR] Stop error:', err);
             }
-          })
-          .finally(() => {
-            scannerRef.current = null;
-          });
-      } else {
-        // Scanner never started or already stopped - just clean up
+          }
+        }
         scannerRef.current = null;
-      }
+      };
+      
+      stopScanner();
     };
   }, [handleScan]);
 

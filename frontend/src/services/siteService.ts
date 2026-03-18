@@ -64,4 +64,9 @@ export const siteService = {
     const response = await api.get<Site[]>('/sites/with-equipment-status');
     return response.data;
   },
+
+  async getActiveWorkOrdersForMap(): Promise<any[]> {
+    const response = await api.get<any[]>('/sites/active-work-orders');
+    return response.data;
+  },
 };

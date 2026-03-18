@@ -85,6 +85,7 @@ export function WorkOrderDetailsPage() {
   
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [editFormData, setEditFormData] = useState({
     type: '' as WorkOrderType,
     status: '' as WorkOrderStatus,
@@ -101,6 +102,7 @@ export function WorkOrderDetailsPage() {
   const canEdit = user?.role === 'manager' || user?.role === 'admin' || isAssignedTechnician;
   const canDelete = user?.role === 'manager' || user?.role === 'admin';
   const canComplete = canEdit && workOrder?.status !== 'completed';
+  const canChangeStatus = canEdit && workOrder?.status !== 'completed';
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -159,6 +161,17 @@ export function WorkOrderDetailsPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (showStatusDropdown && !target.closest('.status-dropdown') && !target.closest('button')) {
+        setShowStatusDropdown(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showStatusDropdown]);
 
   const handleChecklistChange = (index: number, field: 'isChecked' | 'value', value: boolean | string) => {
     const newItems = [...checklistItems];
@@ -398,6 +411,24 @@ export function WorkOrderDetailsPage() {
     }
   };
 
+  const handleStatusChange = async (newStatus: WorkOrderStatus) => {
+    if (!id) return;
+    setShowStatusDropdown(false);
+    setSaving(true);
+    try {
+      await workOrderService.update(id, { status: newStatus });
+      setSuccess(t('app.success'));
+      setTimeout(() => setSuccess(null), 3000);
+      fetchData();
+    } catch (err: any) {
+      console.error('Failed to update status:', err);
+      setError(err?.response?.data?.message || t('errors.serverError'));
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -608,9 +639,30 @@ export function WorkOrderDetailsPage() {
               ✏️
             </button>
           )}
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[workOrder.status]}`}>
-            {t(`workOrders.statuses.${workOrder.status}`)}
-          </span>
+          <div className="relative">
+            {canChangeStatus && showStatusDropdown ? (
+              <select
+                value={workOrder.status}
+                onChange={(e) => handleStatusChange(e.target.value as WorkOrderStatus)}
+                onBlur={() => setShowStatusDropdown(false)}
+                autoFocus
+                className={`px-3 py-1 rounded-full text-sm font-medium border-2 cursor-pointer ${statusColors[workOrder.status]}`}
+              >
+                <option value="open">{t('workOrders.statuses.open')}</option>
+                <option value="in_progress">{t('workOrders.statuses.in_progress')}</option>
+                <option value="completed">{t('workOrders.statuses.completed')}</option>
+              </select>
+            ) : (
+              <button
+                onClick={() => setShowStatusDropdown(true)}
+                disabled={!canChangeStatus}
+                className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[workOrder.status]} ${canChangeStatus ? 'cursor-pointer hover:opacity-80' : ''}`}
+                title={canChangeStatus ? t('app.edit') : ''}
+              >
+                {t(`workOrders.statuses.${workOrder.status}`)}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
