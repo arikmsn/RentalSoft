@@ -68,6 +68,11 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
       setStatus('requesting');
       setError(null);
 
+      console.log('[QR] location.protocol:', window.location.protocol);
+      console.log('[QR] hostname:', window.location.hostname);
+      console.log('[QR] has mediaDevices:', !!navigator.mediaDevices);
+      console.log('[QR] has getUserMedia:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.log('[QR] mediaDevices not supported');
         setStatus('not-supported');
@@ -75,9 +80,11 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
         return;
       }
 
-      const isSecure = window.location.protocol === 'https:' || 
-                       window.location.hostname === 'localhost' ||
-                       window.location.hostname === '127.0.0.1';
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      const isSecure = protocol === 'https:' || hostname === 'localhost' || hostname === '127.0.0.1';
+      
+      console.log('[QR] isSecure:', isSecure, { protocol, hostname });
       
       if (!isSecure) {
         console.log('[QR] Not secure connection');
@@ -86,7 +93,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
         return;
       }
 
-      console.log('[QR] Starting scanner...');
+      console.log('[QR] Creating Html5Qrcode instance and starting...');
       
       scannerRef.current = new Html5Qrcode(scannerId, {
         formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
@@ -101,6 +108,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
           aspectRatio: 1.0,
         },
         (decodedText) => {
+          console.log('[QR] QR code detected:', decodedText);
           handleScanSuccess(decodedText);
         },
         (errorMessage) => {
