@@ -127,8 +127,9 @@ export function MapPage() {
     if (mapRef.current && site.latitude && site.longitude) {
       const lat = Number(site.latitude);
       const lng = Number(site.longitude);
-      console.log('[Map] Centering on site:', site.name, 'lat:', lat, 'lng:', lng);
-      mapRef.current.flyTo([lat, lng], 15, { duration: 0.5 });
+      const currentZoom = mapRef.current.getZoom();
+      console.log('[Map] Centering on site:', site.name, 'lat:', lat, 'lng:', lng, 'currentZoom:', currentZoom);
+      mapRef.current.panTo([lat, lng], { animate: true, duration: 0.5 });
     }
     if (window.innerWidth < 1024) {
       setShowSiteList(false);

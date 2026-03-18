@@ -213,12 +213,12 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
 
     // B7: Prevent editing completed work orders except for status changes
     if (existingWorkOrder.status === 'completed' && status) {
-      // Allow changing status from completed to open/in_progress
       if (status !== 'open' && status !== 'in_progress') {
+        console.warn(`[WorkOrder PATCH] 400 - Cannot change status of completed work order ${req.params.id} to ${status}`);
         return res.status(400).json({ message: 'Cannot change status of a completed work order to anything other than open or in_progress' });
       }
     } else if (existingWorkOrder.status === 'completed' && (type || technicianId || plannedDate || done || todo || plannedRemovalDate)) {
-      // Block other field changes on completed work orders
+      console.warn(`[WorkOrder PATCH] 400 - Cannot edit completed work order ${req.params.id}, attempted fields:`, { type, technicianId, plannedDate, done, todo, plannedRemovalDate });
       return res.status(400).json({ message: 'Cannot edit a completed work order. Only status can be changed.' });
     }
 
@@ -392,6 +392,7 @@ router.post('/:id/equipment', authenticate, authorize('manager', 'admin'), async
     });
 
     if (existing) {
+      console.warn(`[WorkOrder Equipment] 400 - Equipment ${equipmentId} already linked to work order ${workOrderId}`);
       return res.status(400).json({ message: 'Equipment already linked to this work order' });
     }
 
@@ -413,6 +414,7 @@ router.post('/:id/equipment', authenticate, authorize('manager', 'admin'), async
     });
 
     if (otherActiveLink) {
+      console.warn(`[WorkOrder Equipment] 400 - Equipment ${equipmentId} already attached to active work order ${otherActiveLink.workOrder.id}`);
       return res.status(400).json({ 
         message: `Equipment is already attached to active work order #${otherActiveLink.workOrder.id} (${otherActiveLink.workOrder.site?.name || 'unknown site'})` 
       });

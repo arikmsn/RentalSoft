@@ -102,7 +102,7 @@ export function WorkOrderDetailsPage() {
   const canEdit = user?.role === 'manager' || user?.role === 'admin' || isAssignedTechnician;
   const canDelete = user?.role === 'manager' || user?.role === 'admin';
   const canComplete = canEdit && workOrder?.status !== 'completed';
-  const canChangeStatus = canEdit && workOrder?.status !== 'completed';
+  const canChangeStatus = canEdit;
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -209,8 +209,12 @@ export function WorkOrderDetailsPage() {
       if (err.message === 'offline_queued') {
         setSuccess(t('sync.syncedLater'));
         setTimeout(() => setSuccess(null), 3000);
+      } else if (err?.response?.status === 400) {
+        setError(err?.response?.data?.message || t('errors.validationError'));
+        setTimeout(() => setError(null), 5000);
       } else {
         setError(t('errors.serverError'));
+        setTimeout(() => setError(null), 3000);
       }
     } finally {
       setSaving(false);

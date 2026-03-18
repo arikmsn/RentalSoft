@@ -181,15 +181,14 @@ export const offlineApi = {
     }
   },
 
-  async scanEquipment(equipmentId: string, siteId: string): Promise<ApiResponse<DBEquipment>> {
-    const payload = { equipmentId, siteId };
+  async scanEquipment(equipmentId: string): Promise<ApiResponse<DBEquipment>> {
+    const payload = { equipmentId };
     
     if (!isOnline()) {
       await addQueuedAction('scan_equipment', payload);
       const cached = await db.equipment.get(equipmentId);
       if (cached) {
         await db.equipment.update(equipmentId, {
-          siteId,
           status: 'at_customer',
           lastScanDate: new Date(),
           cachedAt: new Date(),
@@ -199,7 +198,7 @@ export const offlineApi = {
     }
 
     try {
-      const response = await api.post<DBEquipment>(`/equipment/${equipmentId}/scan`, { siteId });
+      const response = await api.post<DBEquipment>(`/equipment/${equipmentId}/scan`, {});
       await db.equipment.put({ ...response.data, cachedAt: new Date() });
       return { data: response.data };
     } catch (error) {
