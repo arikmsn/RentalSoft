@@ -249,6 +249,7 @@
     "equipmentStatuses": "Equipment Statuses",
     "equipmentConditions": "Equipment Conditions",
     "technicians": "Technicians",
+    "technicianName": "Technician Name",
     "name": "Name",
     "code": "Code",
     "active": "Active"

@@ -249,6 +249,7 @@
     "equipmentStatuses": "סטטוס ציוד",
     "equipmentConditions": "מצב ציוד",
     "technicians": "טכנאים",
+    "technicianName": "שם טכנאי",
     "name": "שם",
     "code": "קוד",
     "active": "פעיל"

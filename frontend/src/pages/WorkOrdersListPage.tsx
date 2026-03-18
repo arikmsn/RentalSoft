@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import type { WorkOrder, WorkOrderStatus, Site, User } from '../types';
+import type { WorkOrder, WorkOrderStatus, Site } from '../types';
 import { workOrderService } from '../services/workOrderService';
 import { siteService } from '../services/siteService';
 import { api } from '../services/api';
@@ -26,7 +26,7 @@ export function WorkOrdersListPage() {
   const { user } = useAuthStore();
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
-  const [technicians, setTechnicians] = useState<User[]>([]);
+  const [technicians, setTechnicians] = useState<{id: string; name: string; active: boolean}[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'active' | 'completed' | 'all'>('active');
   const [showForm, setShowForm] = useState(false);
@@ -43,14 +43,17 @@ export function WorkOrdersListPage() {
     Promise.all([
       workOrderService.getAll(),
       siteService.getAll(),
-      api.get<User[]>('/users/technicians').then(res => res.data),
+      api.get('/settings/technicians').then(res => res.data),
     ]).then(([woData, siteData, techData]) => {
       setWorkOrders(woData);
       // Deduplicate by ID
       const uniqueSites = siteData.filter((site, index, self) => 
         index === self.findIndex(s => s.id === site.id)
       );
-      const uniqueTechs = techData.filter((tech, index, self) => 
+      // Only show active technicians
+      const activeTechs = (techData as {id: string; name: string; active: boolean}[])
+        .filter(t => t.active !== false);
+      const uniqueTechs = activeTechs.filter((tech, index, self) => 
         index === self.findIndex(t => t.id === tech.id)
       );
       setSites(uniqueSites);

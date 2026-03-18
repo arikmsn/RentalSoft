@@ -284,21 +284,11 @@ router.delete('/equipment-conditions/:id', async (req: Request, res: Response) =
   }
 });
 
-// Technicians (Users with role technician)
+// Technicians (separate lookup table)
 router.get('/technicians', async (req: Request, res: Response) => {
   try {
-    const technicians = await prisma.user.findMany({
-      where: { role: 'technician' },
+    const technicians = await prisma.technician.findMany({
       orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        email: true,
-        phone: true,
-        isActive: true,
-        createdAt: true,
-      },
     });
     res.json(technicians);
   } catch (error) {
@@ -309,27 +299,17 @@ router.get('/technicians', async (req: Request, res: Response) => {
 
 router.post('/technicians', async (req: Request, res: Response) => {
   try {
-    const { name, username, email, password, phone, isActive } = req.body;
-    const hashedPassword = await bcrypt.hash(password || 'technician123', 10);
-    const technician = await prisma.user.create({
+    const { name, active } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+    const technician = await prisma.technician.create({
       data: {
         name,
-        username,
-        email: email || `${username}@rentalsort.local`,
-        password: hashedPassword,
-        phone,
-        isActive: isActive ?? true,
-        role: 'technician',
+        active: active ?? true,
       },
     });
-    res.json({
-      id: technician.id,
-      name: technician.name,
-      username: technician.username,
-      email: technician.email,
-      phone: technician.phone,
-      isActive: technician.isActive,
-    });
+    res.json(technician);
   } catch (error) {
     console.error('Error creating technician:', error);
     res.status(500).json({ message: 'Server error' });
@@ -339,19 +319,16 @@ router.post('/technicians', async (req: Request, res: Response) => {
 router.put('/technicians/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, username, email, phone, isActive } = req.body;
-    const technician = await prisma.user.update({
+    const { name, active } = req.body;
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (active !== undefined) updateData.active = active;
+    
+    const technician = await prisma.technician.update({
       where: { id },
-      data: { name, username, email, phone, isActive },
+      data: updateData,
     });
-    res.json({
-      id: technician.id,
-      name: technician.name,
-      username: technician.username,
-      email: technician.email,
-      phone: technician.phone,
-      isActive: technician.isActive,
-    });
+    res.json(technician);
   } catch (error) {
     console.error('Error updating technician:', error);
     res.status(500).json({ message: 'Server error' });
@@ -361,14 +338,27 @@ router.put('/technicians/:id', async (req: Request, res: Response) => {
 router.delete('/technicians/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    // Soft delete - just mark as inactive
-    await prisma.user.update({
-      where: { id },
-      data: { isActive: false },
+    
+    // Check if technician is referenced by any work orders
+    const workOrdersCount = await prisma.workOrder.count({
+      where: { technicianId: id },
     });
-    res.json({ message: 'Technician deactivated successfully' });
-  } catch (error) {
+    
+    if (workOrdersCount > 0) {
+      return res.status(400).json({ 
+        message: 'לא ניתן למחוק טכנאי שמקושר לעבודות קיימות. יש להסיר את הקישור תחילה.' 
+      });
+    }
+    
+    await prisma.technician.delete({
+      where: { id },
+    });
+    res.json({ message: 'Technician deleted successfully' });
+  } catch (error: any) {
     console.error('Error deleting technician:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'Technician not found' });
+    }
     res.status(500).json({ message: 'Server error' });
   }
 });

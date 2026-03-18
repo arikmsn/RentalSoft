@@ -136,9 +136,9 @@ export function SettingsPage() {
       code: (item as SettingsItem).code || '',
       isActive: item.isActive,
       sortOrder: (item as SettingsItem).sortOrder || 0,
-      username: (item as Technician).username || '',
-      email: (item as Technician).email || '',
-      phone: (item as Technician).phone || '',
+      username: '',
+      email: '',
+      phone: '',
       password: '',
     });
     setShowForm(true);
@@ -280,43 +280,24 @@ export function SettingsPage() {
               {activeTab === 'technicians' ? (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-surface-700 mb-2">{t('auth.username')}</label>
+                    <label className="block text-sm font-medium text-surface-700 mb-2">{t('settings.technicianName')}</label>
                     <input
                       type="text"
                       required
-                      value={formData.username}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-surface-700 mb-2">{t('auth.email')}</label>
+                  <div className="flex items-center gap-3">
                     <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                      type="checkbox"
+                      id="isActive"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
                     />
-                  </div>
-                  {!editingItem && (
-                    <div>
-                      <label className="block text-sm font-medium text-surface-700 mb-2">{t('auth.password')}</label>
-                      <input
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <label className="block text-sm font-medium text-surface-700 mb-2">{t('auth.phone')}</label>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                    />
+                    <label htmlFor="isActive" className="text-sm text-surface-700">{t('settings.active')}</label>
                   </div>
                 </>
               ) : (

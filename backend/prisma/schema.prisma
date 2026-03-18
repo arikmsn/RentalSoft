@@ -64,7 +64,6 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  workOrders      WorkOrder[]
   activityLogs    ActivityLog[]
   statusChanges   WorkOrderStatusHistory[]
 }
@@ -100,6 +99,16 @@ model EquipmentType {
   equipment Equipment[]
 }
 
+model Technician {
+  id        String   @id @default(uuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workOrders WorkOrder[]
+}
+
 model Site {
   id             String   @id @default(uuid())
   name           String
@@ -127,7 +136,7 @@ model WorkOrder {
   id                 String           @id @default(uuid())
   type               WorkOrderType
   siteId             String
-  technicianId       String
+  technicianId       String?
   status             WorkOrderStatus  @default(open)
   plannedDate        DateTime
   actualDate         DateTime?
@@ -138,7 +147,7 @@ model WorkOrder {
   updatedAt          DateTime         @updatedAt
 
   site       Site          @relation(fields: [siteId], references: [id])
-  technician User          @relation(fields: [technicianId], references: [id])
+  technician Technician?  @relation(fields: [technicianId], references: [id])
   checklist  ChecklistItem[]
   activityLogs ActivityLog[]
   statusHistory WorkOrderStatusHistory[]

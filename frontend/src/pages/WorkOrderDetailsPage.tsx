@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { WorkOrder, WorkOrderStatus, WorkOrderType, Site, Equipment, User } from '../types';
+import type { WorkOrder, WorkOrderStatus, WorkOrderType, Site, Equipment } from '../types';
 import type { ChecklistUpdate } from '../services/workOrderService';
 import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
@@ -70,7 +70,7 @@ export function WorkOrderDetailsPage() {
     plannedRemovalDate: '',
   });
   const [sites, setSites] = useState<Site[]>([]);
-  const [technicians, setTechnicians] = useState<User[]>([]);
+  const [technicians, setTechnicians] = useState<{id: string; name: string; active: boolean}[]>([]);
   const [deleting, setDeleting] = useState(false);
 
   const isAssignedTechnician = user?.id === workOrder?.technicianId;
@@ -283,7 +283,7 @@ export function WorkOrderDetailsPage() {
     });
     Promise.all([
       siteService.getAll(),
-      api.get<User[]>('/users/technicians').then(res => res.data),
+      api.get('/settings/technicians').then(res => res.data),
     ]).then(([sitesData, techsData]) => {
       setSites(sitesData);
       setTechnicians(techsData);

@@ -27,7 +27,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
       where,
       include: {
         site: true,
-        technician: { select: { id: true, name: true, email: true } },
+        technician: { select: { id: true, name: true } },
       },
       orderBy: { plannedDate: 'asc' },
     });
@@ -64,7 +64,7 @@ router.get('/my-tasks/:technicianId', authenticate, async (req: AuthRequest, res
       },
       include: {
         site: true,
-        technician: { select: { id: true, name: true, email: true } },
+        technician: { select: { id: true, name: true } },
       },
       orderBy: { plannedDate: 'asc' },
     });
@@ -82,7 +82,7 @@ router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
       where: { id: req.params.id },
       include: {
         site: true,
-        technician: { select: { id: true, name: true, email: true, phone: true } },
+        technician: { select: { id: true, name: true } },
         checklist: true,
         equipment: { include: { equipment: true } },
       },
@@ -116,7 +116,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
       },
       include: {
         site: true,
-        technician: { select: { id: true, name: true, email: true } },
+        technician: { select: { id: true, name: true } },
         equipment: { include: { equipment: true } },
       },
     });
@@ -193,7 +193,7 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
       },
       include: {
         site: true,
-        technician: { select: { id: true, name: true, email: true } },
+        technician: { select: { id: true, name: true } },
       },
     });
 
@@ -264,7 +264,7 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res) => {
       },
       include: {
         site: true,
-        technician: { select: { id: true, name: true, email: true } },
+        technician: { select: { id: true, name: true } },
       },
     });
 
