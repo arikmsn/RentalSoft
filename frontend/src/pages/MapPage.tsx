@@ -69,18 +69,8 @@ export function MapPage() {
   const [showSiteList, setShowSiteList] = useState(true);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
-
-  useEffect(() => {
-    const checkSidebar = () => {
-      setIsMobileSidebarOpen(document.body.classList.contains('mobile-sidebar-open'));
-    };
-    checkSidebar();
-    const observer = new MutationObserver(checkSidebar);
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
-  }, []);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -214,6 +204,10 @@ export function MapPage() {
       console.log('[Map] Fitting bounds to', coords.length, 'sites');
       const bounds = L.latLngBounds(coords);
       mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+      // Ensure map size is correct after fitting bounds
+      setTimeout(() => {
+        mapRef.current?.invalidateSize({ pan: false });
+      }, 300);
     }
   }, [filteredSites]);
 
@@ -228,9 +222,10 @@ export function MapPage() {
   const defaultCenter: [number, number] = [31.0461, 34.8516];
 
   return (
-    <div className="space-y-3 sm:space-y-4 h-[calc(100vh-130px)] lg:h-auto flex flex-col">
-      <div className="flex items-center justify-between shrink-0">
-        <h1 className="text-xl sm:text-2xl font-bold text-surface-800">{t('map.title')}</h1>
+    <div className="flex flex-col h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)]">
+      {/* Header */}
+      <div className="flex items-center justify-between p-3 sm:p-4 shrink-0 bg-white border-b border-surface-200">
+        <h1 className="text-lg sm:text-xl font-bold text-surface-800">{t('map.title')}</h1>
         <button
           onClick={() => setShowSiteList(!showSiteList)}
           className="lg:hidden px-4 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-medium min-h-[44px] shadow-sm hover:shadow-md transition-all"
@@ -239,15 +234,24 @@ export function MapPage() {
         </button>
       </div>
 
-      {/* Mobile: Toggle between map and list, Desktop: Map takes most space */}
-      <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 flex-1 min-h-0">
-        {/* Map - takes most space on desktop (3/4) */}
-        <div className={`bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden ${showSiteList ? 'hidden lg:block' : ''} flex-1 min-h-[250px] lg:flex-[3] ${isMobileSidebarOpen ? 'pointer-events-none' : ''}`}>
+      {/* Content - flex row on desktop, column on mobile */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Map Container */}
+        <div 
+          ref={mapContainerRef}
+          className={`flex-1 relative ${showSiteList ? 'hidden lg:block' : 'block'}`}
+          style={{ minHeight: '40vh' }}
+        >
           <MapContainer
             center={defaultCenter}
             zoom={7}
             style={{ height: '100%', width: '100%' }}
             ref={mapRef}
+            whenReady={() => {
+              setTimeout(() => {
+                mapRef.current?.invalidateSize({ pan: false });
+              }, 100);
+            }}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -331,8 +335,8 @@ export function MapPage() {
           </MapContainer>
         </div>
 
-        {/* Site List - sidebar on desktop (1/4), overlay on mobile */}
-        <div className={`bg-white rounded-2xl shadow-card border border-surface-100 overflow-auto ${showSiteList ? 'block' : 'hidden lg:block'} ${showSiteList ? 'max-h-[50vh]' : 'lg:max-h-[600px]'} lg:flex-1`}>
+        {/* Site List - sidebar on desktop, below map on mobile */}
+        <div className={`bg-white overflow-auto lg:overflow-y-auto lg:flex-1 lg:max-w-[360px] ${showSiteList ? 'h-[50vh]' : 'h-0 lg:h-auto'}`}>
           <div className="p-3 sm:p-4">
             <input
               type="text"
@@ -341,7 +345,7 @@ export function MapPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="w-full px-4 py-3 mb-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm bg-white text-surface-800 placeholder:text-surface-400"
             />
-            <h2 className="font-semibold mb-3 text-surface-800 hidden lg:block">{t('sites.title')} ({filteredSites.length})</h2>
+            <h2 className="font-semibold mb-3 text-surface-800">{t('sites.title')} ({filteredSites.length})</h2>
             <div className="space-y-2">
               {filteredSites.map((site) => (
                 <div
@@ -398,24 +402,20 @@ export function MapPage() {
       </div>
 
       {/* Legend */}
-      <div className="hidden sm:block bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-surface-100">
-        <h2 className="font-semibold mb-3 text-surface-800 text-sm sm:text-base">{t('map.legend')}</h2>
-        <div className="flex flex-wrap gap-4 sm:gap-6">
+      <div className="bg-white p-3 sm:p-4 border-t border-surface-200 shrink-0">
+        <h2 className="font-semibold mb-2 text-sm text-surface-800">{t('map.legend')}</h2>
+        <div className="flex flex-wrap gap-4">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-success-500"></span>
-            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.green')}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-warning-400"></span>
-            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.yellow')}</span>
+            <span className="text-xs text-surface-600">{t('equipment.progress.green')}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-warning-500"></span>
-            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.orange')}</span>
+            <span className="text-xs text-surface-600">{t('equipment.progress.orange')}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-danger-500"></span>
-            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.red')}</span>
+            <span className="text-xs text-surface-600">{t('equipment.progress.red')}</span>
           </div>
         </div>
       </div>
