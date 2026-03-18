@@ -1,8 +1,8 @@
-console.log('[QR] Scanner file loaded');
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+
+console.log('[QR] Scanner file loaded');
 
 type ScannerStatus = 'idle' | 'requesting' | 'granted' | 'denied' | 'not-supported' | 'not-secure' | 'in-use';
 
@@ -28,6 +28,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
         if (scannerRef.current.isScanning) {
           await scannerRef.current.stop();
         }
+        await scannerRef.current.clear();
       } catch (e) {
         console.error('[QR] Error stopping scanner:', e);
       }
@@ -67,70 +68,113 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
     return { status: 'denied', message: t('qrScanner.cameraError') };
   }, [t]);
 
-  const startScanner = useCallback(async () => {
+  // Initialize scanner after DOM is ready
+  useEffect(() => {
     console.log('[QR] 🚀 Starting permission flow');
     
-    try {
-      setStatus('requesting');
-      setError(null);
+    const initScanner = async () => {
+      try {
+        setStatus('requesting');
+        setError(null);
 
-      console.log('[QR] location.protocol:', window.location.protocol);
-      console.log('[QR] hostname:', window.location.hostname);
-      console.log('[QR] has mediaDevices:', !!navigator.mediaDevices);
-      console.log('[QR] has getUserMedia:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+        console.log('[QR] location.protocol:', window.location.protocol);
+        console.log('[QR] hostname:', window.location.hostname);
+        console.log('[QR] has mediaDevices:', !!navigator.mediaDevices);
+        console.log('[QR] has getUserMedia:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
 
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.log('[QR] mediaDevices not supported');
-        setStatus('not-supported');
-        setError(t('qrScanner.notSupported'));
-        return;
-      }
-
-      const protocol = window.location.protocol;
-      const hostname = window.location.hostname;
-      const isSecure = protocol === 'https:' || hostname === 'localhost' || hostname === '127.0.0.1';
-      
-      console.log('[QR] isSecure:', isSecure, { protocol, hostname });
-      
-      if (!isSecure) {
-        console.log('[QR] Not secure connection');
-        setStatus('not-secure');
-        setError(t('qrScanner.notSecure'));
-        return;
-      }
-
-      console.log('[QR] Creating Html5Qrcode instance and starting...');
-      
-      scannerRef.current = new Html5Qrcode(scannerId, {
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        verbose: true,
-      });
-
-      await scannerRef.current.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-        },
-        (decodedText) => {
-          console.log('[QR] QR code detected:', decodedText);
-          handleScanSuccess(decodedText);
-        },
-        (errorMessage) => {
-          console.log('[QR] QR parse error (normal when no QR in frame):', errorMessage);
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          console.log('[QR] mediaDevices not supported');
+          setStatus('not-supported');
+          setError(t('qrScanner.notSupported'));
+          return;
         }
-      );
 
-      console.log('[QR] Scanner started successfully');
-      setStatus('granted');
-    } catch (err: any) {
-      console.error('[QR] Failed to start scanner:', err);
-      const { status: errorStatus, message } = mapErrorToStatus(err);
-      setStatus(errorStatus);
-      setError(message);
-    }
-  }, [t, handleScanSuccess, mapErrorToStatus]);
+        const protocol = window.location.protocol;
+        const hostname = window.location.hostname;
+        const isSecure = protocol === 'https:' || hostname === 'localhost' || hostname === '127.0.0.1';
+        
+        console.log('[QR] isSecure:', isSecure, { protocol, hostname });
+        
+        if (!isSecure) {
+          console.log('[QR] Not secure connection');
+          setStatus('not-secure');
+          setError(t('qrScanner.notSecure'));
+          return;
+        }
+
+        // Wait for DOM element to be ready
+        const waitForElement = (): Promise<HTMLElement | null> => {
+          return new Promise((resolve) => {
+            const elem = document.getElementById(scannerId);
+            if (elem) {
+              resolve(elem);
+              return;
+            }
+            // Poll for element
+            let attempts = 0;
+            const interval = setInterval(() => {
+              attempts++;
+              const el = document.getElementById(scannerId);
+              if (el || attempts > 20) {
+                clearInterval(interval);
+                resolve(el);
+              }
+            }, 50);
+          });
+        };
+
+        console.log('[QR] Waiting for DOM element...');
+        const container = await waitForElement();
+        
+        if (!container) {
+          console.error('[QR] qr-scanner element not found in DOM');
+          setStatus('not-supported');
+          setError(t('qrScanner.notSupported'));
+          return;
+        }
+        
+        console.log('[QR] DOM element found, creating Html5Qrcode...');
+
+        scannerRef.current = new Html5Qrcode(scannerId, {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+          verbose: false,
+        });
+
+        console.log('[QR] Starting Html5Qrcode scanner...');
+        
+        await scannerRef.current.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+          },
+          (decodedText) => {
+            console.log('[QR] QR code detected:', decodedText);
+            handleScanSuccess(decodedText);
+          },
+          (_errorMessage) => {
+            // Normal when no QR in frame - ignore
+          }
+        );
+
+        console.log('[QR] Scanner started successfully');
+        setStatus('granted');
+      } catch (err: any) {
+        console.error('[QR] Failed to start scanner:', err);
+        const { status: errorStatus, message } = mapErrorToStatus(err);
+        setStatus(errorStatus);
+        setError(message);
+      }
+    };
+
+    initScanner();
+
+    return () => {
+      console.log('[QR] Cleaning up scanner on unmount');
+      stopCamera();
+    };
+  }, [t, handleScanSuccess, mapErrorToStatus, stopCamera]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,14 +182,6 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
       handleScanSuccess(manualCode.trim());
     }
   };
-
-  useEffect(() => {
-    startScanner();
-
-    return () => {
-      stopCamera();
-    };
-  }, []);
 
   const showManualInput = status === 'denied' || status === 'not-supported' || status === 'not-secure' || status === 'in-use';
 
