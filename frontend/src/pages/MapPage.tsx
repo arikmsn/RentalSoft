@@ -94,19 +94,18 @@ export function MapPage() {
           sitesData = response || [];
           console.log('[Map] getWithEquipmentStatus returned:', sitesData.length, 'sites');
           
-          // Log coordinates for debugging
-          if (sitesData.length > 0) {
-            const example = sitesData[0];
-            const lat = example.latitude ?? 0;
-            const lng = example.longitude ?? 0;
-            console.log('[Map] Example site coordinates:', {
-              name: example.name,
-              latitude: lat,
-              longitude: lng,
-              // Verify lat/lng order (Israel should be ~32°N, 34°E)
-              isValid: lat > 29 && lat < 34 && lng > 33 && lng < 36,
-            });
-          }
+          // Log raw site data for debugging
+          const rawSitesData = sitesData.map(s => ({
+            id: s.id,
+            name: s.name,
+            address: s.address,
+            city: s.city,
+            latitude: s.latitude,
+            longitude: s.longitude,
+            overallStatus: s.overallStatus,
+          }));
+          console.log('[Map] Raw sites data for markers:', rawSitesData);
+          
         } catch (e) {
           console.error('[Map] getWithEquipmentStatus failed:', e);
           sitesData = [];
@@ -264,11 +263,27 @@ export function MapPage() {
             />
             {/* Site Markers */}
             {filteredSites.map((site) => {
-              const lat = Number(site.latitude);
-              const lng = Number(site.longitude);
+              const rawLat = site.latitude;
+              const rawLng = site.longitude;
+              const lat = Number(rawLat);
+              const lng = Number(rawLng);
+              
+              // Detailed logging for debugging
+              console.log('[Map] Marker input:', {
+                id: site.id,
+                name: site.name,
+                address: site.address,
+                city: site.city,
+                latitude: rawLat,
+                longitude: rawLng,
+                parsedLat: lat,
+                parsedLng: lng,
+                isNaN: isNaN(lat) || isNaN(lng),
+                isValidRange: lat > 29 && lat < 35 && lng > 33 && lng < 36,
+              });
               
               if (isNaN(lat) || isNaN(lng)) {
-                console.warn('[Map] Invalid coordinates for site:', site.name, site.latitude, site.longitude);
+                console.warn('[Map] Invalid coordinates for site:', site.name, 'raw lat:', rawLat, 'raw lng:', rawLng);
                 return null;
               }
               
