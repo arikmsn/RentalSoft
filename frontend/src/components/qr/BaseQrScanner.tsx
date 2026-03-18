@@ -10,6 +10,7 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
   
   const [status, setStatus] = useState('Initializing...');
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isRunningRef = useRef(false);
   const isMountedRef = useRef(true);
   const regionId = 'qr-reader-target';
 
@@ -23,6 +24,7 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
   useEffect(() => {
     console.log('[QR] BaseQrScanner useEffect running');
     isMountedRef.current = true;
+    isRunningRef.current = false;
     
     const initScanner = async () => {
       try {
@@ -51,11 +53,14 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
           }
         );
 
+        isRunningRef.current = true;
+        
         if (isMountedRef.current) {
           setStatus('Ready - point at QR code');
         }
       } catch (err) {
         console.error('[QR] Start failed:', err);
+        isRunningRef.current = false;
         if (isMountedRef.current) {
           setStatus('Error: ' + String(err));
         }
@@ -67,10 +72,24 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
     return () => {
       console.log('[QR] BaseQrScanner cleanup');
       isMountedRef.current = false;
-      if (scannerRef.current) {
+      
+      // Only stop if scanner is actually running
+      if (scannerRef.current && isRunningRef.current) {
+        isRunningRef.current = false;
         scannerRef.current
           .stop()
-          .catch((err) => console.error('[QR] Stop failed:', err));
+          .catch((err) => {
+            // Ignore "not running" errors during cleanup
+            if (!String(err).includes('not running')) {
+              console.error('[QR] Stop failed:', err);
+            }
+          })
+          .finally(() => {
+            scannerRef.current = null;
+          });
+      } else {
+        // Scanner never started or already stopped - just clean up
+        scannerRef.current = null;
       }
     };
   }, [handleScan]);
