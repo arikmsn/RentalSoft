@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import type { Site } from '../types';
 import { siteService } from '../services/siteService';
-import { formatDate } from '../utils/date';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -15,45 +13,32 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-interface SiteWithStatus extends Site {
+interface SiteWithStatus {
+  id: string;
+  name: string;
+  address: string;
+  city: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  isHighlighted: boolean;
   statusCounts?: {
     red: number;
     orange: number;
     green: number;
   };
   overallStatus?: 'red' | 'orange' | 'green';
-}
-
-interface ActiveWorkOrder {
-  id: string;
-  type: string;
-  status: 'open' | 'in_progress';
-  plannedDate: Date | string;
-  plannedRemovalDate?: Date | string;
-  site: {
+  workOrders?: Array<{
     id: string;
-    name: string;
-    address: string;
-    city: string;
-    latitude: number;
-    longitude: number;
-    contact1Phone?: string;
-  };
-  technician?: {
-    id: string;
-    name: string;
-  };
+    status: string;
+    type: string;
+    plannedDate: Date | string;
+  }>;
 }
 
 const statusColors = {
   red: '#ef4444',
   orange: '#f97316',
   green: '#22c55e',
-};
-
-const workOrderStatusColors = {
-  open: '#3b82f6',
-  in_progress: '#eab308',
 };
 
 const getMarkerIcon = (status?: 'red' | 'orange' | 'green', selected?: boolean) => {
@@ -77,46 +62,14 @@ const getMarkerIcon = (status?: 'red' | 'orange' | 'green', selected?: boolean) 
   });
 };
 
-const getWorkOrderMarkerIcon = (status?: 'open' | 'in_progress', selected?: boolean) => {
-  const color = workOrderStatusColors[status || 'open'];
-  const size = selected ? 36 : 28;
-  const borderWidth = selected ? 4 : 3;
-  return L.divIcon({
-    className: 'custom-marker work-order-marker',
-    html: `<div style="
-      background-color: ${color};
-      width: ${size}px;
-      height: ${size}px;
-      border-radius: 50%;
-      border: ${borderWidth} solid white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: ${selected ? 14 : 11}px;
-      color: white;
-      font-weight: bold;
-      ${selected ? 'z-index: 1001;' : ''}
-    ">WO</div>`,
-    iconSize: [size, size],
-    iconAnchor: [size/2, size/2],
-    popupAnchor: [0, -size/2],
-  });
-};
-
 export function MapPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [sites, setSites] = useState<SiteWithStatus[]>([]);
-  const [activeWorkOrders, setActiveWorkOrders] = useState<ActiveWorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSiteList, setShowSiteList] = useState(false);
-  const [showWorkOrderList, setShowWorkOrderList] = useState(true);
+  const [showSiteList, setShowSiteList] = useState(true);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
-  const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'sites' | 'workorders'>('workorders');
   const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
@@ -135,63 +88,32 @@ export function MapPage() {
     const fetchData = async () => {
       try {
         console.log('[Map] Calling siteService.getWithEquipmentStatus...');
-        let sitesData: any[] = [];
+        let sitesData: SiteWithStatus[] = [];
         try {
-          const response = await siteService.getWithEquipmentStatus();
+          const response = await siteService.getWithEquipmentStatus() as SiteWithStatus[];
           sitesData = response || [];
           console.log('[Map] getWithEquipmentStatus returned:', sitesData.length, 'sites');
+          
+          // Log coordinates for debugging
+          if (sitesData.length > 0) {
+            const example = sitesData[0];
+            const lat = example.latitude ?? 0;
+            const lng = example.longitude ?? 0;
+            console.log('[Map] Example site coordinates:', {
+              name: example.name,
+              latitude: lat,
+              longitude: lng,
+              // Verify lat/lng order (Israel should be ~32°N, 34°E)
+              isValid: lat > 29 && lat < 34 && lng > 33 && lng < 36,
+            });
+          }
         } catch (e) {
           console.error('[Map] getWithEquipmentStatus failed:', e);
           sitesData = [];
         }
         
-        console.log('[Map] Calling siteService.getActiveWorkOrdersForMap...');
-        let workOrdersData: any[] = [];
-        try {
-          const response = await siteService.getActiveWorkOrdersForMap();
-          workOrdersData = response || [];
-          console.log('[Map] getActiveWorkOrdersForMap returned:', workOrdersData.length, 'work orders');
-        } catch (e) {
-          console.error('[Map] getActiveWorkOrdersForMap failed:', e);
-          workOrdersData = [];
-        }
-        
-        console.log('[Map] Raw data from API:', {
-          sitesCount: sitesData.length,
-          workOrdersCount: workOrdersData.length,
-          firstWorkOrder: workOrdersData[0] ? {
-            id: workOrdersData[0].id,
-            status: workOrdersData[0].status,
-            site: workOrdersData[0].site,
-          } : null,
-        });
-        
-        const validSites = sitesData.filter(s => s.latitude && s.longitude);
-        // If no sites have coordinates, use all sites
-        const displaySites = validSites.length > 0 ? validSites : sitesData;
-        
-        const validWorkOrders = workOrdersData.filter(wo => {
-          const hasCoords = wo.site?.latitude != null && wo.site?.longitude != null;
-          if (!hasCoords) {
-            console.log('[Map] Work order missing coordinates:', wo.id, wo.site?.name);
-          }
-          return hasCoords;
-        });
-        
-        console.log('[Map] Valid data after filtering:', {
-          validSites: validSites.length,
-          displaySites: displaySites.length,
-          validWorkOrders: validWorkOrders.length,
-          workOrders: validWorkOrders.map(wo => ({
-            id: wo.id,
-            siteName: wo.site.name,
-            lat: wo.site.latitude,
-            lng: wo.site.longitude,
-          })),
-        });
-        
-        setSites(displaySites);
-        setActiveWorkOrders(validWorkOrders);
+        // Use all sites (filter for map display later)
+        setSites(sitesData);
         console.log('[Map] State updated successfully');
       } catch (error: any) {
         console.error('[Map] Failed to fetch map data:', error);
@@ -217,67 +139,17 @@ export function MapPage() {
     })
     .sort((a, b) => a.city.localeCompare(b.city, 'he'));
 
-  const filteredWorkOrders = activeWorkOrders
-    .filter(wo => {
-      if (!search) return true;
-      const searchLower = search.toLowerCase();
-      return (
-        wo.site.name.toLowerCase().includes(searchLower) ||
-        wo.site.city.toLowerCase().includes(searchLower) ||
-        wo.site.address.toLowerCase().includes(searchLower) ||
-        wo.type.toLowerCase().includes(searchLower) ||
-        wo.technician?.name.toLowerCase().includes(searchLower)
-      );
-    })
-    .sort((a, b) => new Date(a.plannedDate).getTime() - new Date(b.plannedDate).getTime());
-
-  // Fit map bounds to markers when work orders data changes
-  useEffect(() => {
-    if (!mapRef.current || filteredWorkOrders.length === 0) return;
-    
-    const coords = filteredWorkOrders
-      .map(wo => [Number(wo.site.latitude), Number(wo.site.longitude)] as [number, number])
-      .filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
-    
-    if (coords.length > 0) {
-      console.log('[Map] Fitting bounds to markers:', coords.length, 'markers');
-      const bounds = L.latLngBounds(coords);
-      mapRef.current.fitBounds(bounds, { padding: [50, 50] });
-    }
-  }, [filteredWorkOrders]);
-
   const handleSiteClick = (site: SiteWithStatus) => {
     setSelectedSiteId(site.id);
-    setSelectedWorkOrderId(null);
-    setShowSiteList(true);
     
     if (mapRef.current && site.latitude && site.longitude) {
-      mapRef.current.setView([site.latitude, site.longitude], 15);
+      const lat = Number(site.latitude);
+      const lng = Number(site.longitude);
+      console.log('[Map] Centering on site:', site.name, 'lat:', lat, 'lng:', lng);
+      mapRef.current.setView([lat, lng], 15);
     }
     if (window.innerWidth < 1024) {
       setShowSiteList(false);
-    }
-  };
-
-  const handleWorkOrderClick = (workOrder: ActiveWorkOrder) => {
-    setSelectedWorkOrderId(workOrder.id);
-    setSelectedSiteId(null);
-    
-    if (mapRef.current && workOrder.site.latitude && workOrder.site.longitude) {
-      mapRef.current.setView([workOrder.site.latitude, workOrder.site.longitude], 15);
-    }
-    if (window.innerWidth < 1024) {
-      setShowWorkOrderList(false);
-    }
-  };
-
-  const handleWorkOrderNavigate = (workOrder: ActiveWorkOrder) => {
-    const { latitude, longitude, address } = workOrder.site;
-    if (latitude && longitude) {
-      window.open(
-        `https://www.waze.com/ul?ll=${latitude},${longitude}&q=${encodeURIComponent(address)}`,
-        '_blank'
-      );
     }
   };
 
@@ -287,23 +159,25 @@ export function MapPage() {
     
     const site = sites.find(s => s.id === selectedSiteId);
     if (site && site.latitude && site.longitude) {
+      const lat = Number(site.latitude);
+      const lng = Number(site.longitude);
+      
       const workOrdersHtml = site.workOrders && site.workOrders.length > 0
         ? `<div class="mt-2 text-xs text-right max-h-24 overflow-y-auto">
             <div class="font-medium text-surface-700 mb-1">הזמנות עבודה:</div>
             ${site.workOrders.map(wo => `
               <a href="/workorders/${wo.id}" class="block py-1 px-2 mb-1 bg-surface-50 hover:bg-surface-100 rounded text-primary-600 hover:text-primary-700 text-decoration-none truncate">
-                ${wo.title || wo.status} - ${new Date(wo.plannedDate).toLocaleDateString('he-IL')}
+                ${t(`workOrders.types.${wo.type}`)} - ${new Date(wo.plannedDate).toLocaleDateString('he-IL')}
               </a>
             `).join('')}
           </div>`
         : '';
 
-      // Create a popup at the site location and open it
       const popup = L.popup({
         closeButton: true,
         className: 'site-popup'
       })
-        .setLatLng([site.latitude, site.longitude])
+        .setLatLng([lat, lng])
         .setContent(`
           <div class="text-center min-w-[150px] p-1">
             <h3 class="font-semibold text-surface-800">${site.name}</h3>
@@ -318,7 +192,7 @@ export function MapPage() {
             ${site.isHighlighted ? `<span class="text-xs text-warning-600 font-medium">⚠️</span>` : ''}
             ${workOrdersHtml}
             <div class="mt-2 flex flex-col gap-1">
-              <a href="https://www.waze.com/ul?ll=${site.latitude},${site.longitude}&q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener noreferrer" class="w-full px-2 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors text-decoration-none block">ניווט</a>
+              <a href="https://www.waze.com/ul?ll=${lat},${lng}&q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener noreferrer" class="w-full px-2 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors text-decoration-none block">ניווט</a>
               <a href="/sites/${site.id}" class="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 transition-colors text-decoration-none block">פעולות</a>
             </div>
           </div>
@@ -326,7 +200,7 @@ export function MapPage() {
       
       mapRef.current.openPopup(popup);
     }
-  }, [selectedSiteId, sites]);
+  }, [selectedSiteId, sites, t]);
 
   const handleNavigate = (site: SiteWithStatus) => {
     if (site.latitude && site.longitude) {
@@ -336,6 +210,21 @@ export function MapPage() {
       );
     }
   };
+
+  // Fit map bounds to markers when data loads
+  useEffect(() => {
+    if (!mapRef.current || filteredSites.length === 0) return;
+    
+    const coords = filteredSites
+      .filter(s => s.latitude && s.longitude)
+      .map(s => [Number(s.latitude), Number(s.longitude)] as [number, number]);
+    
+    if (coords.length > 0) {
+      console.log('[Map] Fitting bounds to', coords.length, 'sites');
+      const bounds = L.latLngBounds(coords);
+      mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [filteredSites]);
 
   if (loading) {
     return (
@@ -351,58 +240,18 @@ export function MapPage() {
     <div className="space-y-3 sm:space-y-4 h-[calc(100vh-130px)] lg:h-auto flex flex-col">
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-xl sm:text-2xl font-bold text-surface-800">{t('map.title')}</h1>
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex bg-surface-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('workorders')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'workorders' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-600 hover:text-surface-800'
-              }`}
-            >
-              {t('workOrders.title')} ({activeWorkOrders.length})
-            </button>
-            <button
-              onClick={() => setViewMode('sites')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'sites' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-600 hover:text-surface-800'
-              }`}
-            >
-              {t('sites.title')} ({filteredSites.length})
-            </button>
-          </div>
-          <button
-            onClick={() => viewMode === 'workorders' ? setShowWorkOrderList(!showWorkOrderList) : setShowSiteList(!showSiteList)}
-            className="lg:hidden px-4 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-medium min-h-[44px] shadow-sm hover:shadow-md transition-all"
-          >
-            {viewMode === 'workorders' ? (showWorkOrderList ? t('map.title') : `📋 ${filteredWorkOrders.length}`) : (showSiteList ? t('map.title') : `📋 ${filteredSites.length}`)}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile View Mode Toggle */}
-      <div className="sm:hidden flex bg-surface-100 rounded-lg p-1">
         <button
-          onClick={() => setViewMode('workorders')}
-          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'workorders' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-600'
-          }`}
+          onClick={() => setShowSiteList(!showSiteList)}
+          className="lg:hidden px-4 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-medium min-h-[44px] shadow-sm hover:shadow-md transition-all"
         >
-          {t('workOrders.title')} ({activeWorkOrders.length})
-        </button>
-        <button
-          onClick={() => setViewMode('sites')}
-          className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-            viewMode === 'sites' ? 'bg-white shadow-sm text-primary-600' : 'text-surface-600'
-          }`}
-        >
-          {t('sites.title')} ({filteredSites.length})
+          {showSiteList ? t('map.title') : `📋 ${filteredSites.length}`}
         </button>
       </div>
 
       {/* Mobile: Toggle between map and list, Desktop: Map takes most space */}
       <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 flex-1 min-h-0">
         {/* Map - takes most space on desktop (3/4) */}
-        <div className={`bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden ${viewMode === 'workorders' ? (showWorkOrderList ? 'hidden lg:block' : '') : (showSiteList ? 'hidden lg:block' : '')} flex-1 min-h-[250px] lg:flex-[3] ${isMobileSidebarOpen ? 'pointer-events-none' : ''}`}>
+        <div className={`bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden ${showSiteList ? 'hidden lg:block' : ''} flex-1 min-h-[250px] lg:flex-[3] ${isMobileSidebarOpen ? 'pointer-events-none' : ''}`}>
           <MapContainer
             center={defaultCenter}
             zoom={7}
@@ -413,64 +262,24 @@ export function MapPage() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {/* Work Order Markers */}
-            {viewMode === 'workorders' && filteredWorkOrders.map((wo) => {
-              const lat = Number(wo.site.latitude);
-              const lng = Number(wo.site.longitude);
-              if (isNaN(lat) || isNaN(lng)) {
-                console.warn('[Map] Invalid coordinates for WO:', wo.id, wo.site.latitude, wo.site.longitude);
-                return null;
-              }
-              console.log('[Map] Creating marker for WO:', wo.id, wo.site.name, lat, lng);
-              return (
-              <Marker
-                key={`wo-${wo.id}`}
-                position={[lat, lng]}
-                icon={getWorkOrderMarkerIcon(wo.status, selectedWorkOrderId === wo.id)}
-                eventHandlers={{
-                  click: () => handleWorkOrderClick(wo),
-                }}
-              >
-                <Popup>
-                  <div className="text-center min-w-[180px] p-2">
-                    <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-2 ${
-                      wo.status === 'open' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'
-                    }`}>
-                      {wo.status === 'open' ? t('workOrders.statuses.open') : t('workOrders.statuses.in_progress')}
-                    </div>
-                    <h3 className="font-semibold text-surface-800">{t(`workOrders.types.${wo.type}`)}</h3>
-                    <p className="text-sm text-surface-600">{wo.site.name}</p>
-                    <p className="text-xs text-surface-500">{formatDate(new Date(wo.plannedDate))}</p>
-                    {wo.technician && (
-                      <p className="text-xs text-surface-500 mt-1">👤 {wo.technician.name}</p>
-                    )}
-                    <div className="mt-2 flex flex-col gap-1">
-                      <button
-                        onClick={() => handleWorkOrderNavigate(wo)}
-                        className="w-full px-2 py-2 bg-primary-600 text-white rounded-lg text-xs font-medium hover:bg-primary-700 transition-colors"
-                      >
-                        🚗 {t('sites.navigate')}
-                      </button>
-                      <button
-                        onClick={() => navigate(`/workorders/${wo.id}`)}
-                        className="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-xs font-medium hover:bg-surface-200 transition-colors"
-                      >
-                        {t('app.details')}
-                      </button>
-                    </div>
-                  </div>
-                </Popup>
-              </Marker>
-              );
-            })}
             {/* Site Markers */}
-            {viewMode === 'sites' && filteredSites.map((site) => {
+            {filteredSites.map((site) => {
               const lat = Number(site.latitude);
               const lng = Number(site.longitude);
+              
               if (isNaN(lat) || isNaN(lng)) {
+                console.warn('[Map] Invalid coordinates for site:', site.name, site.latitude, site.longitude);
                 return null;
               }
-              console.log('[Map] Creating site marker:', site.name, lat, lng);
+              
+              // Validate coordinates are in Israel range
+              const isValidCoords = lat > 29 && lat < 35 && lng > 33 && lng < 36;
+              if (!isValidCoords) {
+                console.warn('[Map] Coordinates outside Israel range for site:', site.name, 'lat:', lat, 'lng:', lng);
+              }
+              
+              console.log('[Map] Creating marker for site:', site.name, 'lat:', lat, 'lng:', lng, 'status:', site.overallStatus);
+              
               return (
               <Marker
                 key={site.id}
@@ -522,70 +331,8 @@ export function MapPage() {
           </MapContainer>
         </div>
 
-        {/* Work Order List - sidebar */}
-        <div className={`bg-white rounded-2xl shadow-card border border-surface-100 overflow-auto ${viewMode === 'workorders' ? (showWorkOrderList ? 'block' : 'hidden lg:block') : 'hidden'} ${showWorkOrderList ? 'max-h-[50vh]' : 'lg:max-h-[600px]'} lg:flex-1`}>
-          <div className="p-3 sm:p-4">
-            <input
-              type="text"
-              placeholder={t('app.search')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-4 py-3 mb-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm bg-white text-surface-800 placeholder:text-surface-400"
-            />
-            <h2 className="font-semibold mb-3 text-surface-800 hidden lg:block">{t('workOrders.title')} ({filteredWorkOrders.length})</h2>
-            <div className="space-y-2">
-              {filteredWorkOrders.map((wo) => (
-                <div
-                  key={wo.id}
-                  onClick={() => handleWorkOrderClick(wo)}
-                  className={`p-3 sm:p-4 border rounded-xl cursor-pointer transition-all duration-200 ${
-                    selectedWorkOrderId === wo.id 
-                      ? 'bg-primary-50 border-primary-300 shadow-sm' 
-                      : 'border-surface-100 hover:bg-surface-50 hover:border-surface-200'
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          wo.status === 'open' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {wo.status === 'open' ? t('workOrders.statuses.open') : t('workOrders.statuses.in_progress')}
-                        </span>
-                        <span className="text-xs text-surface-500">{t(`workOrders.types.${wo.type}`)}</span>
-                      </div>
-                      <h3 className="font-medium text-sm text-surface-800 truncate">{wo.site.name}</h3>
-                      <p className="text-xs text-surface-600 mt-0.5">{wo.site.city}, {wo.site.address}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-surface-500">{formatDate(new Date(wo.plannedDate))}</span>
-                        {wo.technician && (
-                          <span className="text-xs text-surface-400">👤 {wo.technician.name}</span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleWorkOrderNavigate(wo);
-                      }}
-                      className="ms-2 px-3 py-2 bg-primary-600 text-white rounded-lg text-xs font-medium whitespace-nowrap min-h-[36px] hover:bg-primary-700 transition-colors"
-                    >
-                      🚗
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {filteredWorkOrders.length === 0 && (
-                <div className="text-center py-8 text-surface-500 text-sm">
-                  {t('myTasks.noTasksForToday')}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
         {/* Site List - sidebar on desktop (1/4), overlay on mobile */}
-        <div className={`bg-white rounded-2xl shadow-card border border-surface-100 overflow-auto ${viewMode === 'sites' ? (showSiteList ? 'block' : 'hidden lg:block') : 'hidden'} ${showSiteList ? 'max-h-[50vh]' : 'lg:max-h-[600px]'} lg:flex-1`}>
+        <div className={`bg-white rounded-2xl shadow-card border border-surface-100 overflow-auto ${showSiteList ? 'block' : 'hidden lg:block'} ${showSiteList ? 'max-h-[50vh]' : 'lg:max-h-[600px]'} lg:flex-1`}>
           <div className="p-3 sm:p-4">
             <input
               type="text"
@@ -614,6 +361,19 @@ export function MapPage() {
                       </div>
                       <p className="text-xs text-surface-600 font-medium mt-0.5">{site.city}</p>
                       <p className="text-xs text-surface-400 truncate mt-0.5">{site.address}</p>
+                      {site.statusCounts && (
+                        <div className="flex items-center gap-1 mt-1">
+                          {site.statusCounts.red > 0 && (
+                            <span className="px-2 py-0.5 bg-danger-100 text-danger-700 rounded-full text-xs">🔴 {site.statusCounts.red}</span>
+                          )}
+                          {site.statusCounts.orange > 0 && (
+                            <span className="px-2 py-0.5 bg-warning-100 text-warning-700 rounded-full text-xs">🟠 {site.statusCounts.orange}</span>
+                          )}
+                          {site.statusCounts.green > 0 && (
+                            <span className="px-2 py-0.5 bg-success-100 text-success-700 rounded-full text-xs">🟢 {site.statusCounts.green}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={(e) => {
@@ -627,6 +387,11 @@ export function MapPage() {
                   </div>
                 </div>
               ))}
+              {filteredSites.length === 0 && (
+                <div className="text-center py-8 text-surface-500 text-sm">
+                  {t('errors.notFound')}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -635,37 +400,24 @@ export function MapPage() {
       {/* Legend */}
       <div className="hidden sm:block bg-white rounded-2xl p-4 sm:p-5 shadow-card border border-surface-100">
         <h2 className="font-semibold mb-3 text-surface-800 text-sm sm:text-base">{t('map.legend')}</h2>
-        {viewMode === 'workorders' ? (
-          <div className="flex flex-wrap gap-4 sm:gap-6">
-            <div className="flex items-center gap-2">
-              <span className="w-4 h-4 rounded-full bg-blue-500"></span>
-              <span className="text-xs sm:text-sm text-surface-600">{t('workOrders.statuses.open')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-4 h-4 rounded-full bg-yellow-500"></span>
-              <span className="text-xs sm:text-sm text-surface-600">{t('workOrders.statuses.in_progress')}</span>
-            </div>
+        <div className="flex flex-wrap gap-4 sm:gap-6">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-success-500"></span>
+            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.green')}</span>
           </div>
-        ) : (
-          <div className="flex flex-wrap gap-4 sm:gap-6">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-success-500"></span>
-              <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.green')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-warning-400"></span>
-              <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.yellow')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-warning-500"></span>
-              <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.orange')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-danger-500"></span>
-              <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.red')}</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-warning-400"></span>
+            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.yellow')}</span>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-warning-500"></span>
+            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.orange')}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-danger-500"></span>
+            <span className="text-xs sm:text-sm text-surface-600">{t('equipment.progress.red')}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
