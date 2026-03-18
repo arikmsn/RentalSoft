@@ -39,8 +39,13 @@ export function LoginPage() {
       <div className="w-full max-w-sm sm:max-w-md">
         <div className="bg-white/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-float p-6 sm:p-10 border border-white/50">
           <div className="text-center mb-6 sm:mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl shadow-lg shadow-primary-500/25 mb-4">
-              <span className="text-2xl sm:text-3xl">🏗️</span>
+            <div className="inline-flex items-center justify-center mb-4">
+              <img 
+                src="/RentalLogo.png" 
+                alt="RentalSoft Logo" 
+                className="w-20 h-20 sm:w-24 sm:h-24 object-contain"
+                style={{ imageRendering: 'auto' }}
+              />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-l from-primary-600 to-primary-500 bg-clip-text text-transparent">
               {t('app.title')}
