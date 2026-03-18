@@ -11,6 +11,7 @@ import { offlineApi } from '../services/offlineApi';
 import { workOrderService } from '../services/workOrderService';
 import { siteService } from '../services/siteService';
 import { api } from '../services/api';
+import { equipmentService } from '../services/equipmentService';
 import { formatDate, formatDateFull } from '../utils/date';
 
 const typeIcons: Record<string, string> = {
@@ -58,20 +59,29 @@ export function WorkOrderDetailsPage() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannedEquipment, setScannedEquipment] = useState<ScannedEquipment[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [availableEquipment, setAvailableEquipment] = useState<Equipment[]>([]);
+  const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
+  const [loadingEquipment, setLoadingEquipment] = useState(false);
 
   const closeScanner = useCallback(() => {
     console.log('[QR] Closing scanner');
     setScannerOpen(false);
+    setSelectedEquipmentId('');
+    setScanError(null);
   }, []);
   
-  const [manualCode, setManualCode] = useState('');
-  
-  const handleManualCodeSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (manualCode.trim()) {
-      handleScanQR(manualCode.trim());
+  const loadAvailableEquipment = useCallback(async () => {
+    setLoadingEquipment(true);
+    try {
+      const equipment = await equipmentService.getAll({ available: true });
+      const attachedIds = scannedEquipment.map(eq => eq.id);
+      setAvailableEquipment(equipment.filter(eq => !attachedIds.includes(eq.id)));
+    } catch (err) {
+      console.error('Failed to load available equipment:', err);
+    } finally {
+      setLoadingEquipment(false);
     }
-  };
+  }, [scannedEquipment]);
   
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -139,6 +149,12 @@ export function WorkOrderDetailsPage() {
       setLoading(false);
     }
   }, [id, t]);
+
+  useEffect(() => {
+    if (scannerOpen) {
+      loadAvailableEquipment();
+    }
+  }, [scannerOpen, loadAvailableEquipment]);
 
   useEffect(() => {
     fetchData();
@@ -248,41 +264,7 @@ export function WorkOrderDetailsPage() {
         return;
       }
       
-      // Check if already attached in backend
-      if (scannedEquipment.some(eq => eq.id === equipment.id)) {
-        setScanError(t('workOrder.equipmentAlreadyAdded'));
-        return;
-      }
-
-      if (workOrder?.siteId) {
-        if (equipment.siteId !== workOrder.siteId) {
-          if (equipment.siteId === null && workOrder.type === 'installation') {
-            // Equipment in warehouse can be installed
-          } else {
-            setScanError(t('workOrder.invalidEquipmentForSite'));
-            return;
-          }
-        }
-      }
-
-      // Persist to backend first
-      if (id) {
-        try {
-          await workOrderService.addEquipment(id, equipment.id);
-        } catch (apiErr: any) {
-          if (apiErr.response?.status === 400 && apiErr.response?.data?.message?.includes('already')) {
-            setScanError(t('workOrder.equipmentAlreadyAdded'));
-            return;
-          }
-          // If API fails, still allow local add for offline mode
-          console.warn('Failed to persist equipment to backend:', apiErr);
-        }
-      }
-
-      // Add to local state
-      setScannedEquipment(prev => [...prev, { ...equipment, addedAt: new Date() }]);
-      setSuccess(t('workOrder.equipmentAdded'));
-      setTimeout(() => setSuccess(null), 2000);
+      await handleEquipmentSelected(equipment);
     } catch (err: any) {
       if (err.fromCache) {
         setScanError(t('workOrder.invalidEquipment'));
@@ -290,6 +272,57 @@ export function WorkOrderDetailsPage() {
         setScanError(t('workOrder.invalidEquipment'));
       } else {
         setScanError(t('errors.serverError'));
+      }
+    }
+  };
+
+  const handleEquipmentSelected = async (equipment: Equipment) => {
+    setScanError(null);
+    
+    if (!equipment) {
+      setScanError(t('workOrder.invalidEquipment'));
+      return;
+    }
+    
+    if (scannedEquipment.some(eq => eq.id === equipment.id)) {
+      setScanError(t('workOrder.equipmentAlreadyAdded'));
+      return;
+    }
+
+    if (workOrder?.siteId) {
+      if (equipment.siteId !== workOrder.siteId) {
+        if (equipment.siteId === null && workOrder.type === 'installation') {
+        } else {
+          setScanError(t('workOrder.invalidEquipmentForSite'));
+          return;
+        }
+      }
+    }
+
+    if (id) {
+      try {
+        await workOrderService.addEquipment(id, equipment.id);
+      } catch (apiErr: any) {
+        if (apiErr.response?.status === 400 && apiErr.response?.data?.message?.includes('already')) {
+          setScanError(t('workOrder.equipmentAlreadyAdded'));
+          return;
+        }
+        console.warn('Failed to persist equipment to backend:', apiErr);
+      }
+    }
+
+    setScannedEquipment(prev => [...prev, { ...equipment, addedAt: new Date() }]);
+    setSuccess(t('workOrder.equipmentAdded'));
+    setTimeout(() => setSuccess(null), 2000);
+    setSelectedEquipmentId('');
+    setScannerOpen(false);
+  };
+
+  const handleDropdownSelect = () => {
+    if (selectedEquipmentId) {
+      const equipment = availableEquipment.find(eq => eq.id === selectedEquipmentId);
+      if (equipment) {
+        handleEquipmentSelected(equipment);
       }
     }
   };
@@ -404,26 +437,48 @@ export function WorkOrderDetailsPage() {
             <BaseQrScanner onScan={handleScanQR} />
           </div>
           
-          <div className="p-4 bg-black">
-            <form onSubmit={handleManualCodeSubmit} className="mb-2">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={manualCode}
-                  onChange={(e) => setManualCode(e.target.value)}
-                  placeholder={t('qr.equipmentCodeLabel')}
-                  className="flex-1 px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-primary-500 outline-none"
-                />
-                <button
-                  type="submit"
-                  disabled={!manualCode.trim()}
-                  className="px-4 py-3 bg-primary-600 text-white rounded-lg disabled:opacity-50"
+          <div className="p-4 bg-black border-t border-gray-800">
+            <div className="mb-3">
+              <label className="text-gray-400 text-sm mb-2 block">{t('workOrder.selectEquipment')}</label>
+              {loadingEquipment ? (
+                <div className="text-gray-400 text-center py-3">{t('app.loading')}</div>
+              ) : availableEquipment.length === 0 ? (
+                <div className="text-gray-400 text-center py-3">{t('workOrder.noAvailableEquipment')}</div>
+              ) : (
+                <select
+                  value={selectedEquipmentId}
+                  onChange={(e) => setSelectedEquipmentId(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-primary-500 outline-none"
                 >
-                  {t('app.add')}
-                </button>
-              </div>
-            </form>
-            <p className="text-gray-400 text-center text-sm">{t('qrScanner.manualHint')}</p>
+                  <option value="">-- {t('app.select')} --</option>
+                  {availableEquipment.map((eq) => (
+                    <option key={eq.id} value={eq.id}>
+                      {eq.type} - {eq.qrTag}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDropdownSelect}
+                disabled={!selectedEquipmentId || loadingEquipment}
+                className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg disabled:opacity-50"
+              >
+                {t('app.add')}
+              </button>
+              <button
+                onClick={closeScanner}
+                className="px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+              >
+                {t('app.cancel')}
+              </button>
+            </div>
+            {scannedEquipment.length > 0 && (
+              <p className="text-gray-400 text-xs mt-3 text-center">
+                {scannedEquipment.length} {t('workOrder.equipmentAttached')}
+              </p>
+            )}
           </div>
         </div>
       )}

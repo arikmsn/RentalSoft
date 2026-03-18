@@ -236,7 +236,10 @@
     "equipmentAlreadyAdded": "הציוד כבר נוסף",
     "scannedEquipment": "ציוד שנסרק",
     "noScannedEquipment": "לא נוסף ציוד",
-    "removeEquipment": "הסר"
+    "removeEquipment": "הסר",
+    "selectEquipment": "בחר ציוד",
+    "noAvailableEquipment": "אין ציוד פנוי זמין",
+    "equipmentAttached": "ציוד מחובר לעבודה זו"
   },
   "qrScanner": {
     "title": "סרוק QR",

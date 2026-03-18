@@ -6,6 +6,7 @@ export interface EquipmentFilters {
   siteId?: string;
   type?: string;
   search?: string;
+  available?: boolean;
 }
 
 export interface CreateEquipmentRequest {
@@ -32,6 +33,7 @@ export const equipmentService = {
     if (filters?.siteId) params.append('siteId', filters.siteId);
     if (filters?.type) params.append('type', filters.type);
     if (filters?.search) params.append('search', filters.search);
+    if (filters?.available) params.append('available', 'true');
     
     const response = await api.get<Equipment[]>(`/equipment?${params.toString()}`);
     return response.data;

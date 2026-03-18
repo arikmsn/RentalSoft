@@ -6,7 +6,7 @@ const router = Router();
 
 router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
-    const { status, siteId, type, search } = req.query;
+    const { status, siteId, type, search, available } = req.query;
 
     const where: any = {};
     if (status) where.status = status;
@@ -17,6 +17,14 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
         { qrTag: { contains: String(search), mode: 'insensitive' } },
         { type: { contains: String(search), mode: 'insensitive' } },
       ];
+    }
+    
+    if (available === 'true') {
+      where.workOrders = {
+        none: {
+          workOrder: { status: { in: ['open', 'in_progress'] } },
+        },
+      };
     }
 
     const equipment = await prisma.equipment.findMany({
