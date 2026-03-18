@@ -130,12 +130,31 @@ export function MapPage() {
   }, []);
 
   useEffect(() => {
+    console.log('[Map] Component mounted, fetching data...');
+    
     const fetchData = async () => {
       try {
-        const [sitesData, workOrdersData] = await Promise.all([
-          siteService.getWithEquipmentStatus() as Promise<SiteWithStatus[]>,
-          siteService.getActiveWorkOrdersForMap(),
-        ]);
+        console.log('[Map] Calling siteService.getWithEquipmentStatus...');
+        let sitesData: any[] = [];
+        try {
+          const response = await siteService.getWithEquipmentStatus();
+          sitesData = response || [];
+          console.log('[Map] getWithEquipmentStatus returned:', sitesData.length, 'sites');
+        } catch (e) {
+          console.error('[Map] getWithEquipmentStatus failed:', e);
+          sitesData = [];
+        }
+        
+        console.log('[Map] Calling siteService.getActiveWorkOrdersForMap...');
+        let workOrdersData: any[] = [];
+        try {
+          const response = await siteService.getActiveWorkOrdersForMap();
+          workOrdersData = response || [];
+          console.log('[Map] getActiveWorkOrdersForMap returned:', workOrdersData.length, 'work orders');
+        } catch (e) {
+          console.error('[Map] getActiveWorkOrdersForMap failed:', e);
+          workOrdersData = [];
+        }
         
         console.log('[Map] Raw data from API:', {
           sitesCount: sitesData.length,
@@ -148,6 +167,9 @@ export function MapPage() {
         });
         
         const validSites = sitesData.filter(s => s.latitude && s.longitude);
+        // If no sites have coordinates, use all sites
+        const displaySites = validSites.length > 0 ? validSites : sitesData;
+        
         const validWorkOrders = workOrdersData.filter(wo => {
           const hasCoords = wo.site?.latitude != null && wo.site?.longitude != null;
           if (!hasCoords) {
@@ -158,6 +180,7 @@ export function MapPage() {
         
         console.log('[Map] Valid data after filtering:', {
           validSites: validSites.length,
+          displaySites: displaySites.length,
           validWorkOrders: validWorkOrders.length,
           workOrders: validWorkOrders.map(wo => ({
             id: wo.id,
@@ -167,14 +190,18 @@ export function MapPage() {
           })),
         });
         
-        setSites(validSites);
+        setSites(displaySites);
         setActiveWorkOrders(validWorkOrders);
-      } catch (error) {
-        console.error('Failed to fetch map data:', error);
+        console.log('[Map] State updated successfully');
+      } catch (error: any) {
+        console.error('[Map] Failed to fetch map data:', error);
+        console.error('[Map] Error details:', error?.response?.status, error?.response?.data);
       } finally {
+        console.log('[Map] Setting loading to false');
         setLoading(false);
       }
     };
+    
     fetchData();
   }, []);
 
