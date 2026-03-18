@@ -145,7 +145,7 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
 
       // Get active work order for this equipment
       const activeWorkOrder = eq.workOrders?.[0]?.workOrder;
-      const workOrderId = activeWorkOrder?.id || eq.currentWorkOrderId || (eq.siteId ? siteToWorkOrder.get(eq.siteId) || null : null);
+      const workOrderId = activeWorkOrder?.id || (eq.siteId ? siteToWorkOrder.get(eq.siteId) || null : null);
 
       return {
         id: `alert-${eq.id}`,

@@ -119,22 +119,16 @@ async function updateEquipmentStatusForWorkOrder(workOrderId: string) {
   if (equipmentIds.length === 0) return;
 
   if (isActive) {
-    // Work order is active - set equipment to at_customer and update currentWorkOrderId
+    // Work order is active - set equipment to at_customer
     await prisma.equipment.updateMany({
       where: { id: { in: equipmentIds } },
-      data: { 
-        status: 'at_customer',
-        currentWorkOrderId: workOrderId,
-      },
+      data: { status: 'at_customer' },
     });
   } else if (workOrder.status === 'completed') {
-    // Work order completed - set equipment back to warehouse and clear currentWorkOrderId
+    // Work order completed - set equipment back to warehouse
     await prisma.equipment.updateMany({
       where: { id: { in: equipmentIds } },
-      data: { 
-        status: 'warehouse',
-        currentWorkOrderId: null,
-      },
+      data: { status: 'warehouse' },
     });
   }
 }
@@ -423,10 +417,7 @@ router.post('/:id/equipment', authenticate, authorize('manager', 'admin'), async
     // Update equipment status to at_customer and set currentWorkOrderId
     await prisma.equipment.update({
       where: { id: equipmentId },
-      data: { 
-        status: 'at_customer',
-        currentWorkOrderId: workOrderId,
-      },
+      data: { status: 'at_customer' },
     });
 
     const workOrder = await prisma.workOrder.findUnique({
@@ -466,10 +457,7 @@ router.delete('/:id/equipment/:equipmentId', authenticate, authorize('manager', 
     if (!otherLinks) {
       await prisma.equipment.update({
         where: { id: equipmentId },
-        data: { 
-          status: 'warehouse',
-          currentWorkOrderId: null,
-        },
+        data: { status: 'warehouse' },
       });
     }
 

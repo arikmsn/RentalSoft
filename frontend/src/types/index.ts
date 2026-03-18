@@ -26,7 +26,6 @@ export interface Equipment {
   actualRemovalDate?: Date;
   createdAt: Date;
   updatedAt: Date;
-  currentWorkOrderId?: string | null;
   activeWorkOrder?: {
     id: string;
     status: string;
