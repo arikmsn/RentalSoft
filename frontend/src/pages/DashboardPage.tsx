@@ -18,15 +18,45 @@ export function DashboardPage() {
     const fetchData = async () => {
       try {
         setError(null);
-        const [statsData, alertsData] = await Promise.all([
-          dashboardService.getStats(),
-          dashboardService.getAlerts(),
-        ]);
-        setStats(statsData);
+        
+        // Fetch stats and alerts separately so one failure doesn't block the other
+        let statsData = null;
+        let alertsData: any[] = [];
+        
+        try {
+          statsData = await dashboardService.getStats();
+        } catch (statsErr) {
+          console.error('Failed to fetch stats:', statsErr);
+        }
+        
+        try {
+          alertsData = await dashboardService.getAlerts();
+        } catch (alertsErr) {
+          console.error('Failed to fetch alerts:', alertsErr);
+          // Don't block the whole dashboard for alerts failure
+        }
+        
+        setStats(statsData || {
+          totalEquipment: 0,
+          activeEquipment: 0,
+          warehouseEquipment: 0,
+          inRepairEquipment: 0,
+          totalSites: 0,
+          sitesWithEquipment: 0,
+          todayWorkOrders: 0,
+          openWorkOrders: 0,
+          overdueRemovals: 0,
+          upcomingRemovals: 0,
+        });
         setAlerts(alertsData);
+        
+        // Only show error if both failed
+        if (!statsData) {
+          setError('אירעה שגיאה בטעינת הנתונים');
+        }
       } catch (err: any) {
         console.error('Failed to fetch dashboard data:', err);
-        const message = err?.response?.data?.message || err?.message || 'Failed to fetch dashboard data';
+        const message = err?.response?.data?.message || err?.message || 'אירעה שגיאה בטעינת הנתונים';
         setError(message);
       } finally {
         setLoading(false);

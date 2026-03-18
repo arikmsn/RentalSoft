@@ -102,7 +102,15 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
 
     const equipment = await prisma.equipment.findMany({
       where,
-      include: { site: true },
+      include: { 
+        site: true,
+        workOrders: {
+          where: {
+            workOrder: { status: { in: ['open', 'in_progress'] } },
+          },
+          take: 1,
+        },
+      },
     });
 
     // Get work orders for these equipment
@@ -135,15 +143,19 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
         alertType = 'long_stay';
       }
 
+      // Get active work order for this equipment
+      const activeWorkOrder = eq.workOrders?.[0]?.workOrder;
+      const workOrderId = activeWorkOrder?.id || eq.currentWorkOrderId || (eq.siteId ? siteToWorkOrder.get(eq.siteId) || null : null);
+
       return {
         id: `alert-${eq.id}`,
         equipmentId: eq.id,
-        workOrderId: eq.siteId ? siteToWorkOrder.get(eq.siteId) || null : null,
+        workOrderId,
         type: alertType,
         daysRemaining,
         createdAt: now,
         siteName: eq.site?.name || '',
-        siteAddress: eq.site ? `${eq.site.city} ${eq.site.address}` : '',
+        siteAddress: eq.site ? `${eq.site.city || ''} ${eq.site.address || ''}`.trim() : '',
         siteContact: eq.site?.contact1Name || '',
         sitePhone: eq.site?.contact1Phone || '',
       };
@@ -152,7 +164,7 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
     res.json(alerts);
   } catch (error) {
     console.error('Get alerts error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Failed to load alerts: ' + (error instanceof Error ? error.message : 'Unknown error') });
   }
 });
 
