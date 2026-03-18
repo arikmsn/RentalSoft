@@ -137,19 +137,34 @@ export function MapPage() {
           siteService.getActiveWorkOrdersForMap(),
         ]);
         
+        console.log('[Map] Raw data from API:', {
+          sitesCount: sitesData.length,
+          workOrdersCount: workOrdersData.length,
+          firstWorkOrder: workOrdersData[0] ? {
+            id: workOrdersData[0].id,
+            status: workOrdersData[0].status,
+            site: workOrdersData[0].site,
+          } : null,
+        });
+        
         const validSites = sitesData.filter(s => s.latitude && s.longitude);
         const validWorkOrders = workOrdersData.filter(wo => {
-          const hasCoords = wo.site?.latitude && wo.site?.longitude;
+          const hasCoords = wo.site?.latitude != null && wo.site?.longitude != null;
           if (!hasCoords) {
             console.log('[Map] Work order missing coordinates:', wo.id, wo.site?.name);
           }
           return hasCoords;
         });
         
-        console.log('[Map] Loaded:', {
-          sites: validSites.length,
-          workOrders: validWorkOrders.length,
-          totalWorkOrders: workOrdersData.length,
+        console.log('[Map] Valid data after filtering:', {
+          validSites: validSites.length,
+          validWorkOrders: validWorkOrders.length,
+          workOrders: validWorkOrders.map(wo => ({
+            id: wo.id,
+            siteName: wo.site.name,
+            lat: wo.site.latitude,
+            lng: wo.site.longitude,
+          })),
         });
         
         setSites(validSites);
@@ -188,6 +203,21 @@ export function MapPage() {
       );
     })
     .sort((a, b) => new Date(a.plannedDate).getTime() - new Date(b.plannedDate).getTime());
+
+  // Fit map bounds to markers when work orders data changes
+  useEffect(() => {
+    if (!mapRef.current || filteredWorkOrders.length === 0) return;
+    
+    const coords = filteredWorkOrders
+      .map(wo => [Number(wo.site.latitude), Number(wo.site.longitude)] as [number, number])
+      .filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
+    
+    if (coords.length > 0) {
+      console.log('[Map] Fitting bounds to markers:', coords.length, 'markers');
+      const bounds = L.latLngBounds(coords);
+      mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [filteredWorkOrders]);
 
   const handleSiteClick = (site: SiteWithStatus) => {
     setSelectedSiteId(site.id);
@@ -357,10 +387,18 @@ export function MapPage() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             {/* Work Order Markers */}
-            {viewMode === 'workorders' && filteredWorkOrders.map((wo) => (
+            {viewMode === 'workorders' && filteredWorkOrders.map((wo) => {
+              const lat = Number(wo.site.latitude);
+              const lng = Number(wo.site.longitude);
+              if (isNaN(lat) || isNaN(lng)) {
+                console.warn('[Map] Invalid coordinates for WO:', wo.id, wo.site.latitude, wo.site.longitude);
+                return null;
+              }
+              console.log('[Map] Creating marker for WO:', wo.id, wo.site.name, lat, lng);
+              return (
               <Marker
                 key={`wo-${wo.id}`}
-                position={[wo.site.latitude, wo.site.longitude]}
+                position={[lat, lng]}
                 icon={getWorkOrderMarkerIcon(wo.status, selectedWorkOrderId === wo.id)}
                 eventHandlers={{
                   click: () => handleWorkOrderClick(wo),
@@ -396,12 +434,20 @@ export function MapPage() {
                   </div>
                 </Popup>
               </Marker>
-            ))}
+              );
+            })}
             {/* Site Markers */}
-            {viewMode === 'sites' && filteredSites.map((site) => (
+            {viewMode === 'sites' && filteredSites.map((site) => {
+              const lat = Number(site.latitude);
+              const lng = Number(site.longitude);
+              if (isNaN(lat) || isNaN(lng)) {
+                return null;
+              }
+              console.log('[Map] Creating site marker:', site.name, lat, lng);
+              return (
               <Marker
                 key={site.id}
-                position={[site.latitude!, site.longitude!]}
+                position={[lat, lng]}
                 icon={getMarkerIcon(site.overallStatus, selectedSiteId === site.id)}
                 eventHandlers={{
                   click: () => handleSiteClick(site),
@@ -444,7 +490,8 @@ export function MapPage() {
                   </div>
                 </Popup>
               </Marker>
-            ))}
+              );
+            })}
           </MapContainer>
         </div>
 
