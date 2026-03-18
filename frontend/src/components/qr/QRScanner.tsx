@@ -4,7 +4,7 @@ import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
 console.log('[QR] Scanner file loaded');
 
-type ScannerStatus = 'idle' | 'requesting' | 'granted' | 'denied' | 'not-supported' | 'not-secure' | 'in-use';
+type ScannerStatus = 'idle' | 'requesting' | 'granted' | 'denied' | 'not-supported' | 'not-secure' | 'in-use' | 'dom-error';
 
 interface QRScannerProps {
   onScan: (qrValue: string) => void;
@@ -19,6 +19,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
   const [status, setStatus] = useState<ScannerStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState('');
+  const mountedRef = useRef(true);
 
   const scannerId = 'qr-scanner';
 
@@ -68,8 +69,9 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
     return { status: 'denied', message: t('qrScanner.cameraError') };
   }, [t]);
 
-  // Initialize scanner after DOM is ready
+  // Initialize scanner after component mounts - use setTimeout to ensure DOM is ready
   useEffect(() => {
+    mountedRef.current = true;
     console.log('[QR] 🚀 Starting permission flow');
     
     const initScanner = async () => {
@@ -102,33 +104,17 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
           return;
         }
 
-        // Wait for DOM element to be ready
-        const waitForElement = (): Promise<HTMLElement | null> => {
-          return new Promise((resolve) => {
-            const elem = document.getElementById(scannerId);
-            if (elem) {
-              resolve(elem);
-              return;
-            }
-            // Poll for element
-            let attempts = 0;
-            const interval = setInterval(() => {
-              attempts++;
-              const el = document.getElementById(scannerId);
-              if (el || attempts > 20) {
-                clearInterval(interval);
-                resolve(el);
-              }
-            }, 50);
-          });
-        };
+        // Use setTimeout to ensure DOM is fully rendered
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        if (!mountedRef.current) return;
 
-        console.log('[QR] Waiting for DOM element...');
-        const container = await waitForElement();
+        console.log('[QR] Looking for DOM element...');
+        const container = document.getElementById(scannerId);
         
         if (!container) {
-          console.error('[QR] qr-scanner element not found in DOM');
-          setStatus('not-supported');
+          console.error('[QR] qr-scanner element NOT found in DOM');
+          setStatus('dom-error');
           setError(t('qrScanner.notSupported'));
           return;
         }
@@ -158,9 +144,15 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
           }
         );
 
+        if (!mountedRef.current) {
+          await scannerRef.current.stop();
+          return;
+        }
+
         console.log('[QR] Scanner started successfully');
         setStatus('granted');
       } catch (err: any) {
+        if (!mountedRef.current) return;
         console.error('[QR] Failed to start scanner:', err);
         const { status: errorStatus, message } = mapErrorToStatus(err);
         setStatus(errorStatus);
@@ -172,6 +164,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
 
     return () => {
       console.log('[QR] Cleaning up scanner on unmount');
+      mountedRef.current = false;
       stopCamera();
     };
   }, [t, handleScanSuccess, mapErrorToStatus, stopCamera]);
@@ -183,7 +176,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
     }
   };
 
-  const showManualInput = status === 'denied' || status === 'not-supported' || status === 'not-secure' || status === 'in-use';
+  const showManualInput = status === 'denied' || status === 'not-supported' || status === 'not-secure' || status === 'in-use' || status === 'dom-error';
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col">
@@ -229,13 +222,20 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
       </div>
 
       <div className="p-4 bg-black">
+        {/* Always render the container element - required by Html5Qrcode */}
+        <div 
+          id={scannerId} 
+          style={{ display: status === 'granted' ? 'block' : 'none' }}
+          className="w-full max-w-sm mx-auto"
+        />
+
         <form onSubmit={handleManualSubmit} className="mb-4">
           <div className="flex gap-2">
             <input
               type="text"
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
-              placeholder={t('equipment.code')}
+              placeholder={t('qr.equipmentCodeLabel')}
               className="flex-1 px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-primary-500 outline-none"
             />
             <button

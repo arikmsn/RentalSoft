@@ -248,6 +248,9 @@
     "instructions": "החזק את מצלמה מול קוד QR",
     "scannedSuccess": "הציוד נסרק בהצלחה"
   },
+  "qr": {
+    "equipmentCodeLabel": "קוד זיהוי לציוד"
+  },
   "settings": {
     "title": "הגדרות",
     "checklist": "רשימת בדיקה",
