@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
-type ScannerStatus = 'idle' | 'requesting' | 'granted' | 'denied' | 'not-supported' | 'not-secure';
+type ScannerStatus = 'idle' | 'requesting' | 'granted' | 'denied' | 'not-supported' | 'not-secure' | 'in-use';
 
 interface QRScannerProps {
   onScan: (qrValue: string) => void;
@@ -12,8 +12,6 @@ interface QRScannerProps {
 export function QRScanner({ onScan, onClose }: QRScannerProps) {
   const { t } = useTranslation();
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const [status, setStatus] = useState<ScannerStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState('');
@@ -21,25 +19,49 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
   const scannerId = 'qr-scanner';
 
   const stopCamera = useCallback(async () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (scannerRef.current && scannerRef.current.isScanning) {
+    if (scannerRef.current) {
       try {
-        await scannerRef.current.stop();
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
       } catch (e) {
-        console.error('Error stopping scanner:', e);
+        console.error('[QR] Error stopping scanner:', e);
       }
+      scannerRef.current = null;
     }
-    scannerRef.current = null;
   }, []);
 
   const handleScanSuccess = useCallback((decodedText: string) => {
+    console.log('[QR] Scan success:', decodedText);
     stopCamera().then(() => {
       onScan(decodedText);
     });
   }, [onScan, stopCamera]);
+
+  const mapErrorToStatus = useCallback((err: Error): { status: ScannerStatus; message: string } => {
+    const errorName = err.name || '';
+    const errorMessage = err.message || '';
+    
+    console.error('[QR] Camera error:', errorName, errorMessage);
+
+    if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
+      return { status: 'denied', message: t('qrScanner.denied') };
+    }
+    
+    if (errorName === 'NotFoundError' || errorName === 'DevicesNotFoundError') {
+      return { status: 'not-supported', message: t('qrScanner.notSupported') };
+    }
+    
+    if (errorName === 'NotReadableError' || errorName === 'TrackStartError' || errorMessage.includes('not readable')) {
+      return { status: 'in-use', message: t('qrScanner.inUse') };
+    }
+    
+    if (errorName === 'OverconstrainedError') {
+      return { status: 'not-supported', message: t('qrScanner.notSupported') };
+    }
+
+    return { status: 'denied', message: t('qrScanner.cameraError') };
+  }, [t]);
 
   const startScanner = useCallback(async () => {
     try {
@@ -47,6 +69,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
       setError(null);
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.log('[QR] mediaDevices not supported');
         setStatus('not-supported');
         setError(t('qrScanner.notSupported'));
         return;
@@ -57,26 +80,17 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
                        window.location.hostname === '127.0.0.1';
       
       if (!isSecure) {
+        console.log('[QR] Not secure connection');
         setStatus('not-secure');
         setError(t('qrScanner.notSecure'));
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
+      console.log('[QR] Starting scanner...');
       
-      streamRef.current = stream;
-      setStatus('granted');
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-
       scannerRef.current = new Html5Qrcode(scannerId, {
         formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        verbose: false,
+        verbose: true,
       });
 
       await scannerRef.current.start(
@@ -89,28 +103,20 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
         (decodedText) => {
           handleScanSuccess(decodedText);
         },
-        () => {
-          // QR code not found - ignore
+        (errorMessage) => {
+          console.log('[QR] QR parse error (normal when no QR in frame):', errorMessage);
         }
       );
+
+      console.log('[QR] Scanner started successfully');
+      setStatus('granted');
     } catch (err: any) {
-      console.error('Camera error:', err);
-      
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setStatus('denied');
-        setError(t('qrScanner.denied'));
-      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        setStatus('not-supported');
-        setError(t('qrScanner.notSupported'));
-      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        setStatus('denied');
-        setError(t('qrScanner.denied'));
-      } else {
-        setStatus('denied');
-        setError(t('qrScanner.cameraError'));
-      }
+      console.error('[QR] Failed to start scanner:', err);
+      const { status: errorStatus, message } = mapErrorToStatus(err);
+      setStatus(errorStatus);
+      setError(message);
     }
-  }, [t, handleScanSuccess]);
+  }, [t, handleScanSuccess, mapErrorToStatus]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,7 +133,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
     };
   }, []);
 
-  const showManualInput = status === 'denied' || status === 'not-supported' || status === 'not-secure';
+  const showManualInput = status === 'denied' || status === 'not-supported' || status === 'not-secure' || status === 'in-use';
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col">
@@ -152,15 +158,15 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
           <div id={scannerId} className="w-full max-w-sm mx-auto" />
         )}
 
-        {(status === 'denied' || status === 'not-supported' || status === 'not-secure') && (
+        {showManualInput && (
           <div className="text-white text-center p-4 max-w-sm">
             <div className="mb-4">
               <svg className="w-16 h-16 mx-auto text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <p className="text-red-400 mb-4">{error}</p>
-            <p className="text-gray-400 text-sm mb-6">{t('qrScanner.manualHint')}</p>
+            <p className="text-red-400 mb-2">{error}</p>
+            <p className="text-gray-400 text-sm">{t('qrScanner.manualHint')}</p>
           </div>
         )}
 
@@ -173,28 +179,26 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
       </div>
 
       <div className="p-4 bg-black">
-        {(showManualInput || status === 'granted') && (
-          <form onSubmit={handleManualSubmit} className="mb-4">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={manualCode}
-                onChange={(e) => setManualCode(e.target.value)}
-                placeholder={t('equipment.code')}
-                className="flex-1 px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-primary-500 outline-none"
-              />
-              <button
-                type="submit"
-                disabled={!manualCode.trim()}
-                className="px-4 py-3 bg-primary-600 text-white rounded-lg disabled:opacity-50"
-              >
-                {t('app.add')}
-              </button>
-            </div>
-          </form>
-        )}
+        <form onSubmit={handleManualSubmit} className="mb-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={manualCode}
+              onChange={(e) => setManualCode(e.target.value)}
+              placeholder={t('equipment.code')}
+              className="flex-1 px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-primary-500 outline-none"
+            />
+            <button
+              type="submit"
+              disabled={!manualCode.trim()}
+              className="px-4 py-3 bg-primary-600 text-white rounded-lg disabled:opacity-50"
+            >
+              {t('app.add')}
+            </button>
+          </div>
+        </form>
         
-        {!showManualInput && (
+        {!showManualInput && status === 'granted' && (
           <p className="text-gray-400 text-center text-sm">
             {t('qrScanner.instructions')}
           </p>
