@@ -83,42 +83,34 @@ export function MapPage() {
   }, []);
 
   useEffect(() => {
-    console.log('[Map] Component mounted, fetching data...');
-    
     const fetchData = async () => {
       try {
-        console.log('[Map] Calling siteService.getWithEquipmentStatus...');
-        let sitesData: SiteWithStatus[] = [];
+        console.log('[Map] Fetching sites...');
+        const sitesData: SiteWithStatus[] = [];
         try {
           const response = await siteService.getWithEquipmentStatus() as SiteWithStatus[];
-          sitesData = response || [];
-          console.log('[Map] getWithEquipmentStatus returned:', sitesData.length, 'sites');
+          sitesData.push(...(response || []));
+          console.log('[Map] Received', sitesData.length, 'sites');
           
-          // Log raw site data for debugging
-          const rawSitesData = sitesData.map(s => ({
-            id: s.id,
-            name: s.name,
-            address: s.address,
-            city: s.city,
-            latitude: s.latitude,
-            longitude: s.longitude,
-            overallStatus: s.overallStatus,
-          }));
-          console.log('[Map] Raw sites data for markers:', rawSitesData);
-          
+          // Log first site as example
+          if (sitesData.length > 0) {
+            const example = sitesData[0];
+            console.log('[Map] Example site:', {
+              name: example.name,
+              address: example.address,
+              city: example.city,
+              latitude: example.latitude,
+              longitude: example.longitude,
+            });
+          }
         } catch (e) {
-          console.error('[Map] getWithEquipmentStatus failed:', e);
-          sitesData = [];
+          console.error('[Map] Failed to fetch sites:', e);
         }
         
-        // Use all sites (filter for map display later)
         setSites(sitesData);
-        console.log('[Map] State updated successfully');
       } catch (error: any) {
-        console.error('[Map] Failed to fetch map data:', error);
-        console.error('[Map] Error details:', error?.response?.status, error?.response?.data);
+        console.error('[Map] Error:', error);
       } finally {
-        console.log('[Map] Setting loading to false');
         setLoading(false);
       }
     };
@@ -268,29 +260,22 @@ export function MapPage() {
               const lat = Number(rawLat);
               const lng = Number(rawLng);
               
-              // Detailed logging for debugging
-              console.log('[Map] Marker input:', {
-                id: site.id,
-                name: site.name,
-                address: site.address,
-                city: site.city,
-                latitude: rawLat,
-                longitude: rawLng,
-                parsedLat: lat,
-                parsedLng: lng,
-                isNaN: isNaN(lat) || isNaN(lng),
-                isValidRange: lat > 29 && lat < 35 && lng > 33 && lng < 36,
-              });
+              // Skip sites with invalid or missing coordinates
+              if (rawLat == null || rawLng == null) {
+                console.warn('[Map] Skipping site - null coordinates:', site.name);
+                return null;
+              }
               
               if (isNaN(lat) || isNaN(lng)) {
-                console.warn('[Map] Invalid coordinates for site:', site.name, 'raw lat:', rawLat, 'raw lng:', rawLng);
+                console.warn('[Map] Skipping site - invalid coordinates:', site.name, 'raw lat:', rawLat, 'raw lng:', rawLng);
                 return null;
               }
               
               // Validate coordinates are in Israel range
               const isValidCoords = lat > 29 && lat < 35 && lng > 33 && lng < 36;
               if (!isValidCoords) {
-                console.warn('[Map] Coordinates outside Israel range for site:', site.name, 'lat:', lat, 'lng:', lng);
+                console.warn('[Map] Skipping site - outside Israel range:', site.name, 'lat:', lat, 'lng:', lng);
+                return null;
               }
               
               console.log('[Map] Creating marker for site:', site.name, 'lat:', lat, 'lng:', lng, 'status:', site.overallStatus);
