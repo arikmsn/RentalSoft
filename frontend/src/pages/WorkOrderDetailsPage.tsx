@@ -329,7 +329,7 @@ export function WorkOrderDetailsPage() {
       status: workOrder.status,
       siteId: workOrder.siteId,
       technicianId: workOrder.technicianId,
-      plannedDate: new Date(workOrder.plannedDate).toISOString().slice(0, 16),
+      plannedDate: new Date(workOrder.plannedDate).toISOString().slice(0, 10),
       plannedRemovalDate: workOrder.plannedRemovalDate ? new Date(workOrder.plannedRemovalDate).toISOString().slice(0, 10) : '',
     });
     Promise.all([
@@ -487,9 +487,9 @@ export function WorkOrderDetailsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.plannedDate')}</label>
                 <input
-                  type="datetime-local"
-                  value={editFormData.plannedDate}
-                  onChange={(e) => setEditFormData({ ...editFormData, plannedDate: e.target.value })}
+                  type="date"
+                  value={editFormData.plannedDate ? editFormData.plannedDate.slice(0, 10) : ''}
+                  onChange={(e) => setEditFormData({ ...editFormData, plannedDate: e.target.value ? new Date(e.target.value).toISOString() : '' })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                 />
               </div>
