@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Equipment, EquipmentStatus, Site } from '../types';
 import { equipmentService } from '../services/equipmentService';
 import { siteService } from '../services/siteService';
 import { QRScanner } from '../components/qr/QRScanner';
-import { QRErrorBoundary } from '../components/qr/QRErrorBoundary';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { api } from '../services/api';
 import { formatDate } from '../utils/date';
@@ -35,6 +34,11 @@ export function EquipmentListPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+
+  const closeScanner = useCallback(() => {
+    console.log('[QR] Closing scanner');
+    setShowScanner(false);
+  }, []);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     qrTag: '',
@@ -373,19 +377,17 @@ export function EquipmentListPage() {
       )}
 
       {showScanner && (
-        <QRErrorBoundary>
-          <QRScanner
-            onScan={(qrValue) => {
-              if (showDetails && selectedEquipment) {
-                setEditFormData({ ...editFormData, qrTag: qrValue });
-              } else {
-                setFormData({ ...formData, qrTag: qrValue });
-              }
-              setShowScanner(false);
-            }}
-            onClose={() => setShowScanner(false)}
-          />
-        </QRErrorBoundary>
+        <QRScanner
+          onScan={(qrValue) => {
+            if (showDetails && selectedEquipment) {
+              setEditFormData({ ...editFormData, qrTag: qrValue });
+            } else {
+              setFormData({ ...formData, qrTag: qrValue });
+            }
+            setShowScanner(false);
+          }}
+          onClose={closeScanner}
+        />
       )}
 
       {showDetails && selectedEquipment && (

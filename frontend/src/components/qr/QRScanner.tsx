@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
@@ -11,15 +11,16 @@ interface QRScannerProps {
   onClose: () => void;
 }
 
-export function QRScanner({ onScan, onClose }: QRScannerProps) {
+export const QRScanner = memo(function QRScanner({ onScan, onClose }: QRScannerProps) {
   console.log('[QR] 🔧 Scanner component rendered');
   
   const { t } = useTranslation();
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isStartedRef = useRef(false);
+  const mountedRef = useRef(true);
   const [status, setStatus] = useState<ScannerStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [manualCode, setManualCode] = useState('');
-  const mountedRef = useRef(true);
 
   const scannerId = 'qr-scanner';
 
@@ -35,6 +36,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
       }
       scannerRef.current = null;
     }
+    isStartedRef.current = false;
   }, []);
 
   const handleScanSuccess = useCallback((decodedText: string) => {
@@ -69,12 +71,20 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
     return { status: 'denied', message: t('qrScanner.cameraError') };
   }, [t]);
 
-  // Initialize scanner after component mounts - use setTimeout to ensure DOM is ready
+  // Initialize scanner - run once on mount
   useEffect(() => {
     mountedRef.current = true;
+    isStartedRef.current = false;
+    
     console.log('[QR] 🚀 Starting permission flow');
     
     const initScanner = async () => {
+      // Prevent multiple starts
+      if (isStartedRef.current) {
+        console.log('[QR] Scanner already started, skipping');
+        return;
+      }
+      
       try {
         setStatus('requesting');
         setError(null);
@@ -104,7 +114,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
           return;
         }
 
-        // Use setTimeout to ensure DOM is fully rendered
+        // Wait for DOM to be ready
         await new Promise(resolve => setTimeout(resolve, 100));
         
         if (!mountedRef.current) return;
@@ -121,6 +131,8 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
         
         console.log('[QR] DOM element found, creating Html5Qrcode...');
 
+        isStartedRef.current = true;
+        
         scannerRef.current = new Html5Qrcode(scannerId, {
           formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
           verbose: false,
@@ -154,6 +166,7 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
       } catch (err: any) {
         if (!mountedRef.current) return;
         console.error('[QR] Failed to start scanner:', err);
+        isStartedRef.current = false;
         const { status: errorStatus, message } = mapErrorToStatus(err);
         setStatus(errorStatus);
         setError(message);
@@ -167,7 +180,8 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
       mountedRef.current = false;
       stopCamera();
     };
-  }, [t, handleScanSuccess, mapErrorToStatus, stopCamera]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - run once on mount
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -256,4 +270,4 @@ export function QRScanner({ onScan, onClose }: QRScannerProps) {
       </div>
     </div>
   );
-}
+});

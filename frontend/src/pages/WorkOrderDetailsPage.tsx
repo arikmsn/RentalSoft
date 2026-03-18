@@ -6,7 +6,6 @@ import type { ChecklistUpdate } from '../services/workOrderService';
 import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
 import { QRScanner } from '../components/qr';
-import { QRErrorBoundary } from '../components/qr/QRErrorBoundary';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { offlineApi } from '../services/offlineApi';
 import { workOrderService } from '../services/workOrderService';
@@ -59,6 +58,11 @@ export function WorkOrderDetailsPage() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scannedEquipment, setScannedEquipment] = useState<ScannedEquipment[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
+
+  const closeScanner = useCallback(() => {
+    console.log('[QR] Closing scanner');
+    setScannerOpen(false);
+  }, []);
   
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -340,12 +344,10 @@ export function WorkOrderDetailsPage() {
   return (
     <div className="space-y-4 pb-24 lg:pb-4">
       {scannerOpen && (
-        <QRErrorBoundary>
-          <QRScanner
-            onScan={handleScanQR}
-            onClose={() => setScannerOpen(false)}
-          />
-        </QRErrorBoundary>
+        <QRScanner
+          onScan={handleScanQR}
+          onClose={closeScanner}
+        />
       )}
 
       {showEditForm && (
