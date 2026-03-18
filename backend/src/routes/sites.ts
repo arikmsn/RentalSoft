@@ -41,29 +41,27 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
   try {
     const sites = await prisma.site.findMany({
       include: {
-        equipment: {
-          where: { status: 'at_customer' },
-        },
+        equipment: true,
         workOrders: {
           where: { status: { not: 'completed' } },
           orderBy: { plannedDate: 'desc' },
           take: 3,
-          select: { id: true, title: true, status: true, plannedDate: true },
+          select: { id: true, type: true, status: true, plannedDate: true },
         },
       },
       orderBy: { name: 'asc' },
     });
 
     const now = new Date();
-    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const tenDaysFromNow = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000);
 
     const sitesWithStatus = sites.map(site => {
+      const atCustomerEquipment = site.equipment.filter((eq: any) => eq.status === 'at_customer');
+      
       let redCount = 0;
       let orangeCount = 0;
       let greenCount = 0;
 
-      for (const eq of site.equipment) {
+      for (const eq of atCustomerEquipment) {
         if (!eq.plannedRemovalDate) {
           greenCount++;
           continue;
