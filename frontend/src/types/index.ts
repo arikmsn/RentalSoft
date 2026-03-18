@@ -45,6 +45,7 @@ export interface Site {
   longitude?: number;
   createdAt: Date;
   updatedAt: Date;
+  workOrders?: { id: string; title: string; status: WorkOrderStatus; plannedDate: Date }[];
 }
 
 export type WorkOrderType = 'installation' | 'inspection' | 'removal' | 'general';

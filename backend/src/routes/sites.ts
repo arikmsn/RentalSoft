@@ -44,6 +44,12 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
         equipment: {
           where: { status: 'at_customer' },
         },
+        workOrders: {
+          where: { status: { not: 'completed' } },
+          orderBy: { plannedDate: 'desc' },
+          take: 3,
+          select: { id: true, title: true, status: true, plannedDate: true },
+        },
       },
       orderBy: { name: 'asc' },
     });

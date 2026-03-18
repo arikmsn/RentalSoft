@@ -167,6 +167,10 @@ export function WorkOrdersListPage() {
                     {t(`workOrders.types.${wo.type}`)}
                   </h3>
                   <p className="text-sm text-surface-500 mt-1">
+                    {wo.site ? wo.site.name : ''}
+                    {wo.site ? `, ${wo.site.city}` : ''}
+                  </p>
+                  <p className="text-xs text-surface-400 mt-0.5">
                     {t('workOrders.plannedDate')}: <span className="font-medium">{formatDate(wo.plannedDate)}</span>
                   </p>
                 </div>
@@ -235,7 +239,7 @@ export function WorkOrdersListPage() {
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('workOrders.plannedDate')}</label>
                 <input
-                  type="datetime-local"
+                  type="date"
                   required
                   value={formData.plannedDate}
                   onChange={(e) => setFormData({ ...formData, plannedDate: e.target.value })}

@@ -116,6 +116,17 @@ export function MapPage() {
     
     const site = sites.find(s => s.id === selectedSiteId);
     if (site && site.latitude && site.longitude) {
+      const workOrdersHtml = site.workOrders && site.workOrders.length > 0
+        ? `<div class="mt-2 text-xs text-right max-h-24 overflow-y-auto">
+            <div class="font-medium text-surface-700 mb-1">הזמנות עבודה:</div>
+            ${site.workOrders.map(wo => `
+              <a href="/workorders/${wo.id}" class="block py-1 px-2 mb-1 bg-surface-50 hover:bg-surface-100 rounded text-primary-600 hover:text-primary-700 text-decoration-none truncate">
+                ${wo.title || wo.status} - ${new Date(wo.plannedDate).toLocaleDateString('he-IL')}
+              </a>
+            `).join('')}
+          </div>`
+        : '';
+
       // Create a popup at the site location and open it
       const popup = L.popup({
         closeButton: true,
@@ -134,8 +145,9 @@ export function MapPage() {
               </div>
             ` : ''}
             ${site.isHighlighted ? `<span class="text-xs text-warning-600 font-medium">⚠️</span>` : ''}
+            ${workOrdersHtml}
             <div class="mt-2 flex flex-col gap-1">
-              <a href="https://www.waze.com/ul?ll=${site.latitude},${site.longitude}&q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener noreferrer" class="w-full px-2 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors text-decoration-none block">🚗 ניווט</a>
+              <a href="https://www.waze.com/ul?ll=${site.latitude},${site.longitude}&q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener noreferrer" class="w-full px-2 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors text-decoration-none block">ניווט</a>
               <a href="/sites/${site.id}" class="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 transition-colors text-decoration-none block">פעולות</a>
             </div>
           </div>

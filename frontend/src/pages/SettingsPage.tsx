@@ -85,7 +85,8 @@ export function SettingsPage() {
     setSaving(true);
     try {
       let url = '';
-      let method: 'post' | 'put' = editingItem ? 'put' : 'post';
+      const isEdit = !!editingItem;
+      
       switch (activeTab) {
         case 'checklist':
           url = '/settings/checklist';
@@ -103,24 +104,37 @@ export function SettingsPage() {
           url = '/settings/equipment-conditions';
           break;
         case 'technicians':
-          url = editingItem ? `/settings/technicians/${editingItem.id}` : '/settings/technicians';
+          url = '/settings/technicians';
           break;
       }
 
-      if (editingItem) {
+      // Append ID for edit (except technicians which already has it in the switch)
+      if (isEdit && activeTab !== 'technicians') {
         url += `/${editingItem.id}`;
       }
 
-      if (method === 'post') {
-        await api.post(url, formData);
+      const payload = { ...formData };
+      // Remove unused fields for technicians
+      if (activeTab === 'technicians') {
+        delete (payload as any).code;
+        delete (payload as any).sortOrder;
+        delete (payload as any).username;
+        delete (payload as any).email;
+        delete (payload as any).phone;
+        delete (payload as any).password;
+      }
+
+      if (isEdit) {
+        await api.put(`${url}/${editingItem.id}`, payload);
       } else {
-        await api.put(url, formData);
+        await api.post(url, payload);
       }
 
       setShowForm(false);
       setEditingItem(null);
       setFormData({ name: '', code: '', isActive: true, sortOrder: 0, username: '', email: '', phone: '', password: '' });
       fetchItems();
+      alert(isEdit ? 'עודכן בהצלחה' : 'נוסף בהצלחה');
     } catch (error: any) {
       console.error('Error saving item:', error);
       alert(error?.response?.data?.message || t('errors.serverError'));
@@ -323,18 +337,18 @@ export function SettingsPage() {
                       />
                     </div>
                   )}
+                  <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="isActiveNonTech"
+                        checked={formData.isActive}
+                        onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                        className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+                      />
+                      <label htmlFor="isActiveNonTech" className="text-sm text-surface-700">{t('settings.active')}</label>
+                    </div>
                 </>
               )}
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <label htmlFor="isActive" className="text-sm text-surface-700">{t('settings.active')}</label>
-              </div>
               <div className="flex gap-3 pt-3">
                 <button
                   type="button"

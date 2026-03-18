@@ -99,6 +99,40 @@ router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
   }
 });
 
+// Helper function to update equipment status based on work order
+async function updateEquipmentStatusForWorkOrder(workOrderId: string) {
+  const workOrder = await prisma.workOrder.findUnique({
+    where: { id: workOrderId },
+    include: {
+      equipment: true,
+    },
+  });
+
+  if (!workOrder) return;
+
+  const activeStatuses = ['open', 'in_progress'];
+  const isActive = activeStatuses.includes(workOrder.status);
+
+  // Get all equipment IDs linked to this work order
+  const equipmentIds = workOrder.equipment.map(e => e.equipmentId);
+
+  if (equipmentIds.length === 0) return;
+
+  if (isActive) {
+    // Work order is active - set equipment to at_customer
+    await prisma.equipment.updateMany({
+      where: { id: { in: equipmentIds } },
+      data: { status: 'at_customer' },
+    });
+  } else if (workOrder.status === 'completed') {
+    // Work order completed - set equipment back to warehouse
+    await prisma.equipment.updateMany({
+      where: { id: { in: equipmentIds } },
+      data: { status: 'warehouse' },
+    });
+  }
+}
+
 router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRequest, res) => {
   try {
     const { type, siteId, technicianId, plannedDate, plannedRemovalDate, equipmentIds } = req.body;
@@ -130,6 +164,11 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         notes: `Work order created: ${type}`,
       },
     });
+
+    // Update equipment status based on work order
+    if (equipmentIds && equipmentIds.length > 0) {
+      await updateEquipmentStatusForWorkOrder(workOrder.id);
+    }
 
     res.status(201).json(workOrder);
   } catch (error) {
@@ -207,6 +246,8 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
           changedById: userId,
         },
       });
+      // Update equipment status when work order status changes
+      await updateEquipmentStatusForWorkOrder(workOrder.id);
     }
 
     res.json(workOrder);
@@ -327,6 +368,86 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res) => {
     res.json(workOrder);
   } catch (error) {
     console.error('Complete work order error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Add equipment to work order
+router.post('/:id/equipment', authenticate, authorize('manager', 'admin'), async (req: AuthRequest, res) => {
+  try {
+    const { equipmentId } = req.body;
+    const workOrderId = req.params.id;
+
+    // Check if already linked
+    const existing = await prisma.workOrderEquipment.findFirst({
+      where: { workOrderId, equipmentId },
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: 'Equipment already linked to this work order' });
+    }
+
+    await prisma.workOrderEquipment.create({
+      data: { workOrderId, equipmentId },
+    });
+
+    // Update equipment status to at_customer
+    await prisma.equipment.update({
+      where: { id: equipmentId },
+      data: { status: 'at_customer' },
+    });
+
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id: workOrderId },
+      include: {
+        equipment: { include: { equipment: true } },
+      },
+    });
+
+    res.json(workOrder);
+  } catch (error) {
+    console.error('Add equipment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Remove equipment from work order
+router.delete('/:id/equipment/:equipmentId', authenticate, authorize('manager', 'admin'), async (req: AuthRequest, res) => {
+  try {
+    const { id, equipmentId } = req.params;
+
+    await prisma.workOrderEquipment.deleteMany({
+      where: { workOrderId: id, equipmentId },
+    });
+
+    // Check if equipment is linked to any other active work orders
+    const otherLinks = await prisma.workOrderEquipment.findFirst({
+      where: {
+        equipmentId,
+        workOrder: {
+          status: { in: ['open', 'in_progress'] },
+        },
+      },
+    });
+
+    // If not linked to any active work order, set back to warehouse
+    if (!otherLinks) {
+      await prisma.equipment.update({
+        where: { id: equipmentId },
+        data: { status: 'warehouse' },
+      });
+    }
+
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id },
+      include: {
+        equipment: { include: { equipment: true } },
+      },
+    });
+
+    res.json(workOrder);
+  } catch (error) {
+    console.error('Remove equipment error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
