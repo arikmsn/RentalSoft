@@ -4,6 +4,44 @@ import { authenticate, isManagerOrAdmin, isTechnicianOrHigher, authorize, AuthRe
 
 const router = Router();
 
+async function geocodeAddress(address: string, city: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const query = encodeURIComponent(`${address}, ${city}, Israel`);
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=il`, {
+      headers: {
+        'User-Agent': 'RentalSoft/1.0',
+      },
+    });
+    
+    if (!response.ok) {
+      console.error('Geocoding failed:', response.status);
+      return null;
+    }
+    
+    const data = await response.json() as Array<{ lat: string; lon: string }>;
+    
+    if (data && data.length > 0) {
+      const lat = parseFloat(data[0].lat);
+      const lng = parseFloat(data[0].lon);
+      
+      // Validate coordinates are in Israel range (lat 29-35, lng 33-36)
+      if (lat >= 29 && lat <= 35 && lng >= 33 && lng <= 36) {
+        return { lat, lng };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return null;
+  }
+}
+
+function isValidIsraelCoords(lat: number | null | undefined, lng: number | null | undefined): boolean {
+  if (lat == null || lng == null) return false;
+  return lat >= 29 && lat <= 35 && lng >= 33 && lng <= 36;
+}
+
 router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
     const { search, hasEquipment, rating } = req.query;
@@ -60,7 +98,29 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
 
     const now = new Date();
 
-    const sitesWithStatus = sites.map(site => {
+    // Geocode sites that don't have valid coordinates
+    const sitesWithCoords = await Promise.all(
+      sites.map(async (site) => {
+        if (!isValidIsraelCoords(site.latitude, site.longitude)) {
+          console.log(`[Geocode] Site "${site.name}" missing/invalid coords, geocoding: ${site.address}, ${site.city}`);
+          const coords = await geocodeAddress(site.address, site.city);
+          if (coords) {
+            console.log(`[Geocode] Found coords for "${site.name}":`, coords);
+            // Update the database with the new coordinates
+            await prisma.site.update({
+              where: { id: site.id },
+              data: { latitude: coords.lat, longitude: coords.lng },
+            });
+            return { ...site, latitude: coords.lat, longitude: coords.lng };
+          } else {
+            console.warn(`[Geocode] Could not geocode "${site.name}": ${site.address}, ${site.city}`);
+          }
+        }
+        return site;
+      })
+    );
+
+    const sitesWithStatus = sitesWithCoords.map(site => {
       // Get all equipment from active work orders at this site
       const activeWorkOrderEquipment: any[] = [];
       for (const wo of site.workOrders) {
@@ -213,6 +273,20 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
       longitude,
     } = req.body;
 
+    // Geocode address if no coordinates provided
+    let finalLat = latitude;
+    let finalLng = longitude;
+    
+    if (!isValidIsraelCoords(latitude, longitude)) {
+      console.log(`[Create Site] Geocoding: ${address}, ${city}`);
+      const coords = await geocodeAddress(address, city);
+      if (coords) {
+        finalLat = coords.lat;
+        finalLng = coords.lng;
+        console.log(`[Create Site] Geocoded successfully:`, coords);
+      }
+    }
+
     const site = await prisma.site.create({
       data: {
         name,
@@ -226,8 +300,8 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         contact2Phone,
         rating,
         isHighlighted: isHighlighted || false,
-        latitude,
-        longitude,
+        latitude: finalLat,
+        longitude: finalLng,
       },
     });
 
@@ -256,6 +330,26 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
       longitude,
     } = req.body;
 
+    // Get current site to check if we need to geocode
+    const currentSite = await prisma.site.findUnique({ where: { id: req.params.id } });
+    
+    let finalLat = latitude;
+    let finalLng = longitude;
+    
+    // Geocode if address changed and no coordinates provided
+    if ((address || city) && !isValidIsraelCoords(latitude, longitude)) {
+      const addr = address || currentSite?.address;
+      const c = city || currentSite?.city;
+      if (addr && c) {
+        console.log(`[Update Site] Geocoding: ${addr}, ${c}`);
+        const coords = await geocodeAddress(addr, c);
+        if (coords) {
+          finalLat = coords.lat;
+          finalLng = coords.lng;
+        }
+      }
+    }
+
     const site = await prisma.site.update({
       where: { id: req.params.id },
       data: {
@@ -270,8 +364,8 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
         ...(contact2Phone !== undefined && { contact2Phone }),
         ...(rating !== undefined && { rating }),
         ...(isHighlighted !== undefined && { isHighlighted }),
-        ...(latitude !== undefined && { latitude }),
-        ...(longitude !== undefined && { longitude }),
+        ...(latitude !== undefined && { latitude: finalLat }),
+        ...(longitude !== undefined && { longitude: finalLng }),
       },
     });
 
@@ -303,10 +397,19 @@ router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, r
 
 router.get('/geocode', authenticate, isTechnicianOrHigher, async (req, res) => {
   try {
-    const { address } = req.query;
-    // In production, use a geocoding service like Google Maps or OpenStreetMap
-    // For now, return default coordinates for Israel
-    res.json({ lat: 31.0461, lng: 34.8516 });
+    const { address, city } = req.query;
+    
+    if (!address || !city) {
+      return res.status(400).json({ message: 'Address and city are required' });
+    }
+    
+    const coords = await geocodeAddress(String(address), String(city));
+    
+    if (coords) {
+      res.json({ lat: coords.lat, lng: coords.lng });
+    } else {
+      res.status(404).json({ message: 'Could not geocode address' });
+    }
   } catch (error) {
     console.error('Geocode error:', error);
     res.status(500).json({ message: 'Server error' });
