@@ -302,16 +302,6 @@ export function WorkOrderDetailsPage() {
       return;
     }
 
-    if (workOrder?.siteId) {
-      if (equipment.siteId !== workOrder.siteId) {
-        if (equipment.siteId === null && workOrder.type === 'installation') {
-        } else {
-          setScanError(t('workOrder.invalidEquipmentForSite'));
-          return;
-        }
-      }
-    }
-
     if (id) {
       try {
         await workOrderService.addEquipment(id, equipment.id);
@@ -729,6 +719,34 @@ export function WorkOrderDetailsPage() {
             <p className="text-sm text-orange-800">
               {t('equipment.plannedRemoval')}: {formatDate(workOrder.plannedRemovalDate)}
             </p>
+          </div>
+        )}
+
+        {canChangeStatus && (
+          <div className="p-3 bg-primary-50 rounded-lg border border-primary-100">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-primary-700">{t('workOrders.status')}:</span>
+              {showStatusDropdown ? (
+                <select
+                  value={workOrder.status}
+                  onChange={(e) => handleStatusChange(e.target.value as WorkOrderStatus)}
+                  onBlur={() => setShowStatusDropdown(false)}
+                  autoFocus
+                  className={`px-3 py-2 rounded-lg text-sm font-medium border-2 cursor-pointer ${statusColors[workOrder.status]}`}
+                >
+                  <option value="open">{t('workOrders.statuses.open')}</option>
+                  <option value="in_progress">{t('workOrders.statuses.in_progress')}</option>
+                  <option value="completed">{t('workOrders.statuses.completed')}</option>
+                </select>
+              ) : (
+                <button
+                  onClick={() => setShowStatusDropdown(true)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium cursor-pointer hover:opacity-80 ${statusColors[workOrder.status]}`}
+                >
+                  {t(`workOrders.statuses.${workOrder.status}`)}
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

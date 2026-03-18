@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Equipment, EquipmentStatus, Site } from '../types';
+import type { Equipment, EquipmentStatus } from '../types';
 import { equipmentService } from '../services/equipmentService';
-import { siteService } from '../services/siteService';
 import { BaseQrScanner } from '../components/qr/BaseQrScanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { api } from '../services/api';
@@ -25,7 +24,6 @@ const statusColors: Record<EquipmentStatus, string> = {
 export function EquipmentListPage() {
   const { t } = useTranslation();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [sites, setSites] = useState<Site[]>([]);
   const [equipmentTypes, setEquipmentTypes] = useState<SettingsEquipmentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<EquipmentStatus | 'all' | 'available' | 'at_workorder'>('all');
@@ -44,14 +42,12 @@ export function EquipmentListPage() {
     qrTag: '',
     type: '',
     status: 'warehouse' as EquipmentStatus,
-    siteId: '',
     condition: 'ok' as 'ok' | 'not_ok' | 'wearout',
   });
   const [editFormData, setEditFormData] = useState({
     qrTag: '',
     type: '',
     status: 'warehouse' as EquipmentStatus,
-    siteId: '',
     condition: 'ok' as 'ok' | 'not_ok' | 'wearout',
     plannedRemovalDate: '',
   });
@@ -82,11 +78,9 @@ export function EquipmentListPage() {
   useEffect(() => {
     Promise.all([
       equipmentService.getAll(),
-      siteService.getAll(),
       api.get<SettingsEquipmentType[]>('/settings/equipment-types').then(res => res.data),
-    ]).then(([eqData, siteData, typesData]) => {
+    ]).then(([eqData, typesData]) => {
       setEquipment(eqData);
-      setSites(siteData);
       setEquipmentTypes(typesData.filter((t: SettingsEquipmentType) => t.isActive !== false));
     }).catch((err) => {
       console.error('Failed to fetch data:', err);
@@ -100,11 +94,13 @@ export function EquipmentListPage() {
     setSaving(true);
     try {
       await equipmentService.create({
-        ...formData,
-        siteId: formData.siteId || undefined,
+        qrTag: formData.qrTag,
+        type: formData.type,
+        status: formData.status,
+        condition: formData.condition,
       });
       setShowForm(false);
-      setFormData({ qrTag: '', type: '', status: 'warehouse', siteId: '', condition: 'ok' });
+      setFormData({ qrTag: '', type: '', status: 'warehouse', condition: 'ok' });
       const data = await equipmentService.getAll();
       setEquipment(data);
     } catch (err: any) {
@@ -121,7 +117,6 @@ export function EquipmentListPage() {
       qrTag: eq.qrTag,
       type: eq.type,
       status: eq.status,
-      siteId: eq.siteId || '',
       condition: eq.condition,
       plannedRemovalDate: eq.plannedRemovalDate ? new Date(eq.plannedRemovalDate).toISOString().split('T')[0] : '',
     });
@@ -134,8 +129,10 @@ export function EquipmentListPage() {
     setSavingEdit(true);
     try {
       await equipmentService.update(selectedEquipment.id, {
-        ...editFormData,
-        siteId: editFormData.siteId || undefined,
+        qrTag: editFormData.qrTag,
+        type: editFormData.type,
+        status: editFormData.status,
+        condition: editFormData.condition,
         plannedRemovalDate: editFormData.plannedRemovalDate ? new Date(editFormData.plannedRemovalDate) : undefined,
       });
       setShowDetails(false);
@@ -256,15 +253,10 @@ export function EquipmentListPage() {
                 </button>
               </div>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex items-center">
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[eq.status]}`}>
                 {t(`equipment.statuses.${eq.status}`)}
               </span>
-              {eq.siteId && (
-                <span className="text-xs text-surface-500">
-                  {sites.find(s => s.id === eq.siteId)?.name}
-                </span>
-              )}
             </div>
             
             {/* Work Order Attachment Info */}
@@ -361,19 +353,6 @@ export function EquipmentListPage() {
                   <option value="available">{t('equipment.statuses.available')}</option>
                   <option value="at_customer">{t('equipment.statuses.at_customer')}</option>
                   <option value="in_repair">{t('equipment.statuses.in_repair')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.site')}</label>
-                <select
-                  value={formData.siteId}
-                  onChange={(e) => setFormData({ ...formData, siteId: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                >
-                  <option value="">-- {t('app.select')} --</option>
-                  {sites.map((site) => (
-                    <option key={site.id} value={site.id}>{site.name}</option>
-                  ))}
                 </select>
               </div>
               <div>
@@ -502,19 +481,6 @@ export function EquipmentListPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.site')}</label>
-                <select
-                  value={editFormData.siteId}
-                  onChange={(e) => setEditFormData({ ...editFormData, siteId: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                >
-                  <option value="">-- {t('app.select')} --</option>
-                  {sites.map((site) => (
-                    <option key={site.id} value={site.id}>{site.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.condition')}</label>
                 <select
                   value={editFormData.condition}
@@ -560,7 +526,7 @@ export function EquipmentListPage() {
         <ConfirmDialog
           isOpen={showDeleteConfirm}
           title={t('app.delete')}
-          message={selectedEquipment.siteId ? t('equipment.deleteWarning') : t('app.confirmDelete') + '?'}
+          message={t('app.confirmDelete') + '?'}
           confirmLabel={t('app.delete')}
           onConfirm={confirmDelete}
           onCancel={() => setShowDeleteConfirm(false)}

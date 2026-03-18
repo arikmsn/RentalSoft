@@ -6,11 +6,10 @@ const router = Router();
 
 router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
-    const { status, siteId, type, search, available } = req.query;
+    const { status, type, search, available } = req.query;
 
     const where: any = {};
     if (status) where.status = status;
-    if (siteId) where.siteId = siteId;
     if (type) where.type = type;
     if (search) {
       where.OR = [
@@ -30,7 +29,6 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
     const equipment = await prisma.equipment.findMany({
       where,
       include: { 
-        site: true,
         workOrders: {
           where: {
             workOrder: {
@@ -43,7 +41,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
                 id: true, 
                 status: true, 
                 type: true,
-                site: { select: { name: true, city: true } },
+                site: { select: { id: true, name: true, city: true } },
               },
             },
           },
@@ -52,7 +50,6 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
       orderBy: { updatedAt: 'desc' },
     });
 
-    // Add computed field for active work order attachment
     const equipmentWithAttachment = equipment.map(eq => {
       const activeWorkOrder = eq.workOrders[0]?.workOrder;
       return {
@@ -64,7 +61,6 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
     res.json(equipmentWithAttachment);
   } catch (error) {
     console.error('GET /api/equipment failed:', error);
-    // Return empty array instead of 500 to keep app working
     res.json([]);
   }
 });
@@ -84,7 +80,6 @@ router.get('/:id', authenticate, isTechnicianOrHigher, async (req: AuthRequest, 
     const equipment = await prisma.equipment.findUnique({
       where: { id: req.params.id },
       include: { 
-        site: true,
         workOrders: {
           where: {
             workOrder: { status: { in: ['open', 'in_progress'] } },
@@ -103,7 +98,6 @@ router.get('/:id', authenticate, isTechnicianOrHigher, async (req: AuthRequest, 
       return res.status(404).json({ message: 'Equipment not found' });
     }
 
-    // Compute active work order and next planned removal date
     const activeWorkOrder = equipment.workOrders[0]?.workOrder;
     const workOrdersWithDates = equipment.workOrders.filter(wo => wo.workOrder.plannedRemovalDate);
     const nextPlannedRemovalDate = workOrdersWithDates.length > 0
@@ -116,6 +110,7 @@ router.get('/:id', authenticate, isTechnicianOrHigher, async (req: AuthRequest, 
     res.json({
       ...equipment,
       workOrders: undefined,
+      site: undefined,
       activeWorkOrder: activeWorkOrder ? {
         id: activeWorkOrder.id,
         type: activeWorkOrder.type,
@@ -134,14 +129,29 @@ router.get('/qr/:qrTag', authenticate, isTechnicianOrHigher, async (req, res) =>
   try {
     const equipment = await prisma.equipment.findUnique({
       where: { qrTag: req.params.qrTag },
-      include: { site: true },
     });
 
     if (!equipment) {
       return res.status(404).json({ message: 'Equipment not found' });
     }
 
-    res.json(equipment);
+    const activeWorkOrder = await prisma.workOrderEquipment.findFirst({
+      where: {
+        equipmentId: equipment.id,
+        workOrder: { status: { in: ['open', 'in_progress'] } },
+      },
+      include: {
+        workOrder: {
+          include: { site: true },
+        },
+      },
+    });
+
+    res.json({
+      ...equipment,
+      site: undefined,
+      activeWorkOrder: activeWorkOrder?.workOrder || null,
+    });
   } catch (error) {
     console.error('Get equipment by QR error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -177,7 +187,6 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         typeId: typeRecord.id,
         status: status || 'warehouse',
       },
-      include: { site: true },
     });
 
     await prisma.activityLog.create({
@@ -189,7 +198,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
       },
     });
 
-    res.status(201).json(equipment);
+    res.status(201).json({ ...equipment, activeWorkOrder: null });
   } catch (error) {
     console.error('Create equipment error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -198,22 +207,36 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
 
 router.patch('/:id', authenticate, isManagerOrAdmin, async (req: AuthRequest, res) => {
   try {
-    const { qrTag, type, status, condition, siteId, plannedRemovalDate } = req.body;
+    const { qrTag, type, status, condition, plannedRemovalDate } = req.body;
+
+    const updateData: any = {};
+    if (qrTag) updateData.qrTag = qrTag;
+    if (type) updateData.type = type;
+    if (status) updateData.status = status;
+    if (condition) updateData.condition = condition;
+    if (plannedRemovalDate) updateData.plannedRemovalDate = new Date(plannedRemovalDate);
 
     const equipment = await prisma.equipment.update({
       where: { id: req.params.id },
-      data: {
-        ...(qrTag && { qrTag }),
-        ...(type && { type }),
-        ...(status && { status }),
-        ...(condition && { condition }),
-        ...(siteId !== undefined && { siteId }),
-        ...(plannedRemovalDate && { plannedRemovalDate: new Date(plannedRemovalDate) }),
-      },
-      include: { site: true },
+      data: updateData,
     });
 
-    res.json(equipment);
+    const activeWorkOrder = await prisma.workOrderEquipment.findFirst({
+      where: {
+        equipmentId: equipment.id,
+        workOrder: { status: { in: ['open', 'in_progress'] } },
+      },
+      include: {
+        workOrder: {
+          include: { site: true },
+        },
+      },
+    });
+
+    res.json({
+      ...equipment,
+      activeWorkOrder: activeWorkOrder?.workOrder || null,
+    });
   } catch (error) {
     console.error('Update equipment error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -235,12 +258,11 @@ router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, r
 
 router.post('/:id/scan', authenticate, async (req: AuthRequest, res) => {
   try {
-    const { siteId, location } = req.body;
+    const { location } = req.body;
 
     const equipment = await prisma.equipment.update({
       where: { id: req.params.id },
       data: {
-        siteId,
         lastScanDate: new Date(),
         installationDate: new Date(),
         status: 'at_customer',
@@ -249,22 +271,35 @@ router.post('/:id/scan', authenticate, async (req: AuthRequest, res) => {
           longitude: location.lng,
         }),
       },
-      include: { site: true },
+    });
+
+    const activeWorkOrder = await prisma.workOrderEquipment.findFirst({
+      where: {
+        equipmentId: equipment.id,
+        workOrder: { status: { in: ['open', 'in_progress'] } },
+      },
+      include: {
+        workOrder: {
+          include: { site: true },
+        },
+      },
     });
 
     await prisma.activityLog.create({
       data: {
         equipmentId: equipment.id,
-        siteId,
         userId: req.user!.id,
         actionType: 'location_change',
-        notes: `Equipment scanned at site`,
+        notes: `Equipment scanned at customer location`,
         locationLat: location?.lat,
         locationLng: location?.lng,
       },
     });
 
-    res.json(equipment);
+    res.json({
+      ...equipment,
+      activeWorkOrder: activeWorkOrder?.workOrder || null,
+    });
   } catch (error) {
     console.error('Scan equipment error:', error);
     res.status(500).json({ message: 'Server error' });
