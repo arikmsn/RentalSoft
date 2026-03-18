@@ -113,6 +113,18 @@ export function WorkOrderDetailsPage() {
           value: item.value,
         }))
       );
+      
+      // Load existing equipment from work order
+      const existingEquipment = (wo.data as any).equipment || [];
+      setScannedEquipment(existingEquipment.map((eq: any) => ({
+        id: eq.equipment.id,
+        qrTag: eq.equipment.qrTag,
+        type: eq.equipment.type,
+        status: eq.equipment.status,
+        siteId: eq.equipment.siteId,
+        addedAt: new Date(eq.createdAt),
+      })));
+      
       setFromCache(!!wo.fromCache);
       setError(null);
     } catch (err: any) {
@@ -236,6 +248,7 @@ export function WorkOrderDetailsPage() {
         return;
       }
       
+      // Check if already attached in backend
       if (scannedEquipment.some(eq => eq.id === equipment.id)) {
         setScanError(t('workOrder.equipmentAlreadyAdded'));
         return;
@@ -252,6 +265,21 @@ export function WorkOrderDetailsPage() {
         }
       }
 
+      // Persist to backend first
+      if (id) {
+        try {
+          await workOrderService.addEquipment(id, equipment.id);
+        } catch (apiErr: any) {
+          if (apiErr.response?.status === 400 && apiErr.response?.data?.message?.includes('already')) {
+            setScanError(t('workOrder.equipmentAlreadyAdded'));
+            return;
+          }
+          // If API fails, still allow local add for offline mode
+          console.warn('Failed to persist equipment to backend:', apiErr);
+        }
+      }
+
+      // Add to local state
       setScannedEquipment(prev => [...prev, { ...equipment, addedAt: new Date() }]);
       setSuccess(t('workOrder.equipmentAdded'));
       setTimeout(() => setSuccess(null), 2000);
@@ -266,7 +294,16 @@ export function WorkOrderDetailsPage() {
     }
   };
 
-  const handleRemoveEquipment = (equipmentId: string) => {
+  const handleRemoveEquipment = async (equipmentId: string) => {
+    // Try to remove from backend
+    if (id) {
+      try {
+        await workOrderService.removeEquipment(id, equipmentId);
+      } catch (apiErr) {
+        console.warn('Failed to remove equipment from backend:', apiErr);
+      }
+    }
+    // Remove from local state
     setScannedEquipment(prev => prev.filter(eq => eq.id !== equipmentId));
   };
 

@@ -45,8 +45,14 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
         workOrders: {
           where: { status: { not: 'completed' } },
           orderBy: { plannedDate: 'desc' },
-          take: 3,
-          select: { id: true, type: true, status: true, plannedDate: true },
+          take: 5,
+          include: {
+            equipment: {
+              include: {
+                equipment: true,
+              },
+            },
+          },
         },
       },
       orderBy: { name: 'asc' },
@@ -55,19 +61,37 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
     const now = new Date();
 
     const sitesWithStatus = sites.map(site => {
-      const atCustomerEquipment = site.equipment.filter((eq: any) => eq.status === 'at_customer');
+      // Get all equipment from active work orders at this site
+      const activeWorkOrderEquipment: any[] = [];
+      for (const wo of site.workOrders) {
+        for (const woEq of wo.equipment) {
+          activeWorkOrderEquipment.push(woEq.equipment);
+        }
+      }
+      
+      // Also include equipment directly at site (legacy)
+      const atCustomerEquipment = [
+        ...site.equipment.filter((eq: any) => eq.status === 'at_customer'),
+        ...activeWorkOrderEquipment.filter((eq: any) => eq.status === 'at_customer'),
+      ];
       
       let redCount = 0;
       let orangeCount = 0;
       let greenCount = 0;
 
       for (const eq of atCustomerEquipment) {
-        if (!eq.plannedRemovalDate) {
+        // Use work order's plannedRemovalDate if equipment doesn't have one
+        const removalDate = eq.plannedRemovalDate || 
+          site.workOrders.find(wo => 
+            wo.equipment.some((woEq: any) => woEq.equipmentId === eq.id)
+          )?.plannedRemovalDate;
+          
+        if (!removalDate) {
           greenCount++;
           continue;
         }
 
-        const daysRemaining = Math.ceil((new Date(eq.plannedRemovalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const daysRemaining = Math.ceil((new Date(removalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         
         if (daysRemaining <= 7) {
           redCount++;
