@@ -11,6 +11,7 @@ import {
   AlertsPage,
   MyTasksPage,
   SettingsPage,
+  MinimalScanner,
 } from './pages';
 import { useAuthStore } from './stores/authStore';
 
@@ -29,6 +30,7 @@ function App() {
     <Routes>
       <Route path="/" element={<LoginPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/qr-test" element={<MinimalScanner />} />
       <Route element={<MainLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/equipment" element={<EquipmentListPage />} />

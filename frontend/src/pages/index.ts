@@ -8,3 +8,4 @@ export * from './MapPage';
 export * from './AlertsPage';
 export * from './MyTasksPage';
 export * from './SettingsPage';
+export * from './MinimalScanner';
