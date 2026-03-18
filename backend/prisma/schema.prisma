@@ -124,6 +124,7 @@ model Site {
   isHighlighted  Boolean  @default(false)
   latitude       Float?
   longitude      Float?
+  hasValidLocation Boolean?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

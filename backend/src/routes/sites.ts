@@ -1,48 +1,9 @@
 import { Router } from 'express';
 import { prisma } from '../config/database';
 import { authenticate, isManagerOrAdmin, isTechnicianOrHigher, authorize, AuthRequest } from '../middleware/auth';
+import { geocodeSiteAddress, isSiteLocationValid, geocodeAndUpdateSite, getSitesWithInvalidLocation } from '../services/geocode';
 
 const router = Router();
-
-async function geocodeAddress(address: string, city: string): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const fullAddress = `${address}, ${city}, Israel`;
-    console.log(`[Geocode] Query: "${fullAddress}"`);
-    const query = encodeURIComponent(fullAddress);
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=il`, {
-      headers: {
-        'User-Agent': 'RentalSoft/1.0',
-      },
-    });
-    
-    if (!response.ok) {
-      console.error('Geocoding failed:', response.status);
-      return null;
-    }
-    
-    const data = await response.json() as Array<{ lat: string; lon: string }>;
-    
-    if (data && data.length > 0) {
-      const lat = parseFloat(data[0].lat);
-      const lng = parseFloat(data[0].lon);
-      
-      // Validate coordinates are in Israel range (lat 29-35, lng 33-36)
-      if (lat >= 29 && lat <= 35 && lng >= 33 && lng <= 36) {
-        return { lat, lng };
-      }
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Geocoding error:', error);
-    return null;
-  }
-}
-
-function isValidIsraelCoords(lat: number | null | undefined, lng: number | null | undefined): boolean {
-  if (lat == null || lng == null) return false;
-  return lat >= 29 && lat <= 35 && lng >= 33 && lng <= 36;
-}
 
 router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
@@ -58,7 +19,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
     }
     if (rating) where.rating = Number(rating);
 
-    let sites = await prisma.site.findMany({
+    const sites = await prisma.site.findMany({
       where,
       include: {
         equipment: hasEquipment === 'true' ? { where: { status: 'at_customer' } } : false,
@@ -66,11 +27,15 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
       orderBy: { name: 'asc' },
     });
 
+    let result = sites;
     if (hasEquipment === 'true') {
-      sites = sites.filter((s: any) => s.equipment && s.equipment.length > 0);
+      result = sites.filter((s: any) => s.equipment && s.equipment.length > 0);
     }
 
-    res.json(sites);
+    res.json(result.map((s: any) => ({
+      ...s,
+      hasValidLocation: isSiteLocationValid(s),
+    })));
   } catch (error) {
     console.error('Get sites error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -100,90 +65,72 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
 
     const now = new Date();
 
-    // Geocode sites that don't have valid coordinates
-    const sitesWithCoords = await Promise.all(
+    const sitesWithStatus = await Promise.all(
       sites.map(async (site) => {
-        if (!isValidIsraelCoords(site.latitude, site.longitude)) {
-          console.log(`[Geocode] Site "${site.name}" missing/invalid coords, geocoding: ${site.address}, ${site.city}`);
-          const coords = await geocodeAddress(site.address, site.city);
-          if (coords) {
-            console.log(`[Geocode] Found coords for "${site.name}":`, coords);
-            // Update the database with the new coordinates
-            await prisma.site.update({
-              where: { id: site.id },
-              data: { latitude: coords.lat, longitude: coords.lng },
-            });
-            return { ...site, latitude: coords.lat, longitude: coords.lng };
-          } else {
-            console.warn(`[Geocode] Could not geocode "${site.name}": ${site.address}, ${site.city}`);
+        const hasValidLocation = isSiteLocationValid(site);
+
+        const activeWorkOrderEquipment: any[] = [];
+        for (const wo of site.workOrders) {
+          for (const woEq of wo.equipment) {
+            activeWorkOrderEquipment.push(woEq.equipment);
           }
         }
-        return site;
+
+        const atCustomerEquipment = [
+          ...site.equipment.filter((eq: any) => eq.status === 'at_customer'),
+          ...activeWorkOrderEquipment.filter((eq: any) => eq.status === 'at_customer'),
+        ];
+
+        let redCount = 0;
+        let orangeCount = 0;
+        let greenCount = 0;
+
+        for (const eq of atCustomerEquipment) {
+          const removalDate = eq.plannedRemovalDate ||
+            site.workOrders.find(wo =>
+              wo.equipment.some((woEq: any) => woEq.equipmentId === eq.id)
+            )?.plannedRemovalDate;
+
+          if (!removalDate) {
+            greenCount++;
+            continue;
+          }
+
+          const daysRemaining = Math.ceil((new Date(removalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+          if (daysRemaining <= 7) {
+            redCount++;
+          } else if (daysRemaining <= 10) {
+            orangeCount++;
+          } else {
+            greenCount++;
+          }
+        }
+
+        let overallStatus: 'red' | 'orange' | 'green' = 'green';
+        if (redCount > 0) {
+          overallStatus = 'red';
+        } else if (orangeCount > 0) {
+          overallStatus = 'orange';
+        }
+
+        return {
+          ...site,
+          equipment: undefined,
+          statusCounts: {
+            red: redCount,
+            orange: orangeCount,
+            green: greenCount,
+          },
+          overallStatus,
+          hasValidLocation,
+        };
       })
     );
 
-    const sitesWithStatus = sitesWithCoords.map(site => {
-      // Get all equipment from active work orders at this site
-      const activeWorkOrderEquipment: any[] = [];
-      for (const wo of site.workOrders) {
-        for (const woEq of wo.equipment) {
-          activeWorkOrderEquipment.push(woEq.equipment);
-        }
-      }
-      
-      // Also include equipment directly at site (legacy)
-      const atCustomerEquipment = [
-        ...site.equipment.filter((eq: any) => eq.status === 'at_customer'),
-        ...activeWorkOrderEquipment.filter((eq: any) => eq.status === 'at_customer'),
-      ];
-      
-      let redCount = 0;
-      let orangeCount = 0;
-      let greenCount = 0;
+    const validSites = sitesWithStatus.filter(s => s.hasValidLocation && s.latitude != null && s.longitude != null);
 
-      for (const eq of atCustomerEquipment) {
-        // Use work order's plannedRemovalDate if equipment doesn't have one
-        const removalDate = eq.plannedRemovalDate || 
-          site.workOrders.find(wo => 
-            wo.equipment.some((woEq: any) => woEq.equipmentId === eq.id)
-          )?.plannedRemovalDate;
-          
-        if (!removalDate) {
-          greenCount++;
-          continue;
-        }
-
-        const daysRemaining = Math.ceil((new Date(removalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (daysRemaining <= 7) {
-          redCount++;
-        } else if (daysRemaining <= 10) {
-          orangeCount++;
-        } else {
-          greenCount++;
-        }
-      }
-
-      let overallStatus: 'red' | 'orange' | 'green' = 'green';
-      if (redCount > 0) {
-        overallStatus = 'red';
-      } else if (orangeCount > 0) {
-        overallStatus = 'orange';
-      }
-
-      return {
-        ...site,
-        equipment: undefined,
-        statusCounts: {
-          red: redCount,
-          orange: orangeCount,
-          green: greenCount,
-        },
-        overallStatus,
-      };
-    });
-
-    res.json(sitesWithStatus);
+    res.json(validSites);
   } catch (error) {
     console.error('Get sites with equipment status error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -198,6 +145,7 @@ router.get('/active-work-orders', authenticate, isTechnicianOrHigher, async (req
         site: {
           latitude: { not: null },
           longitude: { not: null },
+          hasValidLocation: { not: false },
         },
       },
       include: {
@@ -210,6 +158,7 @@ router.get('/active-work-orders', authenticate, isTechnicianOrHigher, async (req
             latitude: true,
             longitude: true,
             contact1Phone: true,
+            hasValidLocation: true,
           },
         },
         technician: {
@@ -236,6 +185,78 @@ router.get('/active-work-orders', authenticate, isTechnicianOrHigher, async (req
   }
 });
 
+router.get('/locations/needs-attention', authenticate, isManagerOrAdmin, async (req, res) => {
+  try {
+    const sites = await getSitesWithInvalidLocation();
+    res.json(sites);
+  } catch (error) {
+    console.error('Get sites needing location attention error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/:id/revalidate-location', authenticate, isManagerOrAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { address, city } = req.body;
+
+    const result = await geocodeAndUpdateSite(id, address, city);
+
+    if (result.success) {
+      const updatedSite = await prisma.site.findUnique({ where: { id } });
+      res.json({
+        success: true,
+        site: updatedSite,
+        message: 'Location updated successfully',
+      });
+    } else {
+      const updatedSite = await prisma.site.findUnique({ where: { id } });
+      res.status(400).json({
+        success: false,
+        site: updatedSite,
+        error: result.error,
+        reason: result.reason,
+        message: result.reason === 'out_of_bounds'
+          ? 'Address geocoded to location outside Israel. Please verify and enter coordinates manually.'
+          : 'Could not geocode address. Please try a different address or enter coordinates manually.',
+      });
+    }
+  } catch (error) {
+    console.error('Revalidate site location error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.patch('/:id/coordinates', authenticate, isManagerOrAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { latitude, longitude } = req.body;
+
+    if (latitude == null || longitude == null) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    const isValid = latitude >= 29 && latitude <= 35 && longitude >= 33 && longitude <= 36;
+
+    const site = await prisma.site.update({
+      where: { id },
+      data: {
+        latitude,
+        longitude,
+        hasValidLocation: isValid,
+      },
+    });
+
+    res.json({
+      site,
+      message: isValid ? 'Coordinates updated successfully' : 'Coordinates updated but flagged as outside Israel bounds',
+    });
+  } catch (error) {
+    console.error('Update site coordinates error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
   try {
     const site = await prisma.site.findUnique({
@@ -250,7 +271,10 @@ router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
       return res.status(404).json({ message: 'Site not found' });
     }
 
-    res.json(site);
+    res.json({
+      ...site,
+      hasValidLocation: isSiteLocationValid(site),
+    });
   } catch (error) {
     console.error('Get site error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -275,17 +299,21 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
       longitude,
     } = req.body;
 
-    // Geocode address if no coordinates provided
     let finalLat = latitude;
     let finalLng = longitude;
-    
-    if (!isValidIsraelCoords(latitude, longitude)) {
-      console.log(`[Create Site] Geocoding: ${address}, ${city}`);
-      const coords = await geocodeAddress(address, city);
-      if (coords) {
-        finalLat = coords.lat;
-        finalLng = coords.lng;
-        console.log(`[Create Site] Geocoded successfully:`, coords);
+    let hasValidLocation: boolean | null = null;
+
+    if (latitude != null && longitude != null) {
+      const isInBounds = latitude >= 29 && latitude <= 35 && longitude >= 33 && longitude <= 36;
+      hasValidLocation = isInBounds;
+    } else {
+      const geoResult = await geocodeSiteAddress(null, address, city);
+      if (geoResult.success && geoResult.latitude !== undefined && geoResult.longitude !== undefined) {
+        finalLat = geoResult.latitude;
+        finalLng = geoResult.longitude;
+        hasValidLocation = true;
+      } else {
+        hasValidLocation = false;
       }
     }
 
@@ -304,6 +332,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         isHighlighted: isHighlighted || false,
         latitude: finalLat,
         longitude: finalLng,
+        hasValidLocation,
       },
     });
 
@@ -332,43 +361,53 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
       longitude,
     } = req.body;
 
-    // Get current site to check if we need to geocode
     const currentSite = await prisma.site.findUnique({ where: { id: req.params.id } });
-    
-    let finalLat = latitude;
-    let finalLng = longitude;
-    
-    // Geocode if address changed and no coordinates provided
-    if ((address || city) && !isValidIsraelCoords(latitude, longitude)) {
+
+    let finalLat = latitude ?? currentSite?.latitude;
+    let finalLng = longitude ?? currentSite?.longitude;
+    let newHasValidLocation: boolean | null | undefined = undefined;
+
+    const addressChanged = (address && address !== currentSite?.address) || (city && city !== currentSite?.city);
+    const coordsProvided = latitude !== undefined || longitude !== undefined;
+
+    if (coordsProvided && latitude != null && longitude != null) {
+      newHasValidLocation = latitude >= 29 && latitude <= 35 && longitude >= 33 && longitude <= 36;
+      finalLat = latitude;
+      finalLng = longitude;
+    } else if (addressChanged && !coordsProvided) {
       const addr = address || currentSite?.address;
       const c = city || currentSite?.city;
       if (addr && c) {
-        console.log(`[Update Site] Geocoding: ${addr}, ${c}`);
-        const coords = await geocodeAddress(addr, c);
-        if (coords) {
-          finalLat = coords.lat;
-          finalLng = coords.lng;
+        const geoResult = await geocodeSiteAddress(req.params.id, addr, c);
+        if (geoResult.success && geoResult.latitude !== undefined && geoResult.longitude !== undefined) {
+          finalLat = geoResult.latitude;
+          finalLng = geoResult.longitude;
+          newHasValidLocation = true;
+        } else {
+          newHasValidLocation = false;
         }
       }
     }
 
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (address !== undefined) updateData.address = address;
+    if (city !== undefined) updateData.city = city;
+    if (floor !== undefined) updateData.floor = floor;
+    if (apartment !== undefined) updateData.apartment = apartment;
+    if (contact1Name !== undefined) updateData.contact1Name = contact1Name;
+    if (contact1Phone !== undefined) updateData.contact1Phone = contact1Phone;
+    if (contact2Name !== undefined) updateData.contact2Name = contact2Name;
+    if (contact2Phone !== undefined) updateData.contact2Phone = contact2Phone;
+    if (rating !== undefined) updateData.rating = rating;
+    if (isHighlighted !== undefined) updateData.isHighlighted = isHighlighted;
+    if (finalLat !== undefined) updateData.latitude = finalLat;
+    if (finalLng !== undefined) updateData.longitude = finalLng;
+    if (newHasValidLocation !== undefined) updateData.hasValidLocation = newHasValidLocation;
+
     const site = await prisma.site.update({
       where: { id: req.params.id },
-      data: {
-        ...(name && { name }),
-        ...(address && { address }),
-        ...(city && { city }),
-        ...(floor !== undefined && { floor }),
-        ...(apartment !== undefined && { apartment }),
-        ...(contact1Name !== undefined && { contact1Name }),
-        ...(contact1Phone !== undefined && { contact1Phone }),
-        ...(contact2Name !== undefined && { contact2Name }),
-        ...(contact2Phone !== undefined && { contact2Phone }),
-        ...(rating !== undefined && { rating }),
-        ...(isHighlighted !== undefined && { isHighlighted }),
-        ...(latitude !== undefined && { latitude: finalLat }),
-        ...(longitude !== undefined && { longitude: finalLng }),
-      },
+      data: updateData,
     });
 
     res.json(site);
@@ -387,10 +426,9 @@ router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, r
     res.json({ message: 'Site deleted' });
   } catch (error: any) {
     console.error('Delete site error:', error);
-    // P2003 is the Prisma error code for FK constraint violation
     if (error.code === 'P2003') {
-      return res.status(400).json({ 
-        message: 'Cannot delete site - it has related equipment or work orders. Please remove all related records first.' 
+      return res.status(400).json({
+        message: 'Cannot delete site - it has related equipment or work orders. Please remove all related records first.'
       });
     }
     res.status(500).json({ message: 'Server error' });
@@ -400,17 +438,25 @@ router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, r
 router.get('/geocode', authenticate, isTechnicianOrHigher, async (req, res) => {
   try {
     const { address, city } = req.query;
-    
+
     if (!address || !city) {
       return res.status(400).json({ message: 'Address and city are required' });
     }
-    
-    const coords = await geocodeAddress(String(address), String(city));
-    
-    if (coords) {
-      res.json({ lat: coords.lat, lng: coords.lng });
+
+    const result = await geocodeSiteAddress(null, String(address), String(city));
+
+    if (result.success) {
+      res.json({
+        success: true,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      });
     } else {
-      res.status(404).json({ message: 'Could not geocode address' });
+      res.status(404).json({
+        success: false,
+        error: result.error,
+        reason: result.reason,
+      });
     }
   } catch (error) {
     console.error('Geocode error:', error);
