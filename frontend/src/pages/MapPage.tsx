@@ -173,8 +173,8 @@ export function MapPage() {
             ${site.isHighlighted ? `<span class="text-xs text-warning-600 font-medium">⚠️</span>` : ''}
             ${workOrdersHtml}
             <div class="mt-2 flex flex-col gap-1">
-              <a href="https://www.waze.com/ul?ll=${lat},${lng}&q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener noreferrer" class="w-full px-2 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors text-decoration-none block">ניווט</a>
-              <a href="/sites/${site.id}" class="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 transition-colors text-decoration-none block">פעולות</a>
+              <a href="https://www.waze.com/ul?ll=${lat},${lng}&q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener noreferrer" class="w-full px-2 py-2 rounded-lg text-sm font-medium text-center text-white bg-primary-600 hover:bg-primary-700" style="color: #ffffff !important;">ניווט</a>
+              <a href="/sites/${site.id}" class="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 text-center" style="color: #374151;">פעולות</a>
             </div>
           </div>
         `);

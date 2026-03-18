@@ -3,7 +3,7 @@ import { prisma } from '../src/config/database';
 const siteCoordinates: Record<string, { lat: number; lng: number }> = {
   'אברהם בן עמי 6': { lat: 31.9539, lng: 34.8517 },
   'הרב קוק 30': { lat: 32.0830, lng: 34.8879 },
-  'הכלנית 3': { lat: 32.2829, lng: 34.8569 },
+  'הכלנית 3': { lat: 32.0550, lng: 34.8550 }, // Kiryat Ono
   'ז\'בוטינסקי 120': { lat: 32.0681, lng: 34.8111 },
 };
 
@@ -35,6 +35,27 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
 async function populateCoordinates() {
   console.log('🔍 Starting coordinate population...\n');
   
+  // First, update specific sites with better coordinates
+  const betterCoords: Record<string, { lat: number; lng: number }> = {
+    'הכלנית 3': { lat: 32.0550, lng: 34.8550 }, // Kiryat Ono - corrected coordinates
+  };
+  
+  for (const [address, coords] of Object.entries(betterCoords)) {
+    const site = await prisma.site.findFirst({
+      where: { address: address },
+    });
+    
+    if (site) {
+      console.log(`Updating "${site.name}" (${address}) with coords:`, coords);
+      await prisma.site.update({
+        where: { id: site.id },
+        data: { latitude: coords.lat, longitude: coords.lng },
+      });
+      console.log('✅ Updated\n');
+    }
+  }
+  
+  // Then check for any remaining sites with missing coordinates
   const sites = await prisma.site.findMany({
     where: {
       OR: [

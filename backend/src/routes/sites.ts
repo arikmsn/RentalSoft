@@ -6,7 +6,9 @@ const router = Router();
 
 async function geocodeAddress(address: string, city: string): Promise<{ lat: number; lng: number } | null> {
   try {
-    const query = encodeURIComponent(`${address}, ${city}, Israel`);
+    const fullAddress = `${address}, ${city}, Israel`;
+    console.log(`[Geocode] Query: "${fullAddress}"`);
+    const query = encodeURIComponent(fullAddress);
     const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=il`, {
       headers: {
         'User-Agent': 'RentalSoft/1.0',
