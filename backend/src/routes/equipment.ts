@@ -71,18 +71,51 @@ router.get('/types', authenticate, isTechnicianOrHigher, async (req, res) => {
   }
 });
 
-router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
+router.get('/:id', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
     const equipment = await prisma.equipment.findUnique({
       where: { id: req.params.id },
-      include: { site: true },
+      include: { 
+        site: true,
+        workOrders: {
+          where: {
+            workOrder: { status: { in: ['open', 'in_progress'] } },
+          },
+          include: {
+            workOrder: {
+              include: { site: true },
+            },
+          },
+          orderBy: { workOrder: { plannedRemovalDate: 'asc' } },
+        },
+      },
     });
 
     if (!equipment) {
       return res.status(404).json({ message: 'Equipment not found' });
     }
 
-    res.json(equipment);
+    // Compute active work order and next planned removal date
+    const activeWorkOrder = equipment.workOrders[0]?.workOrder;
+    const workOrdersWithDates = equipment.workOrders.filter(wo => wo.workOrder.plannedRemovalDate);
+    const nextPlannedRemovalDate = workOrdersWithDates.length > 0
+      ? workOrdersWithDates.sort((a, b) => 
+          new Date(a.workOrder.plannedRemovalDate!).getTime() - 
+          new Date(b.workOrder.plannedRemovalDate!).getTime()
+        )[0].workOrder.plannedRemovalDate
+      : null;
+
+    res.json({
+      ...equipment,
+      workOrders: undefined,
+      activeWorkOrder: activeWorkOrder ? {
+        id: activeWorkOrder.id,
+        type: activeWorkOrder.type,
+        status: activeWorkOrder.status,
+        site: activeWorkOrder.site,
+      } : null,
+      nextPlannedRemovalDate,
+    });
   } catch (error) {
     console.error('Get equipment error:', error);
     res.status(500).json({ message: 'Server error' });

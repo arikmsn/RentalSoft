@@ -82,6 +82,8 @@
     },
     "filters": {
       "all": "הכל",
+      "available": "פנוי",
+      "atWorkorder": "בעבודה",
       "atCustomer": "אצל לקוח",
       "inWarehouse": "במחסן",
       "inRepair": "בתיקון",
@@ -116,6 +118,7 @@
     "coordinates": "קואורדינטות",
     "navigate": "נווט עם Waze",
     "activeEquipment": "ציוד פעיל",
+    "availableEquipment": "ציוד פנוי",
     "history": "היסטוריה",
     "createWorkOrder": "צור עבודה",
     "deleteWarning": "לא ניתן לבטל – באתר זה יש כרגע ציוד פעיל. למחוק בכל זאת?",

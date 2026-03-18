@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import type { DashboardStats, Alert } from '../services/dashboardService';
 import { dashboardService } from '../services/dashboardService';
@@ -9,6 +9,7 @@ import { formatDate } from '../utils/date';
 export function DashboardPage() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,8 +39,8 @@ export function DashboardPage() {
         
         setStats(statsData || {
           totalEquipment: 0,
-          activeEquipment: 0,
-          warehouseEquipment: 0,
+          availableEquipment: 0,
+          atCustomerEquipment: 0,
           inRepairEquipment: 0,
           totalSites: 0,
           sitesWithEquipment: 0,
@@ -99,15 +100,24 @@ export function DashboardPage() {
 
       {/* Stats Grid - 2x2 on mobile, 4 columns on desktop */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100">
-          <div className="text-3xl sm:text-4xl font-bold text-primary-600">{stats?.activeEquipment || 0}</div>
-          <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.activeEquipment')}</div>
+        <div 
+          onClick={() => navigate('/equipment?filter=available')}
+          className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100 cursor-pointer"
+        >
+          <div className="text-3xl sm:text-4xl font-bold text-primary-600">{stats?.availableEquipment || 0}</div>
+          <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.availableEquipment')}</div>
         </div>
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100">
+        <div 
+          onClick={() => navigate('/equipment?filter=at_customer')}
+          className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100 cursor-pointer"
+        >
           <div className="text-3xl sm:text-4xl font-bold text-success-600">{stats?.sitesWithEquipment || 0}</div>
           <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.sitesWithEquipment')}</div>
         </div>
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100">
+        <div 
+          onClick={() => navigate('/workorders?filter=open')}
+          className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100 cursor-pointer"
+        >
           <div className="text-3xl sm:text-4xl font-bold text-danger-600">{stats?.overdueRemovals || 0}</div>
           <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.overdueRemovals')}</div>
         </div>

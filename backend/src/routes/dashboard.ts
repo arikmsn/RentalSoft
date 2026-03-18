@@ -13,8 +13,8 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
 
     const [
       totalEquipment,
-      activeEquipment,
-      warehouseEquipment,
+      availableEquipment,
+      atCustomerEquipment,
       inRepairEquipment,
       totalSites,
       sitesWithEquipment,
@@ -24,13 +24,24 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
       upcomingRemovals,
     ] = await Promise.all([
       prisma.equipment.count(),
+      // Available = not attached to any active work order
+      prisma.equipment.count({
+        where: {
+          NOT: {
+            workOrders: {
+              some: {
+                workOrder: { status: { in: ['open', 'in_progress'] } }
+              }
+            }
+          }
+        }
+      }),
       prisma.equipment.count({ where: { status: 'at_customer' } }),
-      prisma.equipment.count({ where: { status: 'warehouse' } }),
       prisma.equipment.count({ where: { status: 'in_repair' } }),
       prisma.site.count(),
       prisma.site.count({
         where: {
-          equipment: { some: { status: 'at_customer' } },
+          workOrders: { some: { status: { in: ['open', 'in_progress'] } } },
         },
       }),
       prisma.workOrder.count({
@@ -60,8 +71,8 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
 
     res.json({
       totalEquipment,
-      activeEquipment,
-      warehouseEquipment,
+      availableEquipment,
+      atCustomerEquipment,
       inRepairEquipment,
       totalSites,
       sitesWithEquipment,

@@ -5,8 +5,8 @@ export type { Alert, ActivityLog };
 
 export interface DashboardStats {
   totalEquipment: number;
-  activeEquipment: number;
-  warehouseEquipment: number;
+  availableEquipment: number;
+  atCustomerEquipment: number;
   inRepairEquipment: number;
   totalSites: number;
   sitesWithEquipment: number;

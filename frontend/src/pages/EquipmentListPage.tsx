@@ -28,7 +28,7 @@ export function EquipmentListPage() {
   const [sites, setSites] = useState<Site[]>([]);
   const [equipmentTypes, setEquipmentTypes] = useState<SettingsEquipmentType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<EquipmentStatus | 'all'>('all');
+  const [filter, setFilter] = useState<EquipmentStatus | 'all' | 'available' | 'at_workorder'>('all');
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -167,7 +167,18 @@ export function EquipmentListPage() {
 
   const filteredEquipment = equipment
     .filter((eq) => {
-      const matchesFilter = filter === 'all' || eq.status === filter;
+      let matchesFilter = true;
+      
+      if (filter === 'all') {
+        matchesFilter = true;
+      } else if (filter === 'available') {
+        matchesFilter = !eq.activeWorkOrder;
+      } else if (filter === 'at_workorder') {
+        matchesFilter = !!eq.activeWorkOrder;
+      } else {
+        matchesFilter = eq.status === filter;
+      }
+      
       const matchesSearch = !search || 
         eq.qrTag.toLowerCase().includes(search.toLowerCase()) ||
         eq.type.toLowerCase().includes(search.toLowerCase());
@@ -205,10 +216,12 @@ export function EquipmentListPage() {
         />
         <select
           value={filter}
-          onChange={(e) => setFilter(e.target.value as EquipmentStatus | 'all')}
+          onChange={(e) => setFilter(e.target.value as EquipmentStatus | 'all' | 'available' | 'at_workorder')}
           className="px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 min-h-[48px]"
         >
           <option value="all">{t('equipment.filters.all')}</option>
+          <option value="available">{t('equipment.filters.available')}</option>
+          <option value="at_workorder">{t('equipment.filters.atWorkorder')}</option>
           <option value="at_customer">{t('equipment.filters.atCustomer')}</option>
           <option value="warehouse">{t('equipment.filters.inWarehouse')}</option>
           <option value="in_repair">{t('equipment.filters.inRepair')}</option>
