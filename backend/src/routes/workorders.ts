@@ -378,13 +378,36 @@ router.post('/:id/equipment', authenticate, authorize('manager', 'admin'), async
     const { equipmentId } = req.body;
     const workOrderId = req.params.id;
 
-    // Check if already linked
+    // Check if already linked to this work order
     const existing = await prisma.workOrderEquipment.findFirst({
       where: { workOrderId, equipmentId },
     });
 
     if (existing) {
       return res.status(400).json({ message: 'Equipment already linked to this work order' });
+    }
+
+    // Check if equipment is already attached to another active work order
+    const otherActiveLink = await prisma.workOrderEquipment.findFirst({
+      where: {
+        equipmentId,
+        workOrder: {
+          status: { in: ['open', 'in_progress'] },
+        },
+      },
+      include: {
+        workOrder: {
+          include: {
+            site: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    if (otherActiveLink) {
+      return res.status(400).json({ 
+        message: `Equipment is already attached to active work order #${otherActiveLink.workOrder.id} (${otherActiveLink.workOrder.site?.name || 'unknown site'})` 
+      });
     }
 
     await prisma.workOrderEquipment.create({

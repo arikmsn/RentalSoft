@@ -21,11 +21,39 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
 
     const equipment = await prisma.equipment.findMany({
       where,
-      include: { site: true },
+      include: { 
+        site: true,
+        workOrders: {
+          where: {
+            workOrder: {
+              status: { in: ['open', 'in_progress'] },
+            },
+          },
+          include: {
+            workOrder: {
+              select: { 
+                id: true, 
+                status: true, 
+                type: true,
+                site: { select: { name: true, city: true } },
+              },
+            },
+          },
+        },
+      },
       orderBy: { updatedAt: 'desc' },
     });
 
-    res.json(equipment);
+    // Add computed field for active work order attachment
+    const equipmentWithAttachment = equipment.map(eq => {
+      const activeWorkOrder = eq.workOrders[0]?.workOrder;
+      return {
+        ...eq,
+        activeWorkOrder: activeWorkOrder || null,
+      };
+    });
+
+    res.json(equipmentWithAttachment);
   } catch (error) {
     console.error('Get equipment error:', error);
     res.status(500).json({ message: 'Server error' });

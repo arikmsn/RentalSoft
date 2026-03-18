@@ -26,6 +26,15 @@ export interface Equipment {
   actualRemovalDate?: Date;
   createdAt: Date;
   updatedAt: Date;
+  activeWorkOrder?: {
+    id: string;
+    status: string;
+    type: string;
+    site: {
+      name: string;
+      city: string;
+    };
+  } | null;
 }
 
 export interface Site {
