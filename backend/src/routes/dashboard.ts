@@ -52,6 +52,7 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
         where: { status: { in: ['open', 'in_progress'] } },
       }),
       prisma.site.findMany({
+        where: { isActive: true },
         include: {
           workOrders: {
             where: { status: { not: 'completed' } },

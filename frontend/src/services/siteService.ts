@@ -5,6 +5,7 @@ export interface SiteFilters {
   search?: string;
   hasEquipment?: boolean;
   rating?: number;
+  isActive?: boolean;
 }
 
 export interface CreateSiteRequest {
@@ -31,6 +32,7 @@ export const siteService = {
     if (filters?.search) params.append('search', filters.search);
     if (filters?.hasEquipment !== undefined) params.append('hasEquipment', String(filters.hasEquipment));
     if (filters?.rating) params.append('rating', String(filters.rating));
+    if (filters?.isActive !== undefined) params.append('isActive', String(filters.isActive));
     
     const response = await api.get<Site[]>(`/sites?${params.toString()}`);
     return response.data;
@@ -53,6 +55,11 @@ export const siteService = {
 
   async delete(id: string): Promise<void> {
     await api.delete(`/sites/${id}`);
+  },
+
+  async toggleActive(id: string): Promise<Site> {
+    const response = await api.patch<Site>(`/sites/${id}/toggle-active`);
+    return response.data;
   },
 
   async getCoordinates(address: string): Promise<{ lat: number; lng: number }> {

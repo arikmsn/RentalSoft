@@ -8,9 +8,12 @@ const router = Router();
 
 router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
-    const { search, hasEquipment, rating } = req.query;
+    const { search, hasEquipment, rating, isActive } = req.query;
 
     const where: any = {};
+    if (isActive === 'true') where.isActive = true;
+    else if (isActive === 'false') where.isActive = false;
+    else where.isActive = true;
     if (search) {
       where.OR = [
         { name: { contains: String(search), mode: 'insensitive' } },
@@ -46,6 +49,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
 router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (req, res) => {
   try {
     const sites = await prisma.site.findMany({
+      where: { isActive: true },
       include: {
         workOrders: {
           where: { status: { not: 'completed' } },
@@ -170,6 +174,7 @@ router.get('/active-work-orders', authenticate, isTechnicianOrHigher, async (req
       where: {
         status: { in: ['open', 'in_progress'] },
         site: {
+          isActive: true,
           latitude: { not: null },
           longitude: { not: null },
           hasValidLocation: { not: false },
@@ -396,6 +401,7 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
       contact2Phone,
       rating,
       isHighlighted,
+      isActive,
       latitude,
       longitude,
     } = req.body;
@@ -441,6 +447,7 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
     if (contact2Phone !== undefined) updateData.contact2Phone = contact2Phone;
     if (rating !== undefined) updateData.rating = rating;
     if (isHighlighted !== undefined) updateData.isHighlighted = isHighlighted;
+    if (isActive !== undefined) updateData.isActive = isActive;
     if (finalLat !== undefined) updateData.latitude = finalLat;
     if (finalLng !== undefined) updateData.longitude = finalLng;
     if (newHasValidLocation !== undefined) updateData.hasValidLocation = newHasValidLocation;
@@ -453,6 +460,34 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
     res.json(site);
   } catch (error) {
     console.error('Update site error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.patch('/:id/toggle-active', authenticate, authorize('manager', 'admin'), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    const site = await prisma.site.findUnique({ where: { id } });
+    if (!site) return res.status(404).json({ message: 'Site not found' });
+
+    const newIsActive = !site.isActive;
+
+    if (!newIsActive) {
+      await prisma.equipment.updateMany({
+        where: { siteId: id, status: 'at_customer' },
+        data: { siteId: null, status: 'warehouse' },
+      });
+    }
+
+    const updated = await prisma.site.update({
+      where: { id },
+      data: { isActive: newIsActive },
+    });
+
+    res.json({ ...updated, message: newIsActive ? 'Site activated' : 'Site deactivated and equipment released' });
+  } catch (error) {
+    console.error('Toggle site active error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

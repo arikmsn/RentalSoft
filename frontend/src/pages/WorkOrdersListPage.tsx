@@ -49,7 +49,7 @@ export function WorkOrdersListPage() {
   useEffect(() => {
     Promise.all([
       workOrderService.getAll(),
-      siteService.getAll(),
+      siteService.getAll({ isActive: true }),
       api.get('/settings/technicians').then(res => res.data),
     ]).then(([woData, siteData, techData]) => {
       setWorkOrders(woData);

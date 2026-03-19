@@ -13,6 +13,7 @@ export interface DBSite {
   contact2Phone?: string;
   rating?: number;
   isHighlighted: boolean;
+  isActive: boolean;
   latitude?: number;
   longitude?: number;
   createdAt: Date;

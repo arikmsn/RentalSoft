@@ -34,6 +34,8 @@ const emptyForm: SiteFormData = {
   isHighlighted: false,
 };
 
+type ActiveFilter = 'active' | 'inactive' | 'all';
+
 export function SitesListPage() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
@@ -41,6 +43,7 @@ export function SitesListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('active');
   const [showForm, setShowForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
@@ -55,12 +58,16 @@ export function SitesListPage() {
   const canEdit = user?.role === 'manager' || user?.role === 'admin';
   const canDelete = user?.role === 'manager' || user?.role === 'admin';
 
-  useEffect(() => { fetchSites(); }, []);
-
-  const fetchSites = async () => {
+  const fetchSites = async (searchTerm?: string, filter?: ActiveFilter) => {
     try {
       setError(null);
-      const data = await siteService.getAll();
+      const s = searchTerm !== undefined ? searchTerm : search;
+      const f = filter !== undefined ? filter : activeFilter;
+      const filters: { search?: string; isActive?: boolean } = {};
+      if (s) filters.search = s;
+      if (f === 'active') filters.isActive = true;
+      else if (f === 'inactive') filters.isActive = false;
+      const data = await siteService.getAll(filters);
       setSites(data);
     } catch (err: any) {
       console.error('Failed to fetch sites:', err);
@@ -69,6 +76,11 @@ export function SitesListPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timeout = setTimeout(() => fetchSites(search), 300);
+    return () => clearTimeout(timeout);
+  }, [search, activeFilter]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +117,20 @@ export function SitesListPage() {
       longitude: site.longitude,
     });
     setShowEditForm(true);
+  };
+
+  const handleToggleActive = async (site: Site, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    try {
+      const updated = await siteService.toggleActive(site.id);
+      setSites(prev => prev.map(s => s.id === updated.id ? { ...s, isActive: updated.isActive } : s));
+      if (editingSite?.id === site.id) {
+        setEditingSite({ ...editingSite, isActive: updated.isActive });
+      }
+    } catch (err: any) {
+      console.error('Failed to toggle site active:', err);
+      alert(err?.response?.data?.message || 'Failed to toggle site active/inactive');
+    }
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -328,6 +354,26 @@ export function SitesListPage() {
         className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 placeholder:text-surface-400"
       />
 
+      <div className="flex gap-2 flex-wrap">
+        {([
+          { key: 'active' as ActiveFilter, label: 'פעילים', activeClass: 'bg-success-600 text-white shadow-sm' },
+          { key: 'inactive' as ActiveFilter, label: 'לא פעילים', activeClass: 'bg-surface-600 text-white shadow-sm' },
+          { key: 'all' as ActiveFilter, label: 'הכל', activeClass: 'bg-primary-600 text-white shadow-sm' },
+        ]).map((btn) => (
+          <button
+            key={btn.key}
+            onClick={() => setActiveFilter(btn.key)}
+            className={`px-4 py-2 rounded-xl transition-all font-medium text-sm ${
+              activeFilter === btn.key
+                ? btn.activeClass
+                : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50'
+            }`}
+          >
+            {btn.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredSites.map((site) => (
           <div
@@ -336,7 +382,12 @@ export function SitesListPage() {
             className={`bg-white rounded-2xl p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100 ${canEdit ? 'cursor-pointer' : ''}`}
           >
             <div className="flex justify-between items-start mb-3">
-              <h3 className="font-semibold text-lg text-surface-800">{site.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className={`font-semibold text-lg ${site.isActive ? 'text-surface-800' : 'text-surface-400'}`}>{site.name}</h3>
+                {!site.isActive && (
+                  <span className="px-2 py-0.5 bg-surface-200 text-surface-600 text-xs rounded-full font-medium">לא פעיל</span>
+                )}
+              </div>
               {site.isHighlighted && (
                 <span className="px-2.5 py-1 bg-warning-100 text-warning-700 text-xs rounded-full font-medium">⭐</span>
               )}
@@ -358,6 +409,18 @@ export function SitesListPage() {
                     className="text-sm text-primary-600 hover:text-primary-700 font-medium px-3 py-1.5 hover:bg-primary-50 rounded-lg transition-colors"
                   >
                     {t('sites.navigate')}
+                  </button>
+                )}
+                {canEdit && (
+                  <button
+                    onClick={(e) => handleToggleActive(site, e)}
+                    className={`text-xs px-2.5 py-1.5 rounded-lg font-medium border transition-colors ${
+                      site.isActive
+                        ? 'border-surface-300 text-surface-500 hover:border-danger-300 hover:text-danger-600 hover:bg-danger-50'
+                        : 'border-success-300 text-success-600 hover:bg-success-50'
+                    }`}
+                  >
+                    {site.isActive ? 'השבת' : 'הפעל'}
                   </button>
                 )}
               </div>
