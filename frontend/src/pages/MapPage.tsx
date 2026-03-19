@@ -21,7 +21,7 @@ interface SiteWithStatus {
   latitude?: number | null;
   longitude?: number | null;
   isHighlighted: boolean;
-  overallStatus?: 'red' | 'orange' | 'green';
+  overallStatus?: 'black' | 'red' | 'orange' | 'green';
   workOrders?: Array<{
     id: string;
     status: string;
@@ -31,13 +31,14 @@ interface SiteWithStatus {
   equipmentCount?: number;
 }
 
-const statusColors = {
+const statusColors: Record<string, string> = {
+  black: '#1f2937',
   red: '#ef4444',
   orange: '#f97316',
   green: '#22c55e',
 };
 
-const getMarkerIcon = (status?: 'red' | 'orange' | 'green', selected?: boolean) => {
+const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green', selected?: boolean) => {
   const color = statusColors[status || 'green'];
   const size = selected ? 32 : 24;
   const borderWidth = selected ? 4 : 3;
@@ -154,20 +155,32 @@ export function MapPage() {
         : '';
 
       const statusColorMap: Record<string, string> = {
+        black: '#1f2937',
         red: '#ef4444',
         orange: '#f97316',
         green: '#22c55e',
       };
       const statusLabelMap: Record<string, string> = {
+        black: 'עבר תאריך',
         red: 'באיחור',
         orange: 'קרוב לפירוק',
         green: 'יש זמן',
       };
 
+      const getStatusEmoji = (status: string) => {
+        switch (status) {
+          case 'black': return '⚫';
+          case 'red': return '🔴';
+          case 'orange': return '🟠';
+          case 'green': return '🟢';
+          default: return '⚪';
+        }
+      };
+
       const statusHtml = site.overallStatus
         ? `<div class="mt-2 flex items-center justify-center gap-2">
             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white" style="background-color: ${statusColorMap[site.overallStatus]}">
-              ${site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
+              ${getStatusEmoji(site.overallStatus)}
               ${statusLabelMap[site.overallStatus]}
             </span>
           </div>`
@@ -320,8 +333,8 @@ export function MapPage() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white"
                           style={{ backgroundColor: statusColors[site.overallStatus] }}
                         >
-                          {site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
-                          {site.overallStatus === 'red' ? 'באיחור' : site.overallStatus === 'orange' ? 'קרוב לפירוק' : 'יש זמן'}
+                          {site.overallStatus === 'black' ? '⚫' : site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
+                          {site.overallStatus === 'black' ? 'עבר תאריך' : site.overallStatus === 'red' ? 'באיחור' : site.overallStatus === 'orange' ? 'קרוב לפירוק' : 'יש זמן'}
                         </span>
                       </div>
                     )}
@@ -386,8 +399,8 @@ export function MapPage() {
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-white"
                             style={{ backgroundColor: statusColors[site.overallStatus] }}
                           >
-                            {site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
-                            {site.overallStatus === 'red' ? 'באיחור' : site.overallStatus === 'orange' ? 'קרוב' : 'יש זמן'}
+                            {site.overallStatus === 'black' ? '⚫' : site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
+                            {site.overallStatus === 'black' ? 'עבר' : site.overallStatus === 'red' ? 'באיחור' : site.overallStatus === 'orange' ? 'קרוב' : 'יש זמן'}
                           </span>
                         </div>
                       )}
@@ -418,6 +431,10 @@ export function MapPage() {
       <div className="bg-white p-3 sm:p-4 border-t border-surface-200 shrink-0">
         <h2 className="font-semibold mb-2 text-sm text-surface-800">{t('map.legend')}</h2>
         <div className="flex flex-wrap gap-4">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-gray-700"></span>
+            <span className="text-xs text-surface-600">עבר תאריך</span>
+          </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-success-500"></span>
             <span className="text-xs text-surface-600">{t('equipment.progress.green')}</span>

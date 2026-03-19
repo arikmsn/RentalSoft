@@ -75,7 +75,7 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
           .map(wo => wo.plannedRemovalDate)
           .filter((d): d is Date => d !== null);
 
-        let statusColor: 'red' | 'orange' | 'green' = 'green';
+        let statusColor: 'black' | 'red' | 'orange' | 'green' = 'green';
         let statusReason = 'no removal dates';
 
         if (workOrderRemovalDates.length > 0) {
@@ -83,17 +83,17 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
           const daysUntilRemoval = Math.ceil((earliestRemoval.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
           if (daysUntilRemoval < 0) {
-            statusColor = 'red';
+            statusColor = 'black';
             statusReason = `overdue by ${Math.abs(daysUntilRemoval)} days`;
-          } else if (daysUntilRemoval <= 7) {
+          } else if (daysUntilRemoval <= 2) {
             statusColor = 'red';
-            statusReason = `removal in ${daysUntilRemoval} days (≤7 days)`;
-          } else if (daysUntilRemoval <= 10) {
+            statusReason = `removal in ${daysUntilRemoval} days (0-2 days)`;
+          } else if (daysUntilRemoval <= 7) {
             statusColor = 'orange';
-            statusReason = `removal in ${daysUntilRemoval} days (8-10 days)`;
+            statusReason = `removal in ${daysUntilRemoval} days (3-7 days)`;
           } else {
             statusColor = 'green';
-            statusReason = `removal in ${daysUntilRemoval} days (>10 days)`;
+            statusReason = `removal in ${daysUntilRemoval} days (>7 days)`;
           }
 
           console.log(`[MapColor] Site ${site.name}:`, {
@@ -338,14 +338,18 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
     if (latitude != null && longitude != null) {
       const isInBounds = latitude >= 29 && latitude <= 35 && longitude >= 33 && longitude <= 36;
       hasValidLocation = isInBounds;
+      console.log(`[SiteCreate] Coordinates provided: lat=${latitude}, lng=${longitude}, hasValidLocation=${hasValidLocation}`);
     } else {
+      console.log(`[SiteCreate] No coordinates provided, attempting geocode for: ${address}, ${city}`);
       const geoResult = await geocodeSiteAddress(null, address, city);
       if (geoResult.success && geoResult.latitude !== undefined && geoResult.longitude !== undefined) {
         finalLat = geoResult.latitude;
         finalLng = geoResult.longitude;
         hasValidLocation = true;
+        console.log(`[SiteCreate] Geocode SUCCESS: lat=${finalLat}, lng=${finalLng}`);
       } else {
         hasValidLocation = false;
+        console.log(`[SiteCreate] Geocode FAILED: ${geoResult.error}, reason: ${geoResult.reason}`);
       }
     }
 
@@ -368,7 +372,12 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
       },
     });
 
-    res.status(201).json(site);
+    console.log(`[SiteCreate] Site created: id=${site.id}, name=${site.name}, lat=${site.latitude}, lng=${site.longitude}, hasValidLocation=${site.hasValidLocation}`);
+
+    res.status(201).json({
+      ...site,
+      hasValidLocation,
+    });
   } catch (error) {
     console.error('Create site error:', error);
     res.status(500).json({ message: 'Server error' });
