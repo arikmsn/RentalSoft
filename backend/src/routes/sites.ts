@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../config/database';
 import { authenticate, isManagerOrAdmin, isTechnicianOrHigher, authorize, AuthRequest } from '../middleware/auth';
 import { geocodeSiteAddress, isSiteLocationValid, geocodeAndUpdateSite, getSitesWithInvalidLocation } from '../services/geocode';
+import { computeWorkOrderStatus } from '../utils/status';
 
 const router = Router();
 
@@ -81,21 +82,13 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
 
         if (workOrderRemovalDates.length > 0) {
           earliestRemovalDate = new Date(Math.min(...workOrderRemovalDates.map(d => d.getTime())));
-          const daysUntilRemoval = Math.ceil((earliestRemovalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          const { statusColor: computed, daysUntilRemoval } = computeWorkOrderStatus(earliestRemovalDate, now);
+          statusColor = computed;
 
-          if (daysUntilRemoval < 0) {
-            statusColor = 'black';
-            statusReason = `overdue by ${Math.abs(daysUntilRemoval)} days`;
-          } else if (daysUntilRemoval <= 2) {
-            statusColor = 'red';
-            statusReason = `removal in ${daysUntilRemoval} days (0-2 days)`;
-          } else if (daysUntilRemoval <= 7) {
-            statusColor = 'orange';
-            statusReason = `removal in ${daysUntilRemoval} days (3-7 days)`;
-          } else {
-            statusColor = 'green';
-            statusReason = `removal in ${daysUntilRemoval} days (>7 days)`;
-          }
+          if (statusColor === 'black') statusReason = `overdue by ${Math.abs(daysUntilRemoval!)} days`;
+          else if (statusColor === 'red') statusReason = `removal in ${daysUntilRemoval} days (0-2 days)`;
+          else if (statusColor === 'orange') statusReason = `removal in ${daysUntilRemoval} days (3-7 days)`;
+          else statusReason = `removal in ${daysUntilRemoval} days (>7 days)`;
 
           console.log(`[MapColor] Site ${site.name}:`, {
             siteId: site.id,

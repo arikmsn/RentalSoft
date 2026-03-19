@@ -14,6 +14,13 @@ const statusColors: Record<WorkOrderStatus, string> = {
   completed: 'bg-success-100 text-success-700',
 };
 
+const statusDotColors: Record<string, string> = {
+  black: 'bg-surface-800',
+  red: 'bg-danger-500',
+  orange: 'bg-warning-500',
+  green: 'bg-success-500',
+};
+
 const typeIcons: Record<string, string> = {
   installation: '🔧',
   inspection: '🔍',
@@ -163,7 +170,13 @@ export function WorkOrdersListPage() {
               <div className="flex items-start gap-3">
                 <span className="text-2xl sm:text-3xl">{typeIcons[wo.type]}</span>
                 <div>
-                  <h3 className="font-semibold text-surface-800">
+                  <h3 className="font-semibold text-surface-800 flex items-center gap-2">
+                    {wo.status !== 'completed' && wo.statusColor && (
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusDotColors[wo.statusColor] || 'bg-surface-300'}`}
+                        title={`${wo.statusColor === 'black' ? 'עבר תאריך' : wo.statusColor === 'red' ? 'הגיע הזמן' : wo.statusColor === 'orange' ? 'קרוב לפירוק' : 'יש זמן'}`}
+                      />
+                    )}
                     {t(`workOrders.types.${wo.type}`)}
                   </h3>
                   <p className="text-sm text-surface-500 mt-1">

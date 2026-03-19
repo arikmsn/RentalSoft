@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../config/database';
 import { authenticate, isManagerOrAdmin, isTechnicianOrHigher, AuthRequest } from '../middleware/auth';
+import { computeWorkOrderStatus } from '../utils/status';
 
 const router = Router();
 
@@ -91,91 +92,56 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
   try {
     const { type } = req.query;
     const now = new Date();
-    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-    const where: any = {
-      status: 'at_customer',
-    };
-
-    if (type === 'past_removal') {
-      where.plannedRemovalDate = { lt: now };
-    } else if (type === 'close_to_removal') {
-      where.plannedRemovalDate = {
-        gte: now,
-        lte: weekFromNow,
-      };
-    } else {
-      where.OR = [
-        { plannedRemovalDate: { lt: now } },
-        { plannedRemovalDate: { gte: now, lte: weekFromNow } },
-      ];
-    }
-
-    const equipment = await prisma.equipment.findMany({
-      where,
-      include: { 
-        site: true,
+    const sites = await prisma.site.findMany({
+      include: {
         workOrders: {
-          where: {
-            workOrder: { status: { in: ['open', 'in_progress'] } },
-          },
-          take: 1,
+          where: { status: { not: 'completed' } },
+          orderBy: { plannedRemovalDate: 'asc' },
         },
       },
     });
 
-    // Get work orders for these equipment
-    const workOrders = await prisma.workOrder.findMany({
-      where: {
-        status: { in: ['open', 'in_progress'] },
-      },
-      select: { id: true, siteId: true },
-    });
+    const alerts = sites
+      .map((site) => {
+        const activeWorkOrders = site.workOrders;
+        const removalDates = activeWorkOrders
+          .map((wo) => wo.plannedRemovalDate)
+          .filter((d): d is Date => d !== null);
 
-    // Create a map of siteId to workOrderId
-    const siteToWorkOrder = new Map<string, string>();
-    workOrders.forEach(wo => {
-      if (!siteToWorkOrder.has(wo.siteId)) {
-        siteToWorkOrder.set(wo.siteId, wo.id);
-      }
-    });
+        if (removalDates.length === 0) return null;
 
-    const alerts = equipment.map((eq: any) => {
-      const daysRemaining = eq.plannedRemovalDate
-        ? Math.ceil((new Date(eq.plannedRemovalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-        : 0;
+        const earliestRemovalDate = new Date(Math.min(...removalDates.map((d) => d.getTime())));
+        const { statusColor, daysUntilRemoval } = computeWorkOrderStatus(earliestRemovalDate, now);
 
-      let alertType: 'past_removal' | 'close_to_removal';
-      if (daysRemaining < 0) {
-        alertType = 'past_removal';
-      } else if (daysRemaining <= 2) {
-        alertType = 'close_to_removal';
-      } else {
-        return null;
-      }
+        if (statusColor !== 'black' && statusColor !== 'red') return null;
+        if (type === 'past_removal' && statusColor !== 'black') return null;
+        if (type === 'close_to_removal' && statusColor !== 'red') return null;
 
-      // Get active work order for this equipment
-      const activeWorkOrder = eq.workOrders?.[0]?.workOrder;
-      const workOrderId = activeWorkOrder?.id || (eq.siteId ? siteToWorkOrder.get(eq.siteId) || null : null);
+        const firstWorkOrder = activeWorkOrders.find(
+          (wo) => wo.plannedRemovalDate?.getTime() === earliestRemovalDate.getTime()
+        ) || activeWorkOrders[0];
 
-      return {
-        id: `alert-${eq.id}`,
-        equipmentId: eq.id,
-        workOrderId,
-        type: alertType,
-        daysRemaining,
-        createdAt: now,
-        siteName: eq.site?.name || '',
-        siteAddress: eq.site?.address || '',
-        siteContact: eq.site?.contact1Name || '',
-        sitePhone: eq.site?.contact1Phone || '',
-      };
-    });
+        if (!firstWorkOrder) return null;
 
-    res.json(alerts.filter(Boolean));
+        return {
+          id: `alert-${site.id}`,
+          equipmentId: null,
+          workOrderId: firstWorkOrder?.id || null,
+          type: statusColor === 'black' ? 'past_removal' : 'close_to_removal',
+          daysRemaining: daysUntilRemoval!,
+          createdAt: now,
+          siteName: site.name,
+          siteAddress: site.address,
+          siteContact: site.contact1Name || '',
+          sitePhone: site.contact1Phone || '',
+        };
+      })
+      .filter(Boolean);
+
+    res.json(alerts);
   } catch (error) {
     console.error('Get alerts error:', error);
-    // Return empty array instead of 500 to keep dashboard working
     res.json([]);
   }
 });

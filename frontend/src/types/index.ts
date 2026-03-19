@@ -62,6 +62,7 @@ export interface Site {
 
 export type WorkOrderType = 'installation' | 'inspection' | 'removal' | 'general';
 export type WorkOrderStatus = 'open' | 'in_progress' | 'completed';
+export type WorkOrderStatusColor = 'black' | 'red' | 'orange' | 'green';
 
 export interface Technician {
   id: string;
@@ -86,6 +87,8 @@ export interface WorkOrder {
   technician?: Technician;
   checklist?: ChecklistItem[];
   equipmentCount?: number;
+  statusColor?: WorkOrderStatusColor;
+  daysUntilRemoval?: number | null;
 }
 
 export interface ChecklistItem {
@@ -121,7 +124,7 @@ export interface ActivityLog {
 
 export interface Alert {
   id: string;
-  equipmentId: string;
+  equipmentId: string | null;
   workOrderId: string | null;
   type: 'past_removal' | 'close_to_removal';
   daysRemaining: number;

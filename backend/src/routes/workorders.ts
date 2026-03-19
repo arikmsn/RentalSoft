@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../config/database';
 import { authenticate, isManagerOrAdmin, isTechnicianOrHigher, authorize, AuthRequest } from '../middleware/auth';
+import { computeWorkOrderStatus } from '../utils/status';
 
 const router = Router();
 
@@ -33,12 +34,20 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
       orderBy: { plannedDate: 'asc' },
     });
 
-    // Add equipment count to each work order
-    const workOrdersWithCount = workOrders.map(wo => ({
-      ...wo,
-      equipmentCount: wo.equipment.length,
-      equipment: undefined, // Don't send full equipment array in list
-    }));
+    const now = new Date();
+    const workOrdersWithCount = workOrders.map(wo => {
+      const { statusColor, daysUntilRemoval } = computeWorkOrderStatus(
+        wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate) : null,
+        now
+      );
+      return {
+        ...wo,
+        statusColor,
+        daysUntilRemoval,
+        equipmentCount: wo.equipment.length,
+        equipment: undefined,
+      };
+    });
 
     res.json(workOrdersWithCount);
   } catch (error) {
