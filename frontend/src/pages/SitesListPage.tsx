@@ -233,7 +233,7 @@ export function SitesListPage() {
             <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
             <AddressAutocomplete
               value={data.address}
-              onChange={(val) => setData({ ...data, address: val })}
+              onChange={(val) => setData((prev) => ({ ...prev, address: val }))}
               onSelect={(sel) => {
                 setData((prev) => {
                   const streetName = sel.address.split(',')[0].trim();
@@ -259,37 +259,15 @@ export function SitesListPage() {
             )}
           </div>
 
-          {/* House number + Floor on same row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">מס' בית</label>
-              <input
-                type="text"
-                value={data.houseNumber}
-                onChange={(e) => {
-                  const hn = e.target.value;
-                  setData((prev) => {
-                    const rawStreet = prev.streetName || prev.address.split(',')[0].trim();
-                    const city = prev.city;
-                    const streetWithoutNumber = rawStreet.replace(/\s*\d+\s*$/, '').trim();
-                    const composite = streetWithoutNumber && hn && city
-                      ? `${streetWithoutNumber} ${hn}, ${city}`
-                      : streetWithoutNumber || prev.address;
-                    return { ...prev, houseNumber: hn, address: composite };
-                  });
-                }}
-                className={inputClasses}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
-              <input
-                type="text"
-                value={data.floor}
-                onChange={(e) => setData({ ...data, floor: e.target.value })}
-                className={inputClasses}
-              />
-            </div>
+          {/* Floor */}
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
+            <input
+              type="text"
+              value={data.floor}
+              onChange={(e) => setData({ ...data, floor: e.target.value })}
+              className={inputClasses}
+            />
           </div>
 
           {/* Contact */}

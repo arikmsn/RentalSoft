@@ -52,6 +52,7 @@
   "equipment": {
     "title": "ציוד",
     "addNew": "הוסף ציוד חדש",
+    "details": "פרטים",
     "qrTag": "תג QR",
     "type": "סוג ציוד",
     "status": "סטטוס",
@@ -128,6 +129,7 @@
   "workOrders": {
     "title": "עבודות",
     "addNew": "עבודה חדשה",
+    "details": "פירוט",
     "type": "עבודה",
     "site": "אתר",
     "technician": "טכנאי",

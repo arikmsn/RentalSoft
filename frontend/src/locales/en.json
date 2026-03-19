@@ -52,6 +52,7 @@
   "equipment": {
     "title": "Equipment",
     "addNew": "Add New Equipment",
+    "details": "Details",
     "qrTag": "QR Tag",
     "type": "Equipment Type",
     "status": "Status",
@@ -124,6 +125,7 @@
   "workOrders": {
     "title": "Work Orders",
     "addNew": "New Work Order",
+    "details": "Details",
     "type": "Work",
     "site": "Site",
     "technician": "Technician",
