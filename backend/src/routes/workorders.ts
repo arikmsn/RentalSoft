@@ -121,19 +121,21 @@ async function updateEquipmentStatusForWorkOrder(workOrderId: string) {
   const activeStatuses = ['open', 'in_progress'];
   const isActive = activeStatuses.includes(workOrder.status);
 
-  // Get all equipment IDs linked to this work order
   const equipmentIds = workOrder.equipment.map(e => e.equipmentId);
 
-  if (equipmentIds.length === 0) return;
+  if (equipmentIds.length === 0) {
+    console.log(`[WorkOrder ${workOrderId}] Status change to ${workOrder.status}: No equipment attached, skipping`);
+    return;
+  }
+
+  console.log(`[WorkOrder ${workOrderId}] Status change to ${workOrder.status}: Updating ${equipmentIds.length} equipment items to ${isActive ? 'at_customer' : 'warehouse'}`);
 
   if (isActive) {
-    // Work order is active - set equipment to at_customer
     await prisma.equipment.updateMany({
       where: { id: { in: equipmentIds } },
       data: { status: 'at_customer' },
     });
   } else if (workOrder.status === 'completed') {
-    // Work order completed - set equipment back to warehouse
     await prisma.equipment.updateMany({
       where: { id: { in: equipmentIds } },
       data: { status: 'warehouse' },

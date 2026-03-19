@@ -278,7 +278,23 @@ export function SitesListPage() {
       {showForm && (
         <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
-            <h2 className="text-xl font-bold mb-5 text-surface-800">{t('sites.addNew')}</h2>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-bold text-surface-800">{t('sites.addNew')}</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-surface-500">{t('sites.rating')}:</span>
+                <select
+                  value={formData.rating}
+                  onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
+                  className="px-2 py-1 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                >
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                  <option value={3}>3</option>
+                  <option value={4}>4</option>
+                  <option value={5}>5</option>
+                </select>
+              </div>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.name')}</label>
@@ -290,15 +306,26 @@ export function SitesListPage() {
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                />
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
+                  <input
+                    type="text"
+                    value={formData.floor}
+                    onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                    className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.city')}</label>
@@ -320,15 +347,6 @@ export function SitesListPage() {
                 </datalist>
               </div>
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
-                <input
-                  type="text"
-                  value={formData.floor}
-                  onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.contact1')}</label>
                 <input
                   type="text"
@@ -345,20 +363,6 @@ export function SitesListPage() {
                   onChange={(e) => setFormData({ ...formData, contact1Phone: e.target.value })}
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.rating')}</label>
-                <select
-                  value={formData.rating}
-                  onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                >
-                  <option value={1}>1</option>
-                  <option value={2}>2</option>
-                  <option value={3}>3</option>
-                  <option value={4}>4</option>
-                  <option value={5}>5</option>
-                </select>
               </div>
               <div className="flex gap-3 pt-3">
                 <button
@@ -386,16 +390,32 @@ export function SitesListPage() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-xl font-bold text-surface-800">{t('app.edit')}</h2>
-              {canDelete && editingSite && (
-                <button
-                  type="button"
-                  onClick={() => handleDeleteClick(editingSite)}
-                  className="text-danger-600 hover:text-danger-700 p-2 rounded-lg hover:bg-danger-50 transition-colors"
-                  title={t('app.delete')}
-                >
-                  🗑️
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-surface-500">{t('sites.rating')}:</span>
+                  <select
+                    value={editFormData.rating}
+                    onChange={(e) => setEditFormData({ ...editFormData, rating: Number(e.target.value) })}
+                    className="px-2 py-1 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                  >
+                    <option value={1}>1</option>
+                    <option value={2}>2</option>
+                    <option value={3}>3</option>
+                    <option value={4}>4</option>
+                    <option value={5}>5</option>
+                  </select>
+                </div>
+                {canDelete && editingSite && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteClick(editingSite)}
+                    className="text-danger-600 hover:text-danger-700 p-2 rounded-lg hover:bg-danger-50 transition-colors"
+                    title={t('app.delete')}
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
             </div>
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
@@ -408,15 +428,26 @@ export function SitesListPage() {
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
-                <input
-                  type="text"
-                  required
-                  value={editFormData.address}
-                  onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                />
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.address}
+                    onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                    className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
+                  <input
+                    type="text"
+                    value={editFormData.floor}
+                    onChange={(e) => setEditFormData({ ...editFormData, floor: e.target.value })}
+                    className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.city')}</label>
@@ -435,15 +466,6 @@ export function SitesListPage() {
                 </datalist>
               </div>
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
-                <input
-                  type="text"
-                  value={editFormData.floor}
-                  onChange={(e) => setEditFormData({ ...editFormData, floor: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.contact1')}</label>
                 <input
                   type="text"
@@ -460,20 +482,6 @@ export function SitesListPage() {
                   onChange={(e) => setEditFormData({ ...editFormData, contact1Phone: e.target.value })}
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.rating')}</label>
-                <select
-                  value={editFormData.rating}
-                  onChange={(e) => setEditFormData({ ...editFormData, rating: Number(e.target.value) })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                >
-                  <option value={1}>1</option>
-                  <option value={2}>2</option>
-                  <option value={3}>3</option>
-                  <option value={4}>4</option>
-                  <option value={5}>5</option>
-                </select>
               </div>
               <div className="flex items-center gap-3">
                 <input

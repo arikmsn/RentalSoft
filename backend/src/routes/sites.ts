@@ -46,7 +46,6 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
   try {
     const sites = await prisma.site.findMany({
       include: {
-        equipment: true,
         workOrders: {
           where: { status: { not: 'completed' } },
           orderBy: { plannedDate: 'desc' },
@@ -72,24 +71,20 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
         const activeWorkOrderEquipment: any[] = [];
         for (const wo of site.workOrders) {
           for (const woEq of wo.equipment) {
-            activeWorkOrderEquipment.push(woEq.equipment);
+            activeWorkOrderEquipment.push({
+              ...woEq.equipment,
+              workOrderId: wo.id,
+            });
           }
         }
-
-        const atCustomerEquipment = [
-          ...site.equipment.filter((eq: any) => eq.status === 'at_customer'),
-          ...activeWorkOrderEquipment.filter((eq: any) => eq.status === 'at_customer'),
-        ];
 
         let redCount = 0;
         let orangeCount = 0;
         let greenCount = 0;
 
-        for (const eq of atCustomerEquipment) {
-          const removalDate = eq.plannedRemovalDate ||
-            site.workOrders.find(wo =>
-              wo.equipment.some((woEq: any) => woEq.equipmentId === eq.id)
-            )?.plannedRemovalDate;
+        for (const eq of activeWorkOrderEquipment) {
+          const wo = site.workOrders.find(w => w.id === eq.workOrderId);
+          const removalDate = eq.plannedRemovalDate || wo?.plannedRemovalDate;
 
           if (!removalDate) {
             greenCount++;
@@ -114,10 +109,13 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
           overallStatus = 'orange';
         }
 
+        console.log(`[Map] Site ${site.name}: equipment count=${activeWorkOrderEquipment.length}, red=${redCount}, orange=${orangeCount}, green=${greenCount}`, 
+          activeWorkOrderEquipment.map(eq => ({ id: eq.id, woId: eq.workOrderId })));
+
         return {
           ...site,
           equipment: undefined,
-          equipmentCount: atCustomerEquipment.length,
+          equipmentCount: activeWorkOrderEquipment.length,
           statusCounts: {
             red: redCount,
             orange: orangeCount,
