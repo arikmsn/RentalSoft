@@ -41,14 +41,10 @@ export function EquipmentListPage() {
   const [formData, setFormData] = useState({
     qrTag: '',
     type: '',
-    status: 'warehouse' as EquipmentStatus,
-    condition: 'ok' as 'ok' | 'not_ok' | 'wearout',
   });
   const [editFormData, setEditFormData] = useState({
     qrTag: '',
     type: '',
-    status: 'warehouse' as EquipmentStatus,
-    condition: 'ok' as 'ok' | 'not_ok' | 'wearout',
   });
   const [savingEdit, setSavingEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -103,11 +99,9 @@ export function EquipmentListPage() {
       await equipmentService.create({
         qrTag: formData.qrTag,
         type: formData.type,
-        status: formData.status,
-        condition: formData.condition,
       });
       setShowForm(false);
-      setFormData({ qrTag: '', type: '', status: 'warehouse', condition: 'ok' });
+      setFormData({ qrTag: '', type: '' });
       const data = await equipmentService.getAll();
       setEquipment(data);
     } catch (err: any) {
@@ -123,8 +117,6 @@ export function EquipmentListPage() {
     setEditFormData({
       qrTag: eq.qrTag,
       type: eq.type,
-      status: eq.status,
-      condition: eq.condition,
     });
     setShowDetails(true);
   };
@@ -137,8 +129,6 @@ export function EquipmentListPage() {
       await equipmentService.update(selectedEquipment.id, {
         qrTag: editFormData.qrTag,
         type: editFormData.type,
-        status: editFormData.status,
-        condition: editFormData.condition,
       });
       setShowDetails(false);
       setSelectedEquipment(null);
@@ -159,11 +149,9 @@ export function EquipmentListPage() {
       if (filter === 'all') {
         matchesFilter = true;
       } else if (filter === 'available') {
-        matchesFilter = !eq.activeWorkOrder;
-      } else if (filter === 'at_workorder') {
-        matchesFilter = !!eq.activeWorkOrder;
-      } else {
-        matchesFilter = eq.status === filter;
+        matchesFilter = eq.status === 'available' || eq.status === 'warehouse';
+      } else if (filter === 'at_customer') {
+        matchesFilter = eq.status === 'at_customer';
       }
       
       const matchesSearch = !search || 
@@ -208,10 +196,7 @@ export function EquipmentListPage() {
         >
           <option value="all">{t('equipment.filters.all')}</option>
           <option value="available">{t('equipment.filters.available')}</option>
-          <option value="at_workorder">{t('equipment.filters.atWorkorder')}</option>
           <option value="at_customer">{t('equipment.filters.atCustomer')}</option>
-          <option value="warehouse">{t('equipment.filters.inWarehouse')}</option>
-          <option value="in_repair">{t('equipment.filters.inRepair')}</option>
         </select>
       </div>
 
@@ -324,31 +309,6 @@ export function EquipmentListPage() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.status')}</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as EquipmentStatus })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                >
-                  <option value="warehouse">{t('equipment.statuses.warehouse')}</option>
-                  <option value="available">{t('equipment.statuses.available')}</option>
-                  <option value="at_customer">{t('equipment.statuses.at_customer')}</option>
-                  <option value="in_repair">{t('equipment.statuses.in_repair')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.condition')}</label>
-                <select
-                  value={formData.condition}
-                  onChange={(e) => setFormData({ ...formData, condition: e.target.value as 'ok' | 'not_ok' | 'wearout' })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                >
-                  <option value="ok">{t('equipment.conditions.ok')}</option>
-                  <option value="not_ok">{t('equipment.conditions.notOk')}</option>
-                  <option value="wearout">{t('equipment.conditions.wearout')}</option>
-                </select>
-              </div>
               <div className="flex gap-3 pt-3">
                 <button
                   type="button"
@@ -447,31 +407,6 @@ export function EquipmentListPage() {
                   {equipmentTypes.map((type) => (
                     <option key={type.id} value={type.name}>{type.name}</option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.status')}</label>
-                <select
-                  value={editFormData.status}
-                  onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as EquipmentStatus })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                >
-                  <option value="warehouse">{t('equipment.statuses.warehouse')}</option>
-                  <option value="available">{t('equipment.statuses.available')}</option>
-                  <option value="at_customer">{t('equipment.statuses.at_customer')}</option>
-                  <option value="in_repair">{t('equipment.statuses.in_repair')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.condition')}</label>
-                <select
-                  value={editFormData.condition}
-                  onChange={(e) => setEditFormData({ ...editFormData, condition: e.target.value as 'ok' | 'not_ok' | 'wearout' })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                >
-                  <option value="ok">{t('equipment.conditions.ok')}</option>
-                  <option value="not_ok">{t('equipment.conditions.notOk')}</option>
-                  <option value="wearout">{t('equipment.conditions.wearout')}</option>
                 </select>
               </div>
               <div className="flex gap-3 pt-3">

@@ -52,6 +52,7 @@ export function SitesListPage() {
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [siteToDelete, setSiteToDelete] = useState<Site | null>(null);
+  const [siteToDeactivate, setSiteToDeactivate] = useState<Site | null>(null);
   const [formData, setFormData] = useState<SiteFormData>({ ...emptyForm });
   const [editFormData, setEditFormData] = useState<SiteFormData>({ ...emptyForm });
 
@@ -414,7 +415,7 @@ export function SitesListPage() {
                 )}
                 {canEdit && (
                   <button
-                    onClick={(e) => handleToggleActive(site, e)}
+                    onClick={(e) => { e.stopPropagation(); setSiteToDeactivate(site); }}
                     className={`text-xs px-2.5 py-1.5 rounded-lg font-medium border transition-colors ${
                       site.isActive
                         ? 'border-surface-300 text-surface-500 hover:border-danger-300 hover:text-danger-600 hover:bg-danger-50'
@@ -461,6 +462,21 @@ export function SitesListPage() {
           onConfirm={() => setShowErrorDialog(false)}
           onCancel={() => setShowErrorDialog(false)}
           variant="default"
+        />
+      )}
+
+      {siteToDeactivate && (
+        <ConfirmDialog
+          isOpen={true}
+          title="השבתת אתר"
+          message={`האם אתה בטוח שברצונך להשבית את האתר "${siteToDeactivate.name}"? כל העבודות הפעילות יושלמו והציוד יהפוך לזמין.`}
+          confirmLabel="אישור"
+          onConfirm={async () => {
+            await handleToggleActive(siteToDeactivate);
+            setSiteToDeactivate(null);
+          }}
+          onCancel={() => setSiteToDeactivate(null)}
+          variant="danger"
         />
       )}
     </div>

@@ -34,12 +34,13 @@ export function WorkOrdersListPage() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [technicians, setTechnicians] = useState<{id: string; name: string; active: boolean}[]>([]);
+  const [workTypes, setWorkTypes] = useState<{id: string; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'active' | 'completed' | 'all'>('active');
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    type: 'installation' as 'installation' | 'inspection' | 'removal' | 'general',
+    type: 'installation' as string,
     siteId: '',
     technicianId: '',
     plannedDate: '',
@@ -72,6 +73,13 @@ export function WorkOrdersListPage() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!showForm) return;
+    api.get<{id: string; name: string; isActive: boolean}[]>('/settings/work-order-types').then(res => {
+      setWorkTypes(res.data.filter((wt: any) => wt.isActive !== false));
+    }).catch(err => console.error('Failed to fetch work types:', err));
+  }, [showForm]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -84,7 +92,7 @@ export function WorkOrdersListPage() {
         plannedRemovalDate: formData.plannedRemovalDate ? new Date(formData.plannedRemovalDate) : undefined,
       });
       setShowForm(false);
-      setFormData({ type: 'installation', siteId: '', technicianId: '', plannedDate: '', plannedRemovalDate: '' });
+      setFormData({ type: workTypes.length > 0 ? workTypes[0].name : 'installation', siteId: '', technicianId: '', plannedDate: '', plannedRemovalDate: '' });
       const data = await workOrderService.getAll();
       setWorkOrders(data);
     } catch (err: any) {
@@ -223,10 +231,18 @@ export function WorkOrdersListPage() {
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
-                  <option value="installation">{t('workOrders.types.installation')}</option>
-                  <option value="inspection">{t('workOrders.types.inspection')}</option>
-                  <option value="removal">{t('workOrders.types.removal')}</option>
-                  <option value="general">{t('workOrders.types.general')}</option>
+                  {workTypes.length > 0 ? (
+                    workTypes.map(wt => (
+                      <option key={wt.id} value={wt.name}>{wt.name}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="installation">{t('workOrders.types.installation')}</option>
+                      <option value="inspection">{t('workOrders.types.inspection')}</option>
+                      <option value="removal">{t('workOrders.types.removal')}</option>
+                      <option value="general">{t('workOrders.types.general')}</option>
+                    </>
+                  )}
                 </select>
               </div>
               <div>

@@ -20,7 +20,7 @@ interface Technician {
   isActive: boolean;
 }
 
-type TabType = 'checklist' | 'workOrderTypes' | 'equipmentTypes' | 'equipmentStatuses' | 'equipmentConditions' | 'technicians';
+type TabType = 'checklist' | 'workOrderTypes' | 'equipmentTypes' | 'technicians';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -61,12 +61,6 @@ export function SettingsPage() {
         case 'equipmentTypes':
           url = '/settings/equipment-types';
           break;
-        case 'equipmentStatuses':
-          url = '/settings/equipment-statuses';
-          break;
-        case 'equipmentConditions':
-          url = '/settings/equipment-conditions';
-          break;
         case 'technicians':
           url = '/settings/technicians';
           break;
@@ -96,12 +90,6 @@ export function SettingsPage() {
           break;
         case 'equipmentTypes':
           url = '/settings/equipment-types';
-          break;
-        case 'equipmentStatuses':
-          url = '/settings/equipment-statuses';
-          break;
-        case 'equipmentConditions':
-          url = '/settings/equipment-conditions';
           break;
         case 'technicians':
           url = '/settings/technicians';
@@ -177,12 +165,6 @@ export function SettingsPage() {
         case 'equipmentTypes':
           url = `/settings/equipment-types/${itemToDelete.id}`;
           break;
-        case 'equipmentStatuses':
-          url = `/settings/equipment-statuses/${itemToDelete.id}`;
-          break;
-        case 'equipmentConditions':
-          url = `/settings/equipment-conditions/${itemToDelete.id}`;
-          break;
         case 'technicians':
           url = `/settings/technicians/${itemToDelete.id}`;
           break;
@@ -204,8 +186,6 @@ export function SettingsPage() {
     { key: 'checklist', label: t('settings.checklist') },
     { key: 'workOrderTypes', label: t('settings.workOrderTypes') },
     { key: 'equipmentTypes', label: t('settings.equipmentTypes') },
-    { key: 'equipmentStatuses', label: t('settings.equipmentStatuses') },
-    { key: 'equipmentConditions', label: t('settings.equipmentConditions') },
     { key: 'technicians', label: t('settings.technicians') },
   ];
 
@@ -326,7 +306,7 @@ export function SettingsPage() {
                       className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                     />
                   </div>
-                  {(activeTab === 'equipmentTypes' || activeTab === 'equipmentStatuses') && (
+                  {activeTab === 'equipmentTypes' && (
                     <div>
                       <label className="block text-sm font-medium text-surface-700 mb-2">{t('settings.code')}</label>
                       <input
