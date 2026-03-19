@@ -34,10 +34,10 @@ export function AlertsPage() {
   });
 
   const getAlertDotColor = (alert: Alert) => {
-    if (alert.daysRemaining < 0) return { dot: 'bg-surface-800', border: 'border-surface-800', bg: 'bg-surface-50' };
-    if (alert.daysRemaining <= 2) return { dot: 'bg-danger-500', border: 'border-danger-400', bg: 'bg-danger-50' };
-    if (alert.daysRemaining <= 7) return { dot: 'bg-warning-500', border: 'border-warning-400', bg: 'bg-warning-50' };
-    return { dot: 'bg-success-500', border: 'border-success-400', bg: 'bg-success-50' };
+    if (alert.daysRemaining < 0) return { dot: 'bg-surface-800', border: 'border-surface-800', bg: 'bg-surface-50', isHollow: false };
+    if (alert.daysRemaining >= 0 && alert.daysRemaining <= 3) return { dot: 'bg-danger-500', border: 'border-danger-400', bg: 'bg-danger-50', isHollow: false };
+    if (alert.daysRemaining >= 4 && alert.daysRemaining <= 7) return { dot: 'bg-warning-500', border: 'border-warning-400', bg: 'bg-warning-50', isHollow: false };
+    return { dot: 'bg-success-500', border: 'border-success-400', bg: 'bg-success-50', isHollow: false };
   };
 
   if (loading) {
@@ -82,7 +82,7 @@ export function AlertsPage() {
           >
             <div className="flex justify-between items-start gap-3">
               <div className="flex items-start gap-3 flex-1 min-w-0">
-                <span className={`w-3 h-3 rounded-full mt-1.5 shrink-0 ${colors.dot}`} />
+                <span className={`w-3 h-3 rounded-full mt-1.5 shrink-0 border-2 ${colors.isHollow ? `border-surface-400 bg-transparent` : `${colors.border} ${colors.dot}`}`} />
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-surface-800 text-sm sm:text-base">
                     {alert.siteName || t('equipment.title')}

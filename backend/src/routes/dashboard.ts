@@ -127,9 +127,9 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
             const entry = ranked.find(r => r.days < 0)!;
             mostUrgentWO = entry.wo;
             daysUntilRemoval = entry.days;
-          } else if (priorities.some(d => d >= 0 && d <= 2)) {
+          } else if (priorities.some(d => d >= 0 && d <= 3)) {
             statusColor = 'red';
-            const entry = ranked.find(r => r.days >= 0 && r.days <= 2)!;
+            const entry = ranked.find(r => r.days >= 0 && r.days <= 3)!;
             mostUrgentWO = entry.wo;
             daysUntilRemoval = entry.days;
           } else {

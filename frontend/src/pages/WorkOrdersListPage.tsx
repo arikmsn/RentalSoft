@@ -172,12 +172,13 @@ export function WorkOrdersListPage() {
               <div className="flex items-start gap-3">
                 <div>
                   <h3 className="font-semibold text-surface-800 flex items-center gap-2">
-                    {wo.status !== 'completed' && wo.statusColor && (
+                    {wo.status !== 'completed' && wo.statusColor && (wo.equipmentCount ? (
                       <span
                         className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusDotColors[wo.statusColor] || 'bg-surface-300'}`}
-                        title={`${wo.statusColor === 'black' ? 'עבר תאריך' : wo.statusColor === 'red' ? 'הגיע הזמן' : wo.statusColor === 'orange' ? 'קרוב לפירוק' : 'יש זמן'}`}
                       />
-                    )}
+                    ) : (
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0 border-2 border-surface-400" />
+                    ))}
                     {wo.workTypeName || wo.type || t('workOrders.workType')}
                   </h3>
                   <p className="text-sm text-surface-500 mt-1">

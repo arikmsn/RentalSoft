@@ -11,7 +11,7 @@ export function computeWorkOrderStatus(
   );
 
   if (daysUntilRemoval < 0) return { statusColor: 'black', daysUntilRemoval };
-  if (daysUntilRemoval <= 2) return { statusColor: 'red', daysUntilRemoval };
-  if (daysUntilRemoval <= 7) return { statusColor: 'orange', daysUntilRemoval };
+  if (daysUntilRemoval >= 0 && daysUntilRemoval <= 3) return { statusColor: 'red', daysUntilRemoval };
+  if (daysUntilRemoval >= 4 && daysUntilRemoval <= 7) return { statusColor: 'orange', daysUntilRemoval };
   return { statusColor: 'green', daysUntilRemoval };
 }

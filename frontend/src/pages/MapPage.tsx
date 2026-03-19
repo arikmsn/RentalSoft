@@ -23,7 +23,7 @@ interface SiteWithStatus {
   latitude?: number | null;
   longitude?: number | null;
   isHighlighted: boolean;
-  overallStatus?: 'black' | 'red' | 'orange' | 'green';
+  overallStatus?: 'black' | 'red' | 'orange' | 'green' | null;
   earliestRemovalDate?: string | null;
   workOrders?: Array<{
     id: string;
@@ -33,6 +33,7 @@ interface SiteWithStatus {
     plannedRemovalDate?: Date | string | null;
   }>;
   equipmentCount?: number;
+  hasEquipment?: boolean;
 }
 
 const statusColors: Record<string, string> = {
@@ -42,19 +43,20 @@ const statusColors: Record<string, string> = {
   green: '#22c55e',
 };
 
-const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green', selected?: boolean) => {
-  const color = statusColors[status || 'green'];
+const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green' | null, selected?: boolean, hasEquipment?: boolean) => {
+  const color = status ? statusColors[status] : '#9ca3af';
   const size = selected ? 32 : 24;
   const borderWidth = selected ? 4 : 3;
+  const isHollow = !hasEquipment;
   return L.divIcon({
     className: 'custom-marker',
     html: `<div style="
-      background-color: ${color};
+      background-color: ${isHollow ? 'transparent' : color};
       width: ${size}px;
       height: ${size}px;
       border-radius: 50%;
-      border: ${borderWidth} solid white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      border: ${borderWidth} solid ${isHollow ? color : 'white'};
+      box-shadow: ${isHollow ? 'none' : '0 2px 4px rgba(0,0,0,0.3)'};
       ${selected ? 'z-index: 1000;' : ''}
     "></div>`,
     iconSize: [size, size],
@@ -173,13 +175,20 @@ export function MapPage() {
         black: '⚫', red: '🔴', orange: '🟠', green: '🟢',
       };
 
-      const statusHtml = site.overallStatus
-        ? `<div style="margin-top:8px; display:flex; justify-content:center;">
+      let statusHtml = '';
+      if (!site.hasEquipment) {
+        statusHtml = `<div style="margin-top:8px; display:flex; justify-content:center;">
+            <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; color:#9ca3af; background-color:transparent; border:2px solid #9ca3af;">
+              ⚪ אין ציוד
+            </span>
+          </div>`;
+      } else if (site.overallStatus) {
+        statusHtml = `<div style="margin-top:8px; display:flex; justify-content:center;">
             <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; color:#fff; background-color:${statusColorMap[site.overallStatus]};">
               ${statusEmojiMap[site.overallStatus]} ${statusLabelMap[site.overallStatus]}
             </span>
-          </div>`
-        : '';
+          </div>`;
+      }
 
       const popup = L.popup({
         closeButton: true,
@@ -314,7 +323,7 @@ export function MapPage() {
               <Marker
                 key={site.id}
                 position={[lat, lng]}
-                icon={getMarkerIcon(site.overallStatus, selectedSiteId === site.id)}
+                icon={getMarkerIcon(site.overallStatus, selectedSiteId === site.id, site.hasEquipment)}
                 eventHandlers={{
                   click: () => handleSiteClick(site),
                 }}

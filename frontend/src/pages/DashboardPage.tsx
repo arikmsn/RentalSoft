@@ -147,9 +147,10 @@ export function DashboardPage() {
           <div className="space-y-2 max-h-[320px] overflow-y-auto">
             {alerts.slice(0, 5).map((alert) => {
               const isBlack = alert.daysRemaining < 0;
-              const borderColor = isBlack ? 'border-surface-800' : 'border-danger-400';
-              const dotColor = isBlack ? 'bg-surface-800' : 'bg-danger-500';
-              const textColor = isBlack ? 'text-surface-700' : 'text-danger-700';
+              const isOrange = alert.daysRemaining >= 4 && alert.daysRemaining <= 7;
+              const borderColor = isBlack ? 'border-surface-800' : isOrange ? 'border-warning-400' : 'border-danger-400';
+              const dotColor = isBlack ? 'bg-surface-800' : isOrange ? 'bg-warning-500' : 'bg-danger-500';
+              const textColor = isBlack ? 'text-surface-700' : isOrange ? 'text-warning-700' : 'text-danger-700';
               return (
               <Link
                 key={alert.id}
