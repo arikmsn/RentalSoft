@@ -88,6 +88,14 @@ export function EquipmentListPage() {
     });
   }, []);
 
+  useEffect(() => {
+    const refresh = () => {
+      equipmentService.getAll().then(setEquipment).catch(err => console.error('Failed to refresh equipment:', err));
+    };
+    window.addEventListener('site-updated', refresh);
+    return () => window.removeEventListener('site-updated', refresh);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);

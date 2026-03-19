@@ -15,52 +15,57 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = async () => {
+    try {
+      setError(null);
+      
+      let statsData = null;
+      let alertsData: any[] = [];
+      
       try {
-        setError(null);
-        
-        let statsData = null;
-        let alertsData: any[] = [];
-        
-        try {
-          statsData = await dashboardService.getStats();
-        } catch (statsErr) {
-          console.error('Failed to fetch stats:', statsErr);
-        }
-        
-        try {
-          alertsData = await dashboardService.getAlerts();
-        } catch (alertsErr) {
-          console.error('Failed to fetch alerts:', alertsErr);
-        }
-        
-        setStats(statsData || {
-          totalEquipment: 0,
-          availableEquipment: 0,
-          atCustomerEquipment: 0,
-          inRepairEquipment: 0,
-          totalSites: 0,
-          sitesWithEquipment: 0,
-          todayWorkOrders: 0,
-          openWorkOrders: 0,
-          overdueRemovals: 0,
-          upcomingRemovals: 0,
-        });
-        setAlerts(alertsData);
-        
-        if (!statsData) {
-          setError('אירעה שגיאה בטעינת הנתונים');
-        }
-      } catch (err: any) {
-        console.error('Failed to fetch dashboard data:', err);
-        const message = err?.response?.data?.message || err?.message || 'אירעה שגיאה בטעינת הנתונים';
-        setError(message);
-      } finally {
-        setLoading(false);
+        statsData = await dashboardService.getStats();
+      } catch (statsErr) {
+        console.error('Failed to fetch stats:', statsErr);
       }
-    };
-    fetchData();
+      
+      try {
+        alertsData = await dashboardService.getAlerts();
+      } catch (alertsErr) {
+        console.error('Failed to fetch alerts:', alertsErr);
+      }
+      
+      setStats(statsData || {
+        totalEquipment: 0,
+        availableEquipment: 0,
+        atCustomerEquipment: 0,
+        inRepairEquipment: 0,
+        totalSites: 0,
+        sitesWithEquipment: 0,
+        todayWorkOrders: 0,
+        openWorkOrders: 0,
+        overdueRemovals: 0,
+        upcomingRemovals: 0,
+      });
+      setAlerts(alertsData);
+      
+      if (!statsData) {
+        setError('אירעה שגיאה בטעינת הנתונים');
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch dashboard data:', err);
+      const message = err?.response?.data?.message || err?.message || 'אירעה שגיאה בטעינת הנתונים';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  useEffect(() => {
+    const refresh = () => { fetchData(); };
+    window.addEventListener('site-updated', refresh);
+    return () => window.removeEventListener('site-updated', refresh);
   }, []);
 
   if (loading) {

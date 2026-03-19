@@ -124,6 +124,7 @@ export function SitesListPage() {
     try {
       await siteService.toggleActive(site.id);
       await fetchSites(search, activeFilter);
+      window.dispatchEvent(new CustomEvent('site-updated'));
       if (editingSite?.id === site.id) {
         setEditingSite({ ...editingSite, isActive: !site.isActive });
       }

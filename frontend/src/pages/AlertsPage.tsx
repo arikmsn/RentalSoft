@@ -10,18 +10,23 @@ export function AlertsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Alert['type'] | 'all'>('all');
 
+  const fetchAlerts = async () => {
+    try {
+      const data = await dashboardService.getAlerts();
+      setAlerts(data);
+    } catch (error) {
+      console.error('Failed to fetch alerts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchAlerts(); }, []);
+
   useEffect(() => {
-    const fetchAlerts = async () => {
-      try {
-        const data = await dashboardService.getAlerts();
-        setAlerts(data);
-      } catch (error) {
-        console.error('Failed to fetch alerts:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAlerts();
+    const refresh = () => { fetchAlerts(); };
+    window.addEventListener('site-updated', refresh);
+    return () => window.removeEventListener('site-updated', refresh);
   }, []);
 
   const filteredAlerts = alerts.filter((alert) => {

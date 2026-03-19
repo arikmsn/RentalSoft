@@ -509,10 +509,14 @@ router.patch('/:id/toggle-active', authenticate, authorize('manager', 'admin'), 
                   plannedRemovalDate: null,
                 },
               });
-            } else if (wo.type === 'installation' && wo.plannedRemovalDate) {
+            } else {
               await tx.equipment.update({
                 where: { id: link.equipment.id },
-                data: { plannedRemovalDate: wo.plannedRemovalDate },
+                data: {
+                  status: 'warehouse',
+                  siteId: null,
+                  plannedRemovalDate: null,
+                },
               });
             }
           }
