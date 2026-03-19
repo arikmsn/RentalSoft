@@ -5,13 +5,6 @@ import { useAuthStore } from '../stores/authStore';
 import type { DBSite } from '../offline/db';
 import { formatDate } from '../utils/date';
 
-const typeIcons: Record<string, string> = {
-  installation: '🔧',
-  inspection: '🔍',
-  removal: '📤',
-  general: '📝',
-};
-
 const statusColors: Record<string, string> = {
   open: 'bg-blue-100 text-blue-800',
   in_progress: 'bg-yellow-100 text-yellow-800',
@@ -113,10 +106,9 @@ export function MyTasksPage() {
                 {/* Header: Type + Status + Time */}
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl">{typeIcons[task.type]}</span>
                     <div>
                       <h3 className="font-semibold text-sm sm:text-base">
-                        {t(`workOrders.types.${task.type}`)}
+                        {task.type || t('workOrders.workType')}
                       </h3>
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[task.status]}`}>
                         {t(`workOrders.statuses.${task.status.replace('_', '')}`)}
@@ -185,8 +177,7 @@ export function MyTasksPage() {
               >
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <span>{typeIcons[task.type]}</span>
-                    <span className="text-sm">{t(`workOrders.types.${task.type}`)}</span>
+                    <span className="text-sm">{task.type || t('workOrders.workType')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {task.site && (

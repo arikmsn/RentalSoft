@@ -194,7 +194,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         qrTag,
         type,
         typeId: typeRecord.id,
-        status: status || 'warehouse',
+        status: status || 'available',
       },
     });
 
@@ -273,7 +273,7 @@ router.post('/:id/scan', authenticate, async (req: AuthRequest, res) => {
       data: {
         lastScanDate: new Date(),
         installationDate: new Date(),
-        status: 'at_customer',
+        status: 'assigned_to_work',
         ...(location && {
           latitude: location.lat,
           longitude: location.lng,

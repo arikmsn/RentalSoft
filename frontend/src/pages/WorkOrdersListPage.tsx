@@ -21,13 +21,6 @@ const statusDotColors: Record<string, string> = {
   green: 'bg-success-500',
 };
 
-const typeIcons: Record<string, string> = {
-  installation: '🔧',
-  inspection: '🔍',
-  removal: '📤',
-  general: '📝',
-};
-
 export function WorkOrdersListPage() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
@@ -40,7 +33,7 @@ export function WorkOrdersListPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    type: 'installation' as string,
+    type: '',
     workTypeId: '',
     siteId: '',
     technicianId: '',
@@ -85,7 +78,7 @@ export function WorkOrdersListPage() {
     setSaving(true);
     try {
       await workOrderService.create({
-        type: formData.type,
+        type: formData.type || undefined,
         workTypeId: formData.workTypeId || undefined,
         siteId: formData.siteId,
         technicianId: formData.technicianId,
@@ -93,7 +86,7 @@ export function WorkOrdersListPage() {
         plannedRemovalDate: formData.plannedRemovalDate ? new Date(formData.plannedRemovalDate) : undefined,
       });
       setShowForm(false);
-      setFormData({ type: workTypes.length > 0 ? workTypes[0].name : 'installation', workTypeId: workTypes.length > 0 ? workTypes[0].id : '', siteId: '', technicianId: '', plannedDate: '', plannedRemovalDate: '' });
+      setFormData({ type: '', workTypeId: '', siteId: '', technicianId: '', plannedDate: '', plannedRemovalDate: '' });
       const data = await workOrderService.getAll();
       setWorkOrders(data);
     } catch (err: any) {
@@ -177,7 +170,6 @@ export function WorkOrdersListPage() {
           >
             <div className="flex items-start justify-between">
               <div className="flex items-start gap-3">
-                <span className="text-2xl sm:text-3xl">{typeIcons[wo.type]}</span>
                 <div>
                   <h3 className="font-semibold text-surface-800 flex items-center gap-2">
                     {wo.status !== 'completed' && wo.statusColor && (
@@ -186,7 +178,7 @@ export function WorkOrdersListPage() {
                         title={`${wo.statusColor === 'black' ? 'עבר תאריך' : wo.statusColor === 'red' ? 'הגיע הזמן' : wo.statusColor === 'orange' ? 'קרוב לפירוק' : 'יש זמן'}`}
                       />
                     )}
-                    {wo.workTypeName || wo.type}
+                    {wo.workTypeName || wo.type || t('workOrders.workType')}
                   </h3>
                   <p className="text-sm text-surface-500 mt-1">
                     {wo.site ? wo.site.name : ''}
@@ -226,31 +218,24 @@ export function WorkOrdersListPage() {
             <h2 className="text-xl font-bold mb-5 text-surface-800">{t('workOrders.addNew')}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('workOrders.type')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('workOrders.workType')}</label>
                 <select
-                  value={formData.workTypeId || formData.type}
+                  required
+                  value={formData.workTypeId}
                   onChange={(e) => {
                     const selected = workTypes.find(wt => wt.id === e.target.value);
                     if (selected) {
                       setFormData({ ...formData, type: selected.name, workTypeId: selected.id });
                     } else {
-                      setFormData({ ...formData, type: e.target.value as any, workTypeId: '' });
+                      setFormData({ ...formData, type: '', workTypeId: '' });
                     }
                   }}
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
-                  {workTypes.length > 0 ? (
-                    workTypes.map(wt => (
-                      <option key={wt.id} value={wt.id}>{wt.name}</option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="installation">{t('workOrders.types.installation')}</option>
-                      <option value="inspection">{t('workOrders.types.inspection')}</option>
-                      <option value="removal">{t('workOrders.types.removal')}</option>
-                      <option value="general">{t('workOrders.types.general')}</option>
-                    </>
-                  )}
+                  <option value="">-- {t('app.select')} --</option>
+                  {workTypes.map(wt => (
+                    <option key={wt.id} value={wt.id}>{wt.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -291,17 +276,15 @@ export function WorkOrdersListPage() {
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
               </div>
-              {(formData.type === 'installation' || formData.type === 'removal') && (
-                <div>
-                  <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.plannedRemoval')}</label>
-                  <input
-                    type="date"
-                    value={formData.plannedRemovalDate}
-                    onChange={(e) => setFormData({ ...formData, plannedRemovalDate: e.target.value })}
-                    className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.plannedRemoval')}</label>
+                <input
+                  type="date"
+                  value={formData.plannedRemovalDate}
+                  onChange={(e) => setFormData({ ...formData, plannedRemovalDate: e.target.value })}
+                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                />
+              </div>
               <div className="flex gap-3 pt-3">
                 <button
                   type="button"

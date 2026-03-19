@@ -15,23 +15,14 @@ enum UserRole {
 }
 
 enum EquipmentStatus {
-  warehouse
-  at_customer
-  in_repair
   available
+  assigned_to_work
 }
 
 enum EquipmentCondition {
   ok
   not_ok
   wearout
-}
-
-enum WorkOrderType {
-  installation
-  inspection
-  removal
-  general
 }
 
 enum WorkOrderStatus {
@@ -72,7 +63,7 @@ model Equipment {
   id                  String            @id @default(uuid())
   qrTag               String           @unique
   type                String
-  status              EquipmentStatus  @default(warehouse)
+  status              EquipmentStatus  @default(available)
   condition           EquipmentCondition @default(ok)
   siteId              String?
   lastScanDate        DateTime?
@@ -137,7 +128,7 @@ model Site {
 
 model WorkOrder {
   id                 String           @id @default(uuid())
-  type               WorkOrderType
+  type               String?
   workTypeId         String?
   siteId             String
   technicianId       String?

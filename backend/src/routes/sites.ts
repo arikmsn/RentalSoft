@@ -26,7 +26,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
     const sites = await prisma.site.findMany({
       where,
       include: {
-        equipment: hasEquipment === 'true' ? { where: { status: 'at_customer' } } : false,
+        equipment: hasEquipment === 'true' ? { where: { status: 'assigned_to_work' } } : false,
       },
       orderBy: { name: 'asc' },
     });
@@ -323,7 +323,7 @@ router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
     const site = await prisma.site.findUnique({
       where: { id: req.params.id },
       include: {
-        equipment: { where: { status: 'at_customer' } },
+        equipment: { where: { status: 'assigned_to_work' } },
         workOrders: { orderBy: { plannedDate: 'desc' }, take: 10 },
       },
     });
@@ -528,26 +528,15 @@ router.patch('/:id/toggle-active', authenticate, authorize('manager', 'admin'), 
           });
 
           for (const link of wo.equipment) {
-            if (wo.type === 'removal') {
-              await tx.equipment.update({
-                where: { id: link.equipment.id },
-                data: {
-                  status: 'available',
-                  siteId: null,
-                  actualRemovalDate: new Date(),
-                  plannedRemovalDate: null,
-                },
-              });
-            } else {
-              await tx.equipment.update({
-                where: { id: link.equipment.id },
-                data: {
-                  status: 'warehouse',
-                  siteId: null,
-                  plannedRemovalDate: null,
-                },
-              });
-            }
+            await tx.equipment.update({
+              where: { id: link.equipment.id },
+              data: {
+                status: 'available',
+                siteId: null,
+                actualRemovalDate: new Date(),
+                plannedRemovalDate: null,
+              },
+            });
           }
 
           await tx.activityLog.create({
@@ -563,7 +552,7 @@ router.patch('/:id/toggle-active', authenticate, authorize('manager', 'admin'), 
       }
 
       await prisma.equipment.updateMany({
-        where: { siteId: id, status: 'at_customer' },
+        where: { siteId: id, status: 'assigned_to_work' },
         data: { siteId: null, status: 'available' },
       });
     }
@@ -628,8 +617,8 @@ router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, r
       await prisma.workOrder.deleteMany({ where: { siteId } });
     }
 
-    // 4. Release equipment (set siteId to null, status to warehouse)
-    await prisma.equipment.updateMany({ where: { siteId }, data: { siteId: null, status: 'warehouse' } });
+    // 4. Release equipment (set siteId to null, status to available)
+    await prisma.equipment.updateMany({ where: { siteId }, data: { siteId: null, status: 'available' } });
 
     // 5. Delete the site
     await prisma.site.delete({ where: { id: siteId } });

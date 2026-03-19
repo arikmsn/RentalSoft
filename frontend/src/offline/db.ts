@@ -25,7 +25,7 @@ export interface DBEquipment {
   id: string;
   qrTag: string;
   type: string;
-  status: 'warehouse' | 'at_customer' | 'in_repair' | 'available';
+  status: 'available' | 'assigned_to_work';
   condition: 'ok' | 'not_ok' | 'wearout';
   siteId?: string;
   lastScanDate?: Date;
@@ -39,7 +39,7 @@ export interface DBEquipment {
 
 export interface DBWorkOrder {
   id: string;
-  type: 'installation' | 'inspection' | 'removal' | 'general';
+  type?: string;
   siteId: string;
   technicianId: string;
   status: 'open' | 'in_progress' | 'completed';

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { WorkOrder, WorkOrderStatus, WorkOrderType, Site, Equipment } from '../types';
+import type { WorkOrder, WorkOrderStatus, Site, Equipment } from '../types';
 import type { ChecklistUpdate } from '../services/workOrderService';
 import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
@@ -13,13 +13,6 @@ import { siteService } from '../services/siteService';
 import { api } from '../services/api';
 import { equipmentService } from '../services/equipmentService';
 import { formatDate, formatDateFull } from '../utils/date';
-
-const typeIcons: Record<string, string> = {
-  installation: '🔧',
-  inspection: '🔍',
-  removal: '📤',
-  general: '📝',
-};
 
 const statusColors: Record<string, string> = {
   open: 'bg-blue-100 text-blue-800',
@@ -80,7 +73,8 @@ export function WorkOrderDetailsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [editFormData, setEditFormData] = useState({
-    type: '' as WorkOrderType,
+    type: '',
+    workTypeId: '',
     status: '' as WorkOrderStatus,
     siteId: '',
     technicianId: '',
@@ -89,6 +83,7 @@ export function WorkOrderDetailsPage() {
   });
   const [sites, setSites] = useState<Site[]>([]);
   const [technicians, setTechnicians] = useState<{id: string; name: string; active: boolean}[]>([]);
+  const [workTypes, setWorkTypes] = useState<{id: string; name: string}[]>([]);
   const [deleting, setDeleting] = useState(false);
 
   const isAssignedTechnician = user?.id === workOrder?.technicianId;
@@ -322,7 +317,8 @@ export function WorkOrderDetailsPage() {
   const handleEditClick = () => {
     if (!workOrder) return;
     setEditFormData({
-      type: workOrder.type,
+      type: workOrder.type || '',
+      workTypeId: (workOrder as any).workType?.id || '',
       status: workOrder.status,
       siteId: workOrder.siteId,
       technicianId: workOrder.technicianId,
@@ -332,9 +328,11 @@ export function WorkOrderDetailsPage() {
     Promise.all([
       siteService.getAll(),
       api.get('/settings/technicians').then(res => res.data),
-    ]).then(([sitesData, techsData]) => {
+      api.get('/settings/work-order-types').then(res => res.data),
+    ]).then(([sitesData, techsData, wtData]) => {
       setSites(sitesData);
       setTechnicians(techsData);
+      setWorkTypes((wtData as {id: string; name: string; isActive: boolean}[]).filter((wt: any) => wt.isActive !== false));
       setShowEditForm(true);
     });
   };
@@ -345,7 +343,8 @@ export function WorkOrderDetailsPage() {
     setSaving(true);
     try {
       await workOrderService.update(id, {
-        type: editFormData.type,
+        type: editFormData.type || undefined,
+        workTypeId: editFormData.workTypeId || undefined,
         status: editFormData.status,
         siteId: editFormData.siteId,
         technicianId: editFormData.technicianId,
@@ -471,16 +470,19 @@ export function WorkOrderDetailsPage() {
             <h2 className="text-xl font-bold mb-4">{t('app.edit')}</h2>
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.type')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.workType')}</label>
                 <select
-                  value={editFormData.type}
-                  onChange={(e) => setEditFormData({ ...editFormData, type: e.target.value as WorkOrderType })}
+                  value={editFormData.workTypeId}
+                  onChange={(e) => {
+                    const selected = workTypes.find(wt => wt.id === e.target.value);
+                    setEditFormData({ ...editFormData, workTypeId: e.target.value, type: selected?.name || '' });
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                 >
-                  <option value="installation">{t('workOrders.types.installation')}</option>
-                  <option value="inspection">{t('workOrders.types.inspection')}</option>
-                  <option value="removal">{t('workOrders.types.removal')}</option>
-                  <option value="general">{t('workOrders.types.general')}</option>
+                  <option value="">-- {t('app.select')} --</option>
+                  {workTypes.map(wt => (
+                    <option key={wt.id} value={wt.id}>{wt.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -639,9 +641,8 @@ export function WorkOrderDetailsPage() {
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3 mb-4">
-          <span className="text-3xl">{typeIcons[workOrder.type]}</span>
           <div>
-            <h1 className="text-xl font-bold">{t(`workOrders.types.${workOrder.type}`)}</h1>
+            <h1 className="text-xl font-bold">{(workOrder as any).workTypeName || workOrder.type || t('workOrders.workType')}</h1>
             <p className="text-sm text-gray-500">
               {formatDateFull(workOrder.plannedDate)}
             </p>
@@ -675,7 +676,7 @@ export function WorkOrderDetailsPage() {
           </div>
         )}
 
-        {workOrder.type === 'removal' && workOrder.plannedRemovalDate && (
+        {workOrder.plannedRemovalDate && (
           <div className="p-3 bg-orange-50 rounded-lg mb-4">
             <p className="text-sm text-orange-800">
               {t('equipment.plannedRemoval')}: {formatDate(workOrder.plannedRemovalDate)}

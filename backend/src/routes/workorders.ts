@@ -29,8 +29,8 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
       include: {
         site: true,
         technician: { select: { id: true, name: true } },
-        equipment: { select: { id: true } },
         workType: { select: { name: true } },
+        equipment: { select: { id: true } },
       },
       orderBy: { plannedDate: 'asc' },
     });
@@ -104,6 +104,7 @@ router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
         technician: { select: { id: true, name: true } },
         checklist: true,
         equipment: { include: { equipment: true } },
+        workType: { select: { name: true } },
       },
     });
 
@@ -139,12 +140,12 @@ async function updateEquipmentStatusForWorkOrder(workOrderId: string) {
     return;
   }
 
-  console.log(`[WorkOrder ${workOrderId}] Status change to ${workOrder.status}: Updating ${equipmentIds.length} equipment items to ${isActive ? 'at_customer' : 'warehouse'}`);
+  console.log(`[WorkOrder ${workOrderId}] Status change to ${workOrder.status}: Updating ${equipmentIds.length} equipment items to ${isActive ? 'assigned_to_work' : 'available'}`);
 
   if (isActive) {
     await prisma.equipment.updateMany({
       where: { id: { in: equipmentIds } },
-      data: { status: 'at_customer' },
+      data: { status: 'assigned_to_work' },
     });
   } else if (workOrder.status === 'completed') {
     await prisma.equipment.updateMany({
@@ -158,9 +159,11 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
   try {
     const { type, workTypeId, siteId, technicianId, plannedDate, plannedRemovalDate, equipmentIds } = req.body;
 
+    console.log(`[CreateWorkOrder] Request body:`, JSON.stringify({ type, workTypeId, siteId, technicianId, plannedDate, plannedRemovalDate, equipmentIds }, null, 2));
+
     const workOrder = await prisma.workOrder.create({
       data: {
-        type,
+        type: type || null,
         workTypeId: workTypeId || null,
         siteId,
         technicianId,
@@ -178,25 +181,26 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
       },
     });
 
+    const typeLabel = workOrder.workType?.name || type || 'unknown';
     await prisma.activityLog.create({
       data: {
         workOrderId: workOrder.id,
         siteId,
         userId: req.user!.id,
         actionType: 'workorder_created',
-        notes: `Work order created: ${type}`,
+        notes: `Work order created: ${typeLabel}`,
       },
     });
 
-    // Update equipment status based on work order
     if (equipmentIds && equipmentIds.length > 0) {
       await updateEquipmentStatusForWorkOrder(workOrder.id);
     }
 
     res.status(201).json(workOrder);
-  } catch (error) {
-    console.error('Create work order error:', error);
-    res.status(500).json({ message: 'Server error' });
+  } catch (error: any) {
+    console.error('[CreateWorkOrder] Error:', error.message, error.stack);
+    const message = error?.message || 'Server error';
+    res.status(500).json({ message });
   }
 });
 
@@ -244,7 +248,7 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
     const workOrder = await prisma.workOrder.update({
       where: { id: req.params.id },
       data: {
-        ...(type && userRole !== 'technician' && { type }),
+        ...(type !== undefined && userRole !== 'technician' && { type }),
         ...(status && { status }),
         ...(technicianId && userRole !== 'technician' && { technicianId }),
         ...(plannedDate && userRole !== 'technician' && { plannedDate: new Date(plannedDate) }),
@@ -329,10 +333,10 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res) => {
       include: {
         site: true,
         technician: { select: { id: true, name: true } },
+        workType: { select: { name: true } },
       },
     });
 
-    // B8: Create status history entry for completion
     await prisma.workOrderStatusHistory.create({
       data: {
         workOrderId: workOrder.id,
@@ -356,13 +360,14 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res) => {
       }
     }
 
+    const typeLabel = workOrder.workType?.name || workOrder.type || 'unknown';
     await prisma.activityLog.create({
       data: {
         workOrderId: workOrder.id,
         siteId: workOrder.siteId,
         userId: req.user!.id,
         actionType: 'workorder_completed',
-        notes: `Work order completed: ${workOrder.type}`,
+        notes: `Work order completed: ${typeLabel}`,
       },
     });
 
@@ -417,10 +422,10 @@ router.post('/:id/equipment', authenticate, authorize('manager', 'admin'), async
       data: { workOrderId, equipmentId },
     });
 
-    // Update equipment status to at_customer and set currentWorkOrderId
+    // Update equipment status to assigned_to_work and set currentWorkOrderId
     await prisma.equipment.update({
       where: { id: equipmentId },
-      data: { status: 'at_customer' },
+      data: { status: 'assigned_to_work' },
     });
 
     const workOrder = await prisma.workOrder.findUnique({
@@ -499,7 +504,7 @@ router.delete('/:id', authenticate, isManagerOrAdmin, async (req, res) => {
     for (const woEq of workOrder.equipment) {
       await prisma.equipment.update({
         where: { id: woEq.equipmentId },
-        data: { status: 'warehouse', siteId: null },
+        data: { status: 'available', siteId: null },
       });
     }
 

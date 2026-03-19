@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PrismaClient, EquipmentStatus, EquipmentCondition, WorkOrderType, WorkOrderStatus, ActionType } from '@prisma/client';
+import { PrismaClient, EquipmentStatus, EquipmentCondition, WorkOrderStatus, ActionType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const router = Router();
@@ -99,31 +99,32 @@ router.post('/populate', async (req, res) => {
     const typeRecords = await prisma.equipmentType.findMany();
 
     const equipmentData = [
-      { qrTag: 'EQ001', type: 'מזגן', status: EquipmentStatus.at_customer, siteId: createdSites[0].id, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ002', type: 'מזגן', status: EquipmentStatus.at_customer, siteId: createdSites[0].id, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ003', type: 'מקרר', status: EquipmentStatus.at_customer, siteId: createdSites[1].id, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ004', type: 'מקרר', status: EquipmentStatus.at_customer, siteId: createdSites[1].id, condition: EquipmentCondition.wearout },
-      { qrTag: 'EQ005', type: 'מקפיא', status: EquipmentStatus.at_customer, siteId: createdSites[2].id, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ006', type: 'מכונת כביסה', status: EquipmentStatus.warehouse, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ007', type: 'מזגן', status: EquipmentStatus.in_repair, condition: EquipmentCondition.not_ok },
-      { qrTag: 'EQ008', type: 'מדיח', status: EquipmentStatus.at_customer, siteId: createdSites[3].id, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ009', type: 'מקרר', status: EquipmentStatus.at_customer, siteId: createdSites[4].id, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ010', type: 'מזגן', status: EquipmentStatus.warehouse, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ011', type: 'מקפיא', status: EquipmentStatus.warehouse, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ012', type: 'מכונת כביסה', status: EquipmentStatus.at_customer, siteId: createdSites[3].id, condition: EquipmentCondition.wearout },
-      { qrTag: 'EQ013', type: 'מזגן', status: EquipmentStatus.at_customer, siteId: createdSites[5].id, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ014', type: 'מקרר', status: EquipmentStatus.at_customer, siteId: createdSites[6].id, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ015', type: 'מדיח', status: EquipmentStatus.at_customer, siteId: createdSites[7].id, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ016', type: 'מזגן', status: EquipmentStatus.available, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ017', type: 'מקרר', status: EquipmentStatus.available, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ018', type: 'מכונת כביסה', status: EquipmentStatus.in_repair, condition: EquipmentCondition.not_ok },
-      { qrTag: 'EQ019', type: 'מקפיא', status: EquipmentStatus.at_customer, siteId: createdSites[0].id, condition: EquipmentCondition.ok },
-      { qrTag: 'EQ020', type: 'מדיח', status: EquipmentStatus.warehouse, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ001', type: 'מזגן', status: 'assigned_to_work' as any, siteId: createdSites[0].id, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ002', type: 'מזגן', status: 'assigned_to_work' as any, siteId: createdSites[0].id, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ003', type: 'מקרר', status: 'assigned_to_work' as any, siteId: createdSites[1].id, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ004', type: 'מקרר', status: 'assigned_to_work' as any, siteId: createdSites[1].id, condition: EquipmentCondition.wearout },
+      { qrTag: 'EQ005', type: 'מקפיא', status: 'assigned_to_work' as any, siteId: createdSites[2].id, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ006', type: 'מכונת כביסה', status: 'available' as any, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ007', type: 'מזגן', status: 'available' as any, condition: EquipmentCondition.not_ok },
+      { qrTag: 'EQ008', type: 'מדיח', status: 'assigned_to_work' as any, siteId: createdSites[3].id, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ009', type: 'מקרר', status: 'assigned_to_work' as any, siteId: createdSites[4].id, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ010', type: 'מזגן', status: 'available' as any, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ011', type: 'מקפיא', status: 'available' as any, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ012', type: 'מכונת כביסה', status: 'assigned_to_work' as any, siteId: createdSites[3].id, condition: EquipmentCondition.wearout },
+      { qrTag: 'EQ013', type: 'מזגן', status: 'assigned_to_work' as any, siteId: createdSites[5].id, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ014', type: 'מקרר', status: 'assigned_to_work' as any, siteId: createdSites[6].id, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ015', type: 'מדיח', status: 'assigned_to_work' as any, siteId: createdSites[7].id, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ016', type: 'מזגן', status: 'available' as any, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ017', type: 'מקרר', status: 'available' as any, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ018', type: 'מכונת כביסה', status: 'available' as any, condition: EquipmentCondition.not_ok },
+      { qrTag: 'EQ019', type: 'מקפיא', status: 'assigned_to_work' as any, siteId: createdSites[0].id, condition: EquipmentCondition.ok },
+      { qrTag: 'EQ020', type: 'מדיח', status: 'available' as any, condition: EquipmentCondition.ok },
     ];
 
     const createdEquipment = [];
     for (const eq of equipmentData) {
       const typeRecord = typeRecords.find(t => t.name === eq.type);
+      const isAssigned = eq.status === 'assigned_to_work';
       const created = await prisma.equipment.upsert({
         where: { qrTag: eq.qrTag },
         update: {},
@@ -134,27 +135,27 @@ router.post('/populate', async (req, res) => {
           status: eq.status,
           condition: eq.condition,
           siteId: eq.siteId || null,
-          installationDate: eq.status === EquipmentStatus.at_customer ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) : null,
-          plannedRemovalDate: eq.status === EquipmentStatus.at_customer ? new Date(Date.now() + Math.random() * 14 * 24 * 60 * 60 * 1000) : null,
-          lastScanDate: eq.status === EquipmentStatus.at_customer ? new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) : null,
+          installationDate: isAssigned ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000) : null,
+          plannedRemovalDate: isAssigned ? new Date(Date.now() + Math.random() * 14 * 24 * 60 * 60 * 1000) : null,
+          lastScanDate: isAssigned ? new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) : null,
         },
       });
       createdEquipment.push(created);
     }
 
     const workOrders = [
-      { id: 'wo-1', type: WorkOrderType.installation, siteId: createdSites[0].id, technicianId: tech1.id, status: WorkOrderStatus.open, plannedDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), plannedRemovalDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
-      { id: 'wo-2', type: WorkOrderType.inspection, siteId: createdSites[1].id, technicianId: tech1.id, status: WorkOrderStatus.in_progress, plannedDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) },
-      { id: 'wo-3', type: WorkOrderType.removal, siteId: createdSites[2].id, technicianId: tech2.id, status: WorkOrderStatus.open, plannedDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), plannedRemovalDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
-      { id: 'wo-4', type: WorkOrderType.installation, siteId: createdSites[3].id, technicianId: tech2.id, status: WorkOrderStatus.completed, plannedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), actualDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), done: 'התקנה בוצעה בהצלחה. המזגן פועל.', plannedRemovalDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000) },
-      { id: 'wo-5', type: WorkOrderType.inspection, siteId: createdSites[4].id, technicianId: tech1.id, status: WorkOrderStatus.completed, plannedDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), actualDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), done: 'המקרר תקין. יש להחליף גומיות בעוד 3 חודשים.' },
-      { id: 'wo-6', type: WorkOrderType.installation, siteId: createdSites[5].id, technicianId: tech1.id, status: WorkOrderStatus.open, plannedDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), plannedRemovalDate: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000) },
-      { id: 'wo-7', type: WorkOrderType.inspection, siteId: createdSites[6].id, technicianId: tech2.id, status: WorkOrderStatus.in_progress, plannedDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) },
-      { id: 'wo-8', type: WorkOrderType.removal, siteId: createdSites[7].id, technicianId: tech2.id, status: WorkOrderStatus.open, plannedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), plannedRemovalDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
-      { id: 'wo-9', type: WorkOrderType.installation, siteId: createdSites[1].id, technicianId: tech1.id, status: WorkOrderStatus.completed, plannedDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), actualDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), done: 'המזגן הותקן ונבדק. הכל תקין.', plannedRemovalDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000) },
-      { id: 'wo-10', type: WorkOrderType.inspection, siteId: createdSites[0].id, technicianId: tech2.id, status: WorkOrderStatus.open, plannedDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000) },
-      { id: 'wo-11', type: WorkOrderType.general, siteId: createdSites[3].id, technicianId: tech1.id, status: WorkOrderStatus.completed, plannedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), actualDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), done: 'תיקון קטן בוצע.' },
-      { id: 'wo-12', type: WorkOrderType.installation, siteId: createdSites[4].id, technicianId: tech2.id, status: WorkOrderStatus.in_progress, plannedDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) },
+      { id: 'wo-1', type: 'Installation', siteId: createdSites[0].id, technicianId: tech1.id, status: WorkOrderStatus.open, plannedDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), plannedRemovalDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
+      { id: 'wo-2', type: 'Inspection', siteId: createdSites[1].id, technicianId: tech1.id, status: WorkOrderStatus.in_progress, plannedDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) },
+      { id: 'wo-3', type: 'Removal', siteId: createdSites[2].id, technicianId: tech2.id, status: WorkOrderStatus.open, plannedDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), plannedRemovalDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) },
+      { id: 'wo-4', type: 'Installation', siteId: createdSites[3].id, technicianId: tech2.id, status: WorkOrderStatus.completed, plannedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), actualDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), done: 'התקנה בוצעה בהצלחה. המזגן פועל.', plannedRemovalDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000) },
+      { id: 'wo-5', type: 'Inspection', siteId: createdSites[4].id, technicianId: tech1.id, status: WorkOrderStatus.completed, plannedDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), actualDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), done: 'המקרר תקין. יש להחליף גומיות בעוד 3 חודשים.' },
+      { id: 'wo-6', type: 'Installation', siteId: createdSites[5].id, technicianId: tech1.id, status: WorkOrderStatus.open, plannedDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), plannedRemovalDate: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000) },
+      { id: 'wo-7', type: 'Inspection', siteId: createdSites[6].id, technicianId: tech2.id, status: WorkOrderStatus.in_progress, plannedDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) },
+      { id: 'wo-8', type: 'Removal', siteId: createdSites[7].id, technicianId: tech2.id, status: WorkOrderStatus.open, plannedDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), plannedRemovalDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+      { id: 'wo-9', type: 'Installation', siteId: createdSites[1].id, technicianId: tech1.id, status: WorkOrderStatus.completed, plannedDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), actualDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), done: 'המזגן הותקן ונבדק. הכל תקין.', plannedRemovalDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000) },
+      { id: 'wo-10', type: 'Inspection', siteId: createdSites[0].id, technicianId: tech2.id, status: WorkOrderStatus.open, plannedDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000) },
+      { id: 'wo-11', type: 'General', siteId: createdSites[3].id, technicianId: tech1.id, status: WorkOrderStatus.completed, plannedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), actualDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), done: 'תיקון קטן בוצע.' },
+      { id: 'wo-12', type: 'Installation', siteId: createdSites[4].id, technicianId: tech2.id, status: WorkOrderStatus.in_progress, plannedDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) },
     ];
 
     const createdWorkOrders = [];

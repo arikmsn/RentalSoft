@@ -1,8 +1,7 @@
 import { api } from './api';
-import type { WorkOrder, WorkOrderType, WorkOrderStatus, ChecklistItem } from '../types';
+import type { WorkOrder, WorkOrderStatus, ChecklistItem } from '../types';
 
 export interface WorkOrderFilters {
-  type?: WorkOrderType;
   status?: WorkOrderStatus;
   technicianId?: string;
   siteId?: string;
@@ -10,7 +9,7 @@ export interface WorkOrderFilters {
 }
 
 export interface CreateWorkOrderRequest {
-  type: string;
+  type?: string;
   workTypeId?: string;
   siteId: string;
   technicianId: string;
@@ -19,7 +18,8 @@ export interface CreateWorkOrderRequest {
 }
 
 export interface UpdateWorkOrderRequest {
-  type?: WorkOrderType;
+  type?: string;
+  workTypeId?: string;
   status?: WorkOrderStatus;
   siteId?: string;
   technicianId?: string;
@@ -47,7 +47,6 @@ export interface ChecklistUpdate {
 export const workOrderService = {
   async getAll(filters?: WorkOrderFilters): Promise<WorkOrder[]> {
     const params = new URLSearchParams();
-    if (filters?.type) params.append('type', filters.type);
     if (filters?.status) params.append('status', filters.status);
     if (filters?.technicianId) params.append('technicianId', filters.technicianId);
     if (filters?.siteId) params.append('siteId', filters.siteId);

@@ -189,7 +189,7 @@ export const offlineApi = {
       const cached = await db.equipment.get(equipmentId);
       if (cached) {
         await db.equipment.update(equipmentId, {
-          status: 'at_customer',
+          status: 'assigned_to_work',
           lastScanDate: new Date(),
           cachedAt: new Date(),
         });

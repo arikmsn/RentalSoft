@@ -67,14 +67,10 @@
     "details": "פרטי ציוד",
     "deleteWarning": "לא ניתן לבטל – באתר זה יש כרגע ציוד פעיל. למחוק בכל זאת?",
     "statuses": {
-      "warehouse": "במחסן",
-      "at_customer": "אצל לקוח",
-      "in_repair": "בתיקון",
       "available": "זמין",
+      "assigned_to_work": "משויך לעבודה",
       "atCustomer": "אצל לקוח",
-      "inRepair": "בתיקון",
-      "atcustomer": "אצל לקוח",
-      "inrepair": "בתיקון"
+      "inRepair": "בתיקון"
     },
     "conditions": {
       "ok": "תקין",
@@ -143,12 +139,7 @@
     "filters": {
       "active": "פתוחות / בביצוע"
     },
-    "types": {
-      "installation": "התקנה",
-      "inspection": "בדיקה",
-      "removal": "פירוק",
-      "general": "כללי"
-    },
+    "workType": "סוג עבודה",
     "statuses": {
       "open": "פתוח",
       "in_progress": "בביצוע",

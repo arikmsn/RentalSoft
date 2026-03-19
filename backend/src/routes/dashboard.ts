@@ -16,7 +16,6 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
       totalEquipment,
       availableEquipment,
       atCustomerEquipment,
-      inRepairEquipment,
       totalSites,
       sitesWithEquipment,
       todayWorkOrders,
@@ -35,8 +34,7 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
           }
         }
       }),
-      prisma.equipment.count({ where: { status: 'at_customer' } }),
-      prisma.equipment.count({ where: { status: 'in_repair' } }),
+      prisma.equipment.count({ where: { status: 'assigned_to_work' } }),
       prisma.site.count(),
       prisma.site.count({
         where: {
@@ -78,7 +76,6 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
       totalEquipment,
       availableEquipment,
       atCustomerEquipment,
-      inRepairEquipment,
       totalSites,
       sitesWithEquipment,
       todayWorkOrders,

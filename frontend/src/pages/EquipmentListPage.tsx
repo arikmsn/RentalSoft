@@ -15,10 +15,8 @@ interface SettingsEquipmentType {
 }
 
 const statusColors: Record<EquipmentStatus, string> = {
-  warehouse: 'bg-primary-100 text-primary-700',
-  at_customer: 'bg-success-100 text-success-700',
-  in_repair: 'bg-danger-100 text-danger-700',
-  available: 'bg-surface-100 text-surface-600',
+  available: 'bg-success-100 text-success-700',
+  assigned_to_work: 'bg-primary-100 text-primary-700',
 };
 
 export function EquipmentListPage() {
@@ -149,9 +147,9 @@ export function EquipmentListPage() {
       if (filter === 'all') {
         matchesFilter = true;
       } else if (filter === 'available') {
-        matchesFilter = eq.status === 'available' || eq.status === 'warehouse';
-      } else if (filter === 'at_customer') {
-        matchesFilter = eq.status === 'at_customer';
+        matchesFilter = eq.status === 'available';
+      } else if (filter === 'at_workorder') {
+        matchesFilter = eq.status === 'assigned_to_work';
       }
       
       const matchesSearch = !search || 
@@ -196,7 +194,7 @@ export function EquipmentListPage() {
         >
           <option value="all">{t('equipment.filters.all')}</option>
           <option value="available">{t('equipment.filters.available')}</option>
-          <option value="at_customer">{t('equipment.filters.atCustomer')}</option>
+          <option value="at_workorder">{t('equipment.filters.atWorkorder')}</option>
         </select>
       </div>
 
@@ -230,7 +228,7 @@ export function EquipmentListPage() {
             </div>
             <div className="flex items-center">
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[eq.status]}`}>
-                {t(`equipment.statuses.${eq.status}`)}
+                {eq.status === 'available' ? t('equipment.statuses.available') : t('equipment.statuses.assigned_to_work')}
               </span>
             </div>
             

@@ -67,14 +67,10 @@
     "details": "Equipment Details",
     "deleteWarning": "Cannot delete - this site has active equipment. Delete anyway?",
     "statuses": {
-      "warehouse": "In Warehouse",
-      "at_customer": "At Customer",
-      "in_repair": "In Repair",
       "available": "Available",
+      "assigned_to_work": "Assigned to Work",
       "atCustomer": "At Customer",
-      "inRepair": "In Repair",
-      "atcustomer": "At Customer",
-      "inrepair": "In Repair"
+      "inRepair": "In Repair"
     },
     "conditions": {
       "ok": "OK",
@@ -139,12 +135,7 @@
     "filters": {
       "active": "Open / In Progress"
     },
-    "types": {
-      "installation": "Installation",
-      "inspection": "Inspection",
-      "removal": "Removal",
-      "general": "General"
-    },
+    "workType": "Work Type",
     "statuses": {
       "open": "Open",
       "in_progress": "In Progress",

@@ -10,7 +10,7 @@ export interface User {
   lastLogin?: Date;
 }
 
-export type EquipmentStatus = 'warehouse' | 'at_customer' | 'in_repair' | 'available';
+export type EquipmentStatus = 'available' | 'assigned_to_work';
 export type EquipmentCondition = 'ok' | 'not_ok' | 'wearout';
 
 export interface Equipment {
@@ -61,7 +61,6 @@ export interface Site {
   workOrders?: { id: string; title: string; status: WorkOrderStatus; plannedDate: Date }[];
 }
 
-export type WorkOrderType = 'installation' | 'inspection' | 'removal' | 'general';
 export type WorkOrderStatus = 'open' | 'in_progress' | 'completed';
 export type WorkOrderStatusColor = 'black' | 'red' | 'orange' | 'green';
 
@@ -73,7 +72,9 @@ export interface Technician {
 
 export interface WorkOrder {
   id: string;
-  type: WorkOrderType;
+  type?: string;
+  workTypeName?: string;
+  workTypeId?: string;
   siteId: string;
   technicianId: string;
   status: WorkOrderStatus;
@@ -90,7 +91,6 @@ export interface WorkOrder {
   equipmentCount?: number;
   statusColor?: WorkOrderStatusColor;
   daysUntilRemoval?: number | null;
-  workTypeName?: string;
 }
 
 export interface ChecklistItem {
