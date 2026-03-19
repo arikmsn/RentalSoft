@@ -31,98 +31,97 @@ export function AlertsPage() {
   const getAlertColor = (type: Alert['type']) => {
     switch (type) {
       case 'past_removal':
-        return 'bg-red-50 border-red-200';
+        return 'bg-danger-50 border-danger-200';
       case 'close_to_removal':
-        return 'bg-orange-50 border-orange-200';
+        return 'bg-warning-50 border-warning-200';
       case 'long_stay':
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-warning-50/60 border-warning-200/60';
       default:
-        return 'bg-gray-50 border-gray-200';
+        return 'bg-surface-50 border-surface-200';
+    }
+  };
+
+  const getAlertIcon = (type: Alert['type']) => {
+    switch (type) {
+      case 'past_removal': return '🔴';
+      case 'close_to_removal': return '🟠';
+      case 'long_stay': return '🟡';
+      default: return '⚪';
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">{t('app.loading')}</div>
+        <div className="text-surface-500">{t('app.loading')}</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-gray-900">{t('alerts.title')}</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-surface-800">{t('alerts.title')}</h1>
 
       <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            filter === 'all'
-              ? 'bg-primary-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          {t('equipment.filters.all')}
-        </button>
-        <button
-          onClick={() => setFilter('past_removal')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            filter === 'past_removal'
-              ? 'bg-red-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          {t('alerts.pastRemoval')}
-        </button>
-        <button
-          onClick={() => setFilter('close_to_removal')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
-            filter === 'close_to_removal'
-              ? 'bg-orange-600 text-white'
-              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-          }`}
-        >
-          {t('alerts.closeToRemoval')}
-        </button>
+        {([
+          { key: 'all' as const, label: t('equipment.filters.all'), activeClass: 'bg-primary-600 text-white shadow-sm' },
+          { key: 'past_removal' as const, label: t('alerts.pastRemoval'), activeClass: 'bg-danger-600 text-white shadow-sm' },
+          { key: 'close_to_removal' as const, label: t('alerts.closeToRemoval'), activeClass: 'bg-warning-600 text-white shadow-sm' },
+        ]).map((btn) => (
+          <button
+            key={btn.key}
+            onClick={() => setFilter(btn.key)}
+            className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
+              filter === btn.key
+                ? btn.activeClass
+                : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
+            }`}
+          >
+            {btn.label}
+          </button>
+        ))}
       </div>
 
       <div className="space-y-3">
         {filteredAlerts.map((alert) => (
           <div
             key={alert.id}
-            className={`p-4 rounded-xl border ${getAlertColor(alert.type)}`}
+            className={`p-4 rounded-2xl border ${getAlertColor(alert.type)} transition-all duration-200`}
           >
-            <div className="flex justify-between items-start">
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold">
-                  {alert.siteName || t('equipment.title')}
-                </h3>
-                <p className="text-sm mt-1 text-gray-600">
-                  {alert.siteAddress}
-                </p>
-                {alert.siteContact && (
-                  <p className="text-sm text-gray-500">
-                    {t('sites.contact1')}: {alert.siteContact}
+            <div className="flex justify-between items-start gap-3">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <span className="text-lg mt-0.5 shrink-0">{getAlertIcon(alert.type)}</span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-surface-800 text-sm sm:text-base">
+                    {alert.siteName || t('equipment.title')}
+                  </h3>
+                  <p className="text-sm text-surface-500 mt-0.5 truncate">
+                    {alert.siteAddress}
                   </p>
-                )}
-                <p className="text-sm mt-1">
-                  {alert.daysRemaining > 0
-                    ? `${alert.daysRemaining} ${t('alerts.daysRemaining')}`
-                    : `${Math.abs(alert.daysRemaining)} ${t('alerts.daysOverdue')}`}
-                </p>
+                  {alert.siteContact && (
+                    <p className="text-xs text-surface-400 mt-0.5">
+                      {t('sites.contact1')}: {alert.siteContact}
+                    </p>
+                  )}
+                  <p className="text-sm font-medium mt-1.5 text-surface-700">
+                    {alert.daysRemaining > 0
+                      ? `${alert.daysRemaining} ${t('alerts.daysRemaining')}`
+                      : `${Math.abs(alert.daysRemaining)} ${t('alerts.daysOverdue')}`}
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-col gap-2 ms-4">
+              <div className="flex flex-col gap-2 shrink-0">
                 {alert.sitePhone && (
                   <a
                     href={`tel:${alert.sitePhone}`}
-                    className="px-3 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 flex items-center gap-1"
+                    className="px-3 py-2 bg-success-500 text-white rounded-xl text-sm font-medium hover:bg-success-600 transition-colors flex items-center gap-1.5 justify-center"
                   >
-                    📞 {t('sites.phone1')}
+                    📞
                   </a>
                 )}
                 <Link
                   to={alert.workOrderId ? `/workorders/${alert.workOrderId}` : `/equipment/${alert.equipmentId}`}
-                  className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                  className="px-3 py-2 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors text-center"
                 >
                   {alert.workOrderId ? t('workOrders.details') : t('equipment.details')}
                 </Link>
@@ -133,8 +132,9 @@ export function AlertsPage() {
       </div>
 
       {filteredAlerts.length === 0 && (
-        <div className="text-center py-12 text-gray-500">
-          ✅ {t('errors.notFound')}
+        <div className="text-center py-12">
+          <span className="text-3xl block mb-2">✅</span>
+          <p className="text-surface-400 text-sm">{t('errors.notFound')}</p>
         </div>
       )}
     </div>

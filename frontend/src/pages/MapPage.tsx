@@ -178,8 +178,8 @@ export function MapPage() {
       };
 
       const statusHtml = site.overallStatus
-        ? `<div class="mt-2 flex items-center justify-center">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white" style="background-color: ${statusColorMap[site.overallStatus]}">
+        ? `<div style="margin-top:8px; display:flex; justify-content:center;">
+            <span style="display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; color:#fff; background-color:${statusColorMap[site.overallStatus]};">
               ${statusEmojiMap[site.overallStatus]} ${statusLabelMap[site.overallStatus]}
             </span>
           </div>`
@@ -187,21 +187,23 @@ export function MapPage() {
 
       const popup = L.popup({
         closeButton: true,
-        className: 'site-popup'
+        className: 'site-popup',
+        maxWidth: 280,
+        minWidth: 200,
       })
         .setLatLng([lat, lng])
         .setContent(`
-          <div class="text-right min-w-[180px] p-1">
-            <h3 class="font-semibold text-surface-800 text-sm">${woName}</h3>
-            <p class="text-xs text-surface-600 mt-1">${fullAddress}</p>
-            <div class="mt-2 text-xs space-y-0.5">
-              ${installationDate ? `<div><span class="font-medium text-surface-600">תאריך התקנה:</span> <span class="text-surface-800">${installationDate}</span></div>` : ''}
-              ${removalDate ? `<div><span class="font-medium text-surface-600">מתפנה בתאריך:</span> <span class="text-surface-800">${removalDate}</span></div>` : ''}
+          <div style="text-align:right; min-width:200px; padding:4px; font-family:Inter,system-ui,sans-serif;">
+            <div style="font-weight:600; font-size:14px; color:#1e293b;">${woName}</div>
+            <div style="font-size:12px; color:#64748b; margin-top:4px; line-height:1.4;">${fullAddress}</div>
+            <div style="margin-top:8px; font-size:11px; line-height:1.6;">
+              ${installationDate ? `<div><span style="color:#64748b; font-weight:500;">תאריך התקנה:</span> <span style="color:#1e293b; font-weight:600;">${installationDate}</span></div>` : ''}
+              ${removalDate ? `<div><span style="color:#64748b; font-weight:500;">מתפנה בתאריך:</span> <span style="color:#1e293b; font-weight:600;">${removalDate}</span></div>` : ''}
             </div>
             ${statusHtml}
-            <div class="mt-2 flex flex-col gap-1">
-              <a href="https://www.waze.com/ul?ll=${lat},${lng}&q=${encodeURIComponent(fullAddress)}" target="_blank" rel="noopener noreferrer" class="w-full px-2 py-2 rounded-lg text-sm font-medium text-center text-white bg-primary-600 hover:bg-primary-700" style="color: #ffffff !important;">ניווט</a>
-              <a href="${woDetailUrl}" class="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 text-center" style="color: #374151;">פירוט</a>
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+              <a href="https://www.waze.com/ul?ll=${lat},${lng}&q=${encodeURIComponent(fullAddress)}" target="_blank" rel="noopener noreferrer" style="display:block; padding:8px 12px; border-radius:10px; font-size:13px; font-weight:600; text-align:center; color:#fff; background:#0284c7; text-decoration:none;">ניווט</a>
+              <a href="${woDetailUrl}" style="display:block; padding:8px 12px; border-radius:10px; font-size:13px; font-weight:500; text-align:center; color:#475569; background:#f1f5f9; text-decoration:none;">פירוט</a>
             </div>
           </div>
         `);

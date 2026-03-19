@@ -87,3 +87,31 @@ button, a {
   direction: rtl;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
+
+/* Leaflet map popup polish */
+.leaflet-popup-content-wrapper {
+  border-radius: 16px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12) !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-content {
+  margin: 12px 14px !important;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif !important;
+  line-height: 1.5 !important;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+.leaflet-popup-close-button {
+  font-size: 20px !important;
+  color: #94a3b8 !important;
+  padding: 6px 8px !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #475569 !important;
+}

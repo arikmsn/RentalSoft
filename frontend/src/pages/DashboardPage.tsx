@@ -20,7 +20,6 @@ export function DashboardPage() {
       try {
         setError(null);
         
-        // Fetch stats and alerts separately so one failure doesn't block the other
         let statsData = null;
         let alertsData: any[] = [];
         
@@ -34,7 +33,6 @@ export function DashboardPage() {
           alertsData = await dashboardService.getAlerts();
         } catch (alertsErr) {
           console.error('Failed to fetch alerts:', alertsErr);
-          // Don't block the whole dashboard for alerts failure
         }
         
         setStats(statsData || {
@@ -51,7 +49,6 @@ export function DashboardPage() {
         });
         setAlerts(alertsData);
         
-        // Only show error if both failed
         if (!statsData) {
           setError('אירעה שגיאה בטעינת הנתונים');
         }
@@ -69,7 +66,7 @@ export function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">{t('app.loading')}</div>
+        <div className="text-surface-500">{t('app.loading')}</div>
       </div>
     );
   }
@@ -77,10 +74,10 @@ export function DashboardPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="text-red-500 text-center px-4">{error}</div>
+        <div className="text-danger-500 text-center px-4">{error}</div>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg"
+          className="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200"
         >
           {t('app.refresh')}
         </button>
@@ -88,43 +85,38 @@ export function DashboardPage() {
     );
   }
 
+  const statCards = [
+    { value: stats?.availableEquipment || 0, label: t('dashboard.availableEquipment'), color: 'text-primary-600', bg: 'bg-primary-50', icon: '📦', onClick: () => navigate('/equipment?filter=available') },
+    { value: stats?.sitesWithEquipment || 0, label: t('dashboard.sitesWithEquipment'), color: 'text-success-600', bg: 'bg-success-50', icon: '📍', onClick: () => navigate('/equipment?filter=at_customer') },
+    { value: stats?.overdueRemovals || 0, label: t('dashboard.overdueRemovals'), color: 'text-danger-600', bg: 'bg-danger-50', icon: '🔴', onClick: () => navigate('/workorders?filter=open') },
+    { value: stats?.upcomingRemovals || 0, label: t('dashboard.upcomingRemovals'), color: 'text-warning-600', bg: 'bg-warning-50', icon: '🟡', onClick: undefined },
+  ];
+
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-surface-800">
           {t('dashboard.title')}
         </h1>
-        <p className="text-sm text-surface-500 mt-1">{user?.name} • {formatDate(new Date())}</p>
+        <p className="text-sm text-surface-400 mt-1">{user?.name} &middot; {formatDate(new Date())}</p>
       </div>
 
-      {/* Stats Grid - 2x2 on mobile, 4 columns on desktop */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div 
-          onClick={() => navigate('/equipment?filter=available')}
-          className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100 cursor-pointer"
-        >
-          <div className="text-3xl sm:text-4xl font-bold text-primary-600">{stats?.availableEquipment || 0}</div>
-          <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.availableEquipment')}</div>
-        </div>
-        <div 
-          onClick={() => navigate('/equipment?filter=at_customer')}
-          className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100 cursor-pointer"
-        >
-          <div className="text-3xl sm:text-4xl font-bold text-success-600">{stats?.sitesWithEquipment || 0}</div>
-          <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.sitesWithEquipment')}</div>
-        </div>
-        <div 
-          onClick={() => navigate('/workorders?filter=open')}
-          className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100 cursor-pointer"
-        >
-          <div className="text-3xl sm:text-4xl font-bold text-danger-600">{stats?.overdueRemovals || 0}</div>
-          <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.overdueRemovals')}</div>
-        </div>
-        <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-shadow duration-300 border border-surface-100">
-          <div className="text-3xl sm:text-4xl font-bold text-warning-500">{stats?.upcomingRemovals || 0}</div>
-          <div className="text-xs sm:text-sm text-surface-500 mt-1">{t('dashboard.upcomingRemovals')}</div>
-        </div>
+        {statCards.map((card, i) => (
+          <div
+            key={i}
+            onClick={card.onClick}
+            className={`bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100 ${card.onClick ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className={`w-10 h-10 ${card.bg} rounded-xl flex items-center justify-center text-lg`}>{card.icon}</span>
+            </div>
+            <div className={`text-3xl sm:text-4xl font-bold ${card.color} leading-none`}>{card.value}</div>
+            <div className="text-xs sm:text-sm text-surface-500 mt-2 leading-tight">{card.label}</div>
+          </div>
+        ))}
       </div>
 
       {/* Alerts Section */}
@@ -134,38 +126,44 @@ export function DashboardPage() {
           {alerts.length > 0 && (
             <Link
               to="/alerts"
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
             >
-              {t('app.actions')} →
+              {t('app.actions')} &larr;
             </Link>
           )}
         </div>
         
         {alerts.length === 0 ? (
-          <p className="text-gray-500 text-center py-4 sm:py-8 text-sm">{t('dashboard.noAlerts')}</p>
+          <div className="text-center py-6 sm:py-8">
+            <span className="text-3xl mb-2 block">✅</span>
+            <p className="text-surface-400 text-sm">{t('dashboard.noAlerts')}</p>
+          </div>
         ) : (
-          <div className="space-y-2 sm:space-y-3 max-h-[300px] overflow-y-auto">
+          <div className="space-y-2 max-h-[320px] overflow-y-auto">
             {alerts.slice(0, 5).map((alert) => (
               <Link
                 key={alert.id}
                 to={alert.workOrderId ? `/workorders/${alert.workOrderId}` : `/equipment/${alert.equipmentId}`}
                 className="block"
               >
-                <div className="flex items-center justify-between p-2 sm:p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+                <div className="flex items-center gap-3 p-3 bg-danger-50 rounded-xl hover:bg-danger-100 transition-colors border border-danger-100">
+                  <div className="w-8 h-8 bg-danger-100 rounded-lg flex items-center justify-center shrink-0">
+                    <span className="text-sm">⚠️</span>
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm sm:text-base text-red-800">
+                    <p className="font-medium text-sm text-danger-800 truncate">
                       {alert.siteName || t('equipment.title')}
                     </p>
-                    <p className="text-xs text-red-600 truncate">
+                    <p className="text-xs text-danger-600 truncate">
                       {alert.siteAddress}
                     </p>
-                    <p className="text-xs sm:text-sm text-red-600">
+                    <p className="text-xs text-danger-500 mt-0.5">
                       {alert.daysRemaining > 0
                         ? `${alert.daysRemaining} ${t('alerts.daysRemaining')}`
                         : `${Math.abs(alert.daysRemaining)} ${t('alerts.daysOverdue')}`}
                     </p>
                   </div>
-                  <span className="text-red-400">→</span>
+                  <span className="text-danger-300 text-lg shrink-0">&larr;</span>
                 </div>
               </Link>
             ))}
@@ -173,21 +171,21 @@ export function DashboardPage() {
         )}
       </div>
 
-      {/* Quick Actions - only show אתרים and ציוד */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
         <Link
           to="/sites"
-          className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center gap-2 min-h-[80px] justify-center"
+          className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover border border-surface-100 transition-all duration-300 flex flex-col items-center gap-2.5 min-h-[88px] justify-center active:scale-[0.98]"
         >
           <span className="text-2xl">📍</span>
-          <span className="text-sm font-medium text-center">{t('navigation.sites')}</span>
+          <span className="text-sm font-medium text-surface-700">{t('navigation.sites')}</span>
         </Link>
         <Link
           to="/equipment"
-          className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center gap-2 min-h-[80px] justify-center"
+          className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover border border-surface-100 transition-all duration-300 flex flex-col items-center gap-2.5 min-h-[88px] justify-center active:scale-[0.98]"
         >
           <span className="text-2xl">📦</span>
-          <span className="text-sm font-medium text-center">{t('navigation.equipment')}</span>
+          <span className="text-sm font-medium text-surface-700">{t('navigation.equipment')}</span>
         </Link>
       </div>
     </div>
