@@ -11,6 +11,7 @@ export interface WorkOrderFilters {
 
 export interface CreateWorkOrderRequest {
   type: string;
+  workTypeId?: string;
   siteId: string;
   technicianId: string;
   plannedDate: Date;

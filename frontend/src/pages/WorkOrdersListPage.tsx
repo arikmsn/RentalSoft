@@ -41,6 +41,7 @@ export function WorkOrdersListPage() {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     type: 'installation' as string,
+    workTypeId: '',
     siteId: '',
     technicianId: '',
     plannedDate: '',
@@ -85,13 +86,14 @@ export function WorkOrdersListPage() {
     try {
       await workOrderService.create({
         type: formData.type,
+        workTypeId: formData.workTypeId || undefined,
         siteId: formData.siteId,
         technicianId: formData.technicianId,
         plannedDate: new Date(formData.plannedDate),
         plannedRemovalDate: formData.plannedRemovalDate ? new Date(formData.plannedRemovalDate) : undefined,
       });
       setShowForm(false);
-      setFormData({ type: workTypes.length > 0 ? workTypes[0].name : 'installation', siteId: '', technicianId: '', plannedDate: '', plannedRemovalDate: '' });
+      setFormData({ type: workTypes.length > 0 ? workTypes[0].name : 'installation', workTypeId: workTypes.length > 0 ? workTypes[0].id : '', siteId: '', technicianId: '', plannedDate: '', plannedRemovalDate: '' });
       const data = await workOrderService.getAll();
       setWorkOrders(data);
     } catch (err: any) {
@@ -184,7 +186,7 @@ export function WorkOrdersListPage() {
                         title={`${wo.statusColor === 'black' ? 'עבר תאריך' : wo.statusColor === 'red' ? 'הגיע הזמן' : wo.statusColor === 'orange' ? 'קרוב לפירוק' : 'יש זמן'}`}
                       />
                     )}
-                    {workTypes.find(wt => wt.name === wo.type)?.name || wo.type}
+                    {wo.workTypeName || wo.type}
                   </h3>
                   <p className="text-sm text-surface-500 mt-1">
                     {wo.site ? wo.site.name : ''}
@@ -226,13 +228,20 @@ export function WorkOrdersListPage() {
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('workOrders.type')}</label>
                 <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                  value={formData.workTypeId || formData.type}
+                  onChange={(e) => {
+                    const selected = workTypes.find(wt => wt.id === e.target.value);
+                    if (selected) {
+                      setFormData({ ...formData, type: selected.name, workTypeId: selected.id });
+                    } else {
+                      setFormData({ ...formData, type: e.target.value as any, workTypeId: '' });
+                    }
+                  }}
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 >
                   {workTypes.length > 0 ? (
                     workTypes.map(wt => (
-                      <option key={wt.id} value={wt.name}>{wt.name}</option>
+                      <option key={wt.id} value={wt.id}>{wt.name}</option>
                     ))
                   ) : (
                     <>

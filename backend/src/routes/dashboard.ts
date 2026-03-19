@@ -109,29 +109,46 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
     const alerts = sites
       .map((site) => {
         const activeWorkOrders = site.workOrders;
-        const removalDates = activeWorkOrders
-          .map((wo) => wo.plannedRemovalDate)
-          .filter((d): d is Date => d !== null);
 
-        if (removalDates.length === 0) return null;
+        let statusColor: 'black' | 'red' | 'orange' | 'green' = 'green';
+        let daysUntilRemoval: number | null = null;
+        let mostUrgentWO: typeof activeWorkOrders[0] | null = null;
 
-        const earliestRemovalDate = new Date(Math.min(...removalDates.map((d) => d.getTime())));
-        const { statusColor, daysUntilRemoval } = computeWorkOrderStatus(earliestRemovalDate, now);
+        if (activeWorkOrders.length > 0) {
+          const ranked = activeWorkOrders
+            .map(wo => ({
+              wo,
+              days: wo.plannedRemovalDate
+                ? Math.ceil((new Date(wo.plannedRemovalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                : Infinity,
+            }))
+            .sort((a, b) => a.days - b.days);
 
-        if (statusColor !== 'black' && statusColor !== 'red') return null;
+          const priorities = ranked.map(r => r.days);
+          if (priorities.some(d => d < 0)) {
+            statusColor = 'black';
+            const entry = ranked.find(r => r.days < 0)!;
+            mostUrgentWO = entry.wo;
+            daysUntilRemoval = entry.days;
+          } else if (priorities.some(d => d >= 0 && d <= 2)) {
+            statusColor = 'red';
+            const entry = ranked.find(r => r.days >= 0 && r.days <= 2)!;
+            mostUrgentWO = entry.wo;
+            daysUntilRemoval = entry.days;
+          } else {
+            return null;
+          }
+        } else {
+          return null;
+        }
+
         if (type === 'past_removal' && statusColor !== 'black') return null;
         if (type === 'close_to_removal' && statusColor !== 'red') return null;
-
-        const firstWorkOrder = activeWorkOrders.find(
-          (wo) => wo.plannedRemovalDate?.getTime() === earliestRemovalDate.getTime()
-        ) || activeWorkOrders[0];
-
-        if (!firstWorkOrder) return null;
 
         return {
           id: `alert-${site.id}`,
           equipmentId: null,
-          workOrderId: firstWorkOrder?.id || null,
+          workOrderId: mostUrgentWO?.id || null,
           type: statusColor === 'black' ? 'past_removal' : 'close_to_removal',
           daysRemaining: daysUntilRemoval!,
           createdAt: now,

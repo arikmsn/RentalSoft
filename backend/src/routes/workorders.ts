@@ -30,6 +30,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
         site: true,
         technician: { select: { id: true, name: true } },
         equipment: { select: { id: true } },
+        workType: { select: { name: true } },
       },
       orderBy: { plannedDate: 'asc' },
     });
@@ -42,6 +43,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
       );
       return {
         ...wo,
+        workTypeName: wo.workType?.name || wo.type,
         statusColor,
         daysUntilRemoval,
         equipmentCount: wo.equipment.length,
@@ -147,18 +149,19 @@ async function updateEquipmentStatusForWorkOrder(workOrderId: string) {
   } else if (workOrder.status === 'completed') {
     await prisma.equipment.updateMany({
       where: { id: { in: equipmentIds } },
-      data: { status: 'warehouse' },
+      data: { status: 'available' },
     });
   }
 }
 
 router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRequest, res) => {
   try {
-    const { type, siteId, technicianId, plannedDate, plannedRemovalDate, equipmentIds } = req.body;
+    const { type, workTypeId, siteId, technicianId, plannedDate, plannedRemovalDate, equipmentIds } = req.body;
 
     const workOrder = await prisma.workOrder.create({
       data: {
         type,
+        workTypeId: workTypeId || null,
         siteId,
         technicianId,
         plannedDate: new Date(plannedDate),
@@ -171,6 +174,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         site: true,
         technician: { select: { id: true, name: true } },
         equipment: { include: { equipment: true } },
+        workType: { select: { name: true } },
       },
     });
 

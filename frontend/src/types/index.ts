@@ -90,6 +90,7 @@ export interface WorkOrder {
   equipmentCount?: number;
   statusColor?: WorkOrderStatusColor;
   daysUntilRemoval?: number | null;
+  workTypeName?: string;
 }
 
 export interface ChecklistItem {

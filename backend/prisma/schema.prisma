@@ -138,6 +138,7 @@ model Site {
 model WorkOrder {
   id                 String           @id @default(uuid())
   type               WorkOrderType
+  workTypeId         String?
   siteId             String
   technicianId       String?
   status             WorkOrderStatus  @default(open)
@@ -151,6 +152,7 @@ model WorkOrder {
 
   site       Site          @relation(fields: [siteId], references: [id])
   technician Technician?  @relation(fields: [technicianId], references: [id])
+  workType  SettingsWorkOrderType? @relation(fields: [workTypeId], references: [id])
   checklist  ChecklistItem[]
   activityLogs ActivityLog[]
   statusHistory WorkOrderStatusHistory[]
@@ -203,6 +205,8 @@ model SettingsWorkOrderType {
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  workOrders  WorkOrder[]
 }
 
 model SettingsEquipmentType {

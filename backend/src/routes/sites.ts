@@ -76,23 +76,55 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
         const activeWorkOrders = site.workOrders.filter(wo => wo.status !== 'completed');
         const now = new Date();
 
-        const workOrderRemovalDates = activeWorkOrders
-          .map(wo => wo.plannedRemovalDate)
-          .filter((d): d is Date => d !== null);
-
         let statusColor: 'black' | 'red' | 'orange' | 'green' = 'green';
         let statusReason = 'no removal dates';
         let earliestRemovalDate: Date | null = null;
+        let daysUntilRemoval: number | null = null;
+        let mostUrgentWorkOrder: typeof activeWorkOrders[0] | null = null;
 
-        if (workOrderRemovalDates.length > 0) {
-          earliestRemovalDate = new Date(Math.min(...workOrderRemovalDates.map(d => d.getTime())));
-          const { statusColor: computed, daysUntilRemoval } = computeWorkOrderStatus(earliestRemovalDate, now);
-          statusColor = computed;
+        if (activeWorkOrders.length > 0) {
+          const ranked = activeWorkOrders
+            .map(wo => ({
+              wo,
+              days: wo.plannedRemovalDate
+                ? Math.ceil((new Date(wo.plannedRemovalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                : Infinity,
+            }))
+            .sort((a, b) => a.days - b.days);
 
-          if (statusColor === 'black') statusReason = `overdue by ${Math.abs(daysUntilRemoval!)} days`;
-          else if (statusColor === 'red') statusReason = `removal in ${daysUntilRemoval} days (0-2 days)`;
-          else if (statusColor === 'orange') statusReason = `removal in ${daysUntilRemoval} days (3-7 days)`;
-          else statusReason = `removal in ${daysUntilRemoval} days (>7 days)`;
+          const priority = ranked.map(r => r.days);
+
+          if (priority.some(d => d < 0)) {
+            statusColor = 'black';
+            const entry = ranked.find(r => r.days < 0)!;
+            mostUrgentWorkOrder = entry.wo;
+            daysUntilRemoval = entry.days;
+            statusReason = `overdue by ${Math.abs(entry.days)} days`;
+          } else if (priority.some(d => d >= 0 && d <= 2)) {
+            statusColor = 'red';
+            const entry = ranked.find(r => r.days >= 0 && r.days <= 2)!;
+            mostUrgentWorkOrder = entry.wo;
+            daysUntilRemoval = entry.days;
+            statusReason = `removal in ${entry.days} days (0-2 days)`;
+          } else if (priority.some(d => d >= 3 && d <= 7)) {
+            statusColor = 'orange';
+            const entry = ranked.find(r => r.days >= 3 && r.days <= 7)!;
+            mostUrgentWorkOrder = entry.wo;
+            daysUntilRemoval = entry.days;
+            statusReason = `removal in ${entry.days} days (3-7 days)`;
+          } else {
+            statusColor = 'green';
+            const entry = ranked[0];
+            mostUrgentWorkOrder = entry.wo;
+            daysUntilRemoval = entry.days === Infinity ? null : entry.days;
+            statusReason = entry.days === Infinity
+              ? 'no removal dates set'
+              : `removal in ${entry.days} days (>7 days)`;
+          }
+
+          earliestRemovalDate = mostUrgentWorkOrder.plannedRemovalDate
+            ? new Date(mostUrgentWorkOrder.plannedRemovalDate)
+            : null;
 
           console.log(`[MapColor] Site ${site.name}:`, {
             siteId: site.id,
@@ -100,8 +132,8 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
               workOrderId: wo.id,
               plannedRemovalDate: wo.plannedRemovalDate,
             })),
-            earliestRemovalDate: earliestRemovalDate,
-            today: now,
+            mostUrgentWorkOrder: mostUrgentWorkOrder?.id,
+            earliestRemovalDate,
             daysUntilRemoval,
             statusColor,
             statusReason
@@ -109,10 +141,6 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
         } else {
           console.log(`[MapColor] Site ${site.name}:`, {
             siteId: site.id,
-            workOrders: activeWorkOrders.map(wo => ({
-              workOrderId: wo.id,
-              plannedRemovalDate: wo.plannedRemovalDate,
-            })),
             statusColor,
             statusReason: 'no removal dates set'
           });
@@ -126,6 +154,7 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
           equipmentCount,
           overallStatus: statusColor,
           earliestRemovalDate,
+          daysUntilRemoval,
           hasValidLocation,
         };
       })
