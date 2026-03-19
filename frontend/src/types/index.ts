@@ -53,6 +53,7 @@ export interface Site {
   isHighlighted: boolean;
   latitude?: number;
   longitude?: number;
+  hasValidLocation?: boolean;
   createdAt: Date;
   updatedAt: Date;
   workOrders?: { id: string; title: string; status: WorkOrderStatus; plannedDate: Date }[];

@@ -21,11 +21,6 @@ interface SiteWithStatus {
   latitude?: number | null;
   longitude?: number | null;
   isHighlighted: boolean;
-  statusCounts?: {
-    red: number;
-    orange: number;
-    green: number;
-  };
   overallStatus?: 'red' | 'orange' | 'green';
   workOrders?: Array<{
     id: string;
@@ -158,10 +153,23 @@ export function MapPage() {
           </div>`
         : '';
 
-      const equipmentCountHtml = site.equipmentCount !== undefined
-        ? `<div class="mt-2 flex items-center justify-center gap-1 text-sm text-surface-600">
-            <span>🔧</span>
-            <span>${site.equipmentCount}</span>
+      const statusColorMap: Record<string, string> = {
+        red: '#ef4444',
+        orange: '#f97316',
+        green: '#22c55e',
+      };
+      const statusLabelMap: Record<string, string> = {
+        red: 'באיחור',
+        orange: 'קרוב לפירוק',
+        green: 'יש זמן',
+      };
+
+      const statusHtml = site.overallStatus
+        ? `<div class="mt-2 flex items-center justify-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white" style="background-color: ${statusColorMap[site.overallStatus]}">
+              ${site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
+              ${statusLabelMap[site.overallStatus]}
+            </span>
           </div>`
         : '';
 
@@ -177,14 +185,7 @@ export function MapPage() {
           <div class="text-center min-w-[150px] p-1">
             <h3 class="font-semibold text-surface-800">${site.name}</h3>
             <p class="text-sm text-surface-600">${site.address}</p>
-            ${equipmentCountHtml}
-            ${site.statusCounts ? `
-              <div class="mt-2 flex justify-center gap-2 text-xs">
-                ${site.statusCounts.red > 0 ? `<span class="px-2 py-1 bg-danger-100 text-danger-700 rounded-full">🔴 ${site.statusCounts.red}</span>` : ''}
-                ${site.statusCounts.orange > 0 ? `<span class="px-2 py-1 bg-warning-100 text-warning-700 rounded-full">🟠 ${site.statusCounts.orange}</span>` : ''}
-                ${site.statusCounts.green > 0 ? `<span class="px-2 py-1 bg-success-100 text-success-700 rounded-full">🟢 ${site.statusCounts.green}</span>` : ''}
-              </div>
-            ` : ''}
+            ${statusHtml}
             ${site.isHighlighted ? `<span class="text-xs text-warning-600 font-medium">⚠️</span>` : ''}
             ${workOrdersHtml}
             <div class="mt-2 flex flex-col gap-1">
@@ -313,17 +314,15 @@ export function MapPage() {
                   <div className="text-center min-w-[150px] p-1">
                     <h3 className="font-semibold text-surface-800">{site.name}</h3>
                     <p className="text-sm text-surface-600">{site.address}</p>
-                    {site.statusCounts && (
-                      <div className="mt-2 flex justify-center gap-2 text-xs">
-                        {site.statusCounts.red > 0 && (
-                          <span className="px-2 py-1 bg-danger-100 text-danger-700 rounded-full">🔴 {site.statusCounts.red}</span>
-                        )}
-                        {site.statusCounts.orange > 0 && (
-                          <span className="px-2 py-1 bg-warning-100 text-warning-700 rounded-full">🟠 {site.statusCounts.orange}</span>
-                        )}
-                        {site.statusCounts.green > 0 && (
-                          <span className="px-2 py-1 bg-success-100 text-success-700 rounded-full">🟢 {site.statusCounts.green}</span>
-                        )}
+                    {site.overallStatus && (
+                      <div className="mt-2 flex items-center justify-center gap-2">
+                        <span
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white"
+                          style={{ backgroundColor: statusColors[site.overallStatus] }}
+                        >
+                          {site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
+                          {site.overallStatus === 'red' ? 'באיחור' : site.overallStatus === 'orange' ? 'קרוב לפירוק' : 'יש זמן'}
+                        </span>
                       </div>
                     )}
                     {site.isHighlighted && (
@@ -381,17 +380,15 @@ export function MapPage() {
                       </div>
                       <p className="text-xs text-surface-600 font-medium mt-0.5">{site.city}</p>
                       <p className="text-xs text-surface-400 truncate mt-0.5">{site.address}</p>
-                      {site.statusCounts && (
+                      {site.overallStatus && (
                         <div className="flex items-center gap-1 mt-1">
-                          {site.statusCounts.red > 0 && (
-                            <span className="px-2 py-0.5 bg-danger-100 text-danger-700 rounded-full text-xs">🔴 {site.statusCounts.red}</span>
-                          )}
-                          {site.statusCounts.orange > 0 && (
-                            <span className="px-2 py-0.5 bg-warning-100 text-warning-700 rounded-full text-xs">🟠 {site.statusCounts.orange}</span>
-                          )}
-                          {site.statusCounts.green > 0 && (
-                            <span className="px-2 py-0.5 bg-success-100 text-success-700 rounded-full text-xs">🟢 {site.statusCounts.green}</span>
-                          )}
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                            style={{ backgroundColor: statusColors[site.overallStatus] }}
+                          >
+                            {site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
+                            {site.overallStatus === 'red' ? 'באיחור' : site.overallStatus === 'orange' ? 'קרוב' : 'יש זמן'}
+                          </span>
                         </div>
                       )}
                     </div>

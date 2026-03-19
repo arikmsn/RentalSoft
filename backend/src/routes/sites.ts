@@ -68,60 +68,65 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
       sites.map(async (site) => {
         const hasValidLocation = isSiteLocationValid(site);
 
-        const activeWorkOrderEquipment: any[] = [];
-        for (const wo of site.workOrders) {
-          for (const woEq of wo.equipment) {
-            activeWorkOrderEquipment.push({
-              ...woEq.equipment,
-              workOrderId: wo.id,
-            });
-          }
-        }
+        const activeWorkOrders = site.workOrders.filter(wo => wo.status !== 'completed');
+        const now = new Date();
 
-        let redCount = 0;
-        let orangeCount = 0;
-        let greenCount = 0;
+        const workOrderRemovalDates = activeWorkOrders
+          .map(wo => wo.plannedRemovalDate)
+          .filter((d): d is Date => d !== null);
 
-        for (const eq of activeWorkOrderEquipment) {
-          const wo = site.workOrders.find(w => w.id === eq.workOrderId);
-          const removalDate = eq.plannedRemovalDate || wo?.plannedRemovalDate;
+        let statusColor: 'red' | 'orange' | 'green' = 'green';
+        let statusReason = 'no removal dates';
 
-          if (!removalDate) {
-            greenCount++;
-            continue;
-          }
+        if (workOrderRemovalDates.length > 0) {
+          const earliestRemoval = new Date(Math.min(...workOrderRemovalDates.map(d => d.getTime())));
+          const daysUntilRemoval = Math.ceil((earliestRemoval.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-          const daysRemaining = Math.ceil((new Date(removalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-          if (daysRemaining <= 7) {
-            redCount++;
-          } else if (daysRemaining <= 10) {
-            orangeCount++;
+          if (daysUntilRemoval < 0) {
+            statusColor = 'red';
+            statusReason = `overdue by ${Math.abs(daysUntilRemoval)} days`;
+          } else if (daysUntilRemoval <= 7) {
+            statusColor = 'red';
+            statusReason = `removal in ${daysUntilRemoval} days (≤7 days)`;
+          } else if (daysUntilRemoval <= 10) {
+            statusColor = 'orange';
+            statusReason = `removal in ${daysUntilRemoval} days (8-10 days)`;
           } else {
-            greenCount++;
+            statusColor = 'green';
+            statusReason = `removal in ${daysUntilRemoval} days (>10 days)`;
           }
+
+          console.log(`[MapColor] Site ${site.name}:`, {
+            siteId: site.id,
+            workOrders: activeWorkOrders.map(wo => ({
+              workOrderId: wo.id,
+              plannedRemovalDate: wo.plannedRemovalDate,
+            })),
+            earliestRemovalDate: earliestRemoval,
+            today: now,
+            daysUntilRemoval,
+            statusColor,
+            statusReason
+          });
+        } else {
+          console.log(`[MapColor] Site ${site.name}:`, {
+            siteId: site.id,
+            workOrders: activeWorkOrders.map(wo => ({
+              workOrderId: wo.id,
+              plannedRemovalDate: wo.plannedRemovalDate,
+            })),
+            statusColor,
+            statusReason: 'no removal dates set'
+          });
         }
 
-        let overallStatus: 'red' | 'orange' | 'green' = 'green';
-        if (redCount > 0) {
-          overallStatus = 'red';
-        } else if (orangeCount > 0) {
-          overallStatus = 'orange';
-        }
-
-        console.log(`[Map] Site ${site.name}: equipment count=${activeWorkOrderEquipment.length}, red=${redCount}, orange=${orangeCount}, green=${greenCount}`, 
-          activeWorkOrderEquipment.map(eq => ({ id: eq.id, woId: eq.workOrderId })));
+        const equipmentCount = site.workOrders.reduce((sum, wo) => sum + wo.equipment.length, 0);
 
         return {
           ...site,
           equipment: undefined,
-          equipmentCount: activeWorkOrderEquipment.length,
-          statusCounts: {
-            red: redCount,
-            orange: orangeCount,
-            green: greenCount,
-          },
-          overallStatus,
+          equipmentCount,
+          overallStatus: statusColor,
           hasValidLocation,
         };
       })
@@ -133,6 +138,29 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
       s.longitude != null &&
       s.workOrders.length > 0
     );
+
+    console.log('[Map] Sites returned for map:', validSites.map(s => ({
+      id: s.id,
+      name: s.name,
+      hasValidLocation: s.hasValidLocation,
+      lat: s.latitude,
+      lng: s.longitude,
+      workOrderCount: s.workOrders.length,
+      overallStatus: s.overallStatus
+    })));
+
+    console.log('[Map] Sites filtered out:', sitesWithStatus.filter(s => !validSites.includes(s)).map(s => ({
+      id: s.id,
+      name: s.name,
+      hasValidLocation: s.hasValidLocation,
+      lat: s.latitude,
+      lng: s.longitude,
+      workOrderCount: s.workOrders.length,
+      reason: !s.hasValidLocation ? 'no valid location' : 
+               s.latitude == null ? 'no latitude' : 
+               s.longitude == null ? 'no longitude' : 
+               s.workOrders.length === 0 ? 'no work orders' : 'unknown'
+    })));
 
     res.json(validSites);
   } catch (error) {
