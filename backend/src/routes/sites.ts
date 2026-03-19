@@ -56,6 +56,7 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
           orderBy: { plannedDate: 'desc' },
           take: 5,
           include: {
+            workType: { select: { name: true } },
             equipment: {
               include: {
                 equipment: true,
@@ -153,6 +154,14 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
         return {
           ...site,
           equipment: undefined,
+          workOrders: site.workOrders.map(wo => ({
+            id: wo.id,
+            status: wo.status,
+            type: wo.type,
+            workTypeName: (wo as any).workType?.name || wo.type,
+            plannedDate: wo.plannedDate,
+            plannedRemovalDate: wo.plannedRemovalDate,
+          })),
           equipmentCount,
           overallStatus: statusColor,
           hasEquipment: equipmentCount > 0,
@@ -166,8 +175,7 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
     const validSites = sitesWithStatus.filter(s => 
       s.hasValidLocation && 
       s.latitude != null && 
-      s.longitude != null &&
-      s.workOrders.length > 0
+      s.longitude != null
     );
 
     console.log('[Map] Sites returned for map:', validSites.map(s => ({
@@ -189,8 +197,7 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
       workOrderCount: s.workOrders.length,
       reason: !s.hasValidLocation ? 'no valid location' : 
                s.latitude == null ? 'no latitude' : 
-               s.longitude == null ? 'no longitude' : 
-               s.workOrders.length === 0 ? 'no work orders' : 'unknown'
+               s.longitude == null ? 'no longitude' : 'unknown'
     })));
 
     res.json(validSites);
