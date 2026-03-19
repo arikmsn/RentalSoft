@@ -466,17 +466,58 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
 
 router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, res) => {
   try {
-    await prisma.site.delete({
-      where: { id: req.params.id },
+    const siteId = req.params.id;
+
+    // Check what's linked to this site
+    const site = await prisma.site.findUnique({
+      where: { id: siteId },
+      include: {
+        _count: {
+          select: {
+            workOrders: true,
+            equipment: true,
+            activityLogs: true,
+          },
+        },
+      },
     });
 
+    if (!site) {
+      return res.status(404).json({ message: 'Site not found' });
+    }
+
+    console.log(`[SiteDelete] Site ${site.name} (${siteId}): workOrders=${site._count.workOrders}, equipment=${site._count.equipment}, activityLogs=${site._count.activityLogs}`);
+
+    // Delete related records in correct order (respecting foreign keys)
+    // 1. Activity logs referencing this site
+    await prisma.activityLog.deleteMany({ where: { siteId } });
+
+    // 2. For each work order: delete checklist items, status history, work order equipment, then the work order
+    const workOrderIds = (await prisma.workOrder.findMany({ where: { siteId }, select: { id: true } })).map(wo => wo.id);
+    if (workOrderIds.length > 0) {
+      await prisma.checklistItem.deleteMany({ where: { workOrderId: { in: workOrderIds } } });
+      await prisma.workOrderStatusHistory.deleteMany({ where: { workOrderId: { in: workOrderIds } } });
+      await prisma.workOrderEquipment.deleteMany({ where: { workOrderId: { in: workOrderIds } } });
+      await prisma.workOrder.deleteMany({ where: { siteId } });
+    }
+
+    // 3. Unlink equipment (set siteId to null rather than deleting equipment)
+    await prisma.equipment.updateMany({ where: { siteId }, data: { siteId: null, status: 'warehouse' } });
+
+    // 4. Delete the site
+    await prisma.site.delete({ where: { id: siteId } });
+
+    console.log(`[SiteDelete] Site ${site.name} deleted successfully`);
     res.json({ message: 'Site deleted' });
   } catch (error: any) {
     console.error('Delete site error:', error);
     if (error.code === 'P2003') {
-      return res.status(400).json({
-        message: 'Cannot delete site - it has related equipment or work orders. Please remove all related records first.'
+      return res.status(409).json({
+        message: 'לא ניתן למחוק את האתר – יש אליו רשומות מקושרות. נסה שוב או פנה למנהל.'
       });
+    }
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'Site not found' });
     }
     res.status(500).json({ message: 'Server error' });
   }

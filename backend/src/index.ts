@@ -29,6 +29,13 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 
+// Public config endpoint - exposes client-safe keys (no auth required)
+app.get('/api/config/public', (req, res) => {
+  res.json({
+    googleMapsApiKey: config.googleMapsApiKey,
+  });
+});
+
 app.use('/api', routes);
 
 app.get('/health', (req, res) => {
