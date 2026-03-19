@@ -22,11 +22,13 @@ interface SiteWithStatus {
   longitude?: number | null;
   isHighlighted: boolean;
   overallStatus?: 'black' | 'red' | 'orange' | 'green';
+  earliestRemovalDate?: string | null;
   workOrders?: Array<{
     id: string;
     status: string;
     type: string;
     plannedDate: Date | string;
+    plannedRemovalDate?: Date | string | null;
   }>;
   equipmentCount?: number;
 }
@@ -162,7 +164,7 @@ export function MapPage() {
       };
       const statusLabelMap: Record<string, string> = {
         black: 'עבר תאריך',
-        red: 'באיחור',
+        red: 'הגיע הזמן',
         orange: 'קרוב לפירוק',
         green: 'יש זמן',
       };
@@ -189,6 +191,23 @@ export function MapPage() {
       const primaryWorkOrderId = site.workOrders && site.workOrders.length > 0 ? site.workOrders[0].id : null;
       const actionsUrl = primaryWorkOrderId ? `/workorders/${primaryWorkOrderId}` : `/sites/${site.id}`;
 
+      // Installation date from earliest work order
+      const installationDate = site.workOrders && site.workOrders.length > 0
+        ? new Date(site.workOrders[site.workOrders.length - 1].plannedDate).toLocaleDateString('he-IL')
+        : null;
+
+      // Removal date from the earliestRemovalDate field
+      const removalDate = site.earliestRemovalDate
+        ? new Date(site.earliestRemovalDate).toLocaleDateString('he-IL')
+        : null;
+
+      const datesHtml = (installationDate || removalDate) 
+        ? `<div class="mt-2 text-xs text-right space-y-0.5">
+            ${installationDate ? `<div><span class="font-medium text-surface-600">תאריך התקנה:</span> <span class="text-surface-800">${installationDate}</span></div>` : ''}
+            ${removalDate ? `<div><span class="font-medium text-surface-600">מתפנה בתאריך:</span> <span class="text-surface-800">${removalDate}</span></div>` : ''}
+          </div>`
+        : '';
+
       const popup = L.popup({
         closeButton: true,
         className: 'site-popup'
@@ -198,6 +217,7 @@ export function MapPage() {
           <div class="text-center min-w-[150px] p-1">
             <h3 class="font-semibold text-surface-800">${site.name}</h3>
             <p class="text-sm text-surface-600">${site.address}</p>
+            ${datesHtml}
             ${statusHtml}
             ${site.isHighlighted ? `<span class="text-xs text-warning-600 font-medium">⚠️</span>` : ''}
             ${workOrdersHtml}
@@ -327,6 +347,14 @@ export function MapPage() {
                   <div className="text-center min-w-[150px] p-1">
                     <h3 className="font-semibold text-surface-800">{site.name}</h3>
                     <p className="text-sm text-surface-600">{site.address}</p>
+                    {site.workOrders && site.workOrders.length > 0 && (
+                      <div className="mt-1 text-xs text-right space-y-0.5">
+                        <div><span className="font-medium text-surface-600">תאריך התקנה:</span> <span className="text-surface-800">{new Date(site.workOrders[site.workOrders.length - 1].plannedDate).toLocaleDateString('he-IL')}</span></div>
+                        {site.earliestRemovalDate && (
+                          <div><span className="font-medium text-surface-600">מתפנה בתאריך:</span> <span className="text-surface-800">{new Date(site.earliestRemovalDate).toLocaleDateString('he-IL')}</span></div>
+                        )}
+                      </div>
+                    )}
                     {site.overallStatus && (
                       <div className="mt-2 flex items-center justify-center gap-2">
                         <span
@@ -334,7 +362,7 @@ export function MapPage() {
                           style={{ backgroundColor: statusColors[site.overallStatus] }}
                         >
                           {site.overallStatus === 'black' ? '⚫' : site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
-                          {site.overallStatus === 'black' ? 'עבר תאריך' : site.overallStatus === 'red' ? 'באיחור' : site.overallStatus === 'orange' ? 'קרוב לפירוק' : 'יש זמן'}
+                          {site.overallStatus === 'black' ? 'עבר תאריך' : site.overallStatus === 'red' ? 'הגיע הזמן' : site.overallStatus === 'orange' ? 'קרוב לפירוק' : 'יש זמן'}
                         </span>
                       </div>
                     )}
@@ -400,7 +428,7 @@ export function MapPage() {
                             style={{ backgroundColor: statusColors[site.overallStatus] }}
                           >
                             {site.overallStatus === 'black' ? '⚫' : site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
-                            {site.overallStatus === 'black' ? 'עבר' : site.overallStatus === 'red' ? 'באיחור' : site.overallStatus === 'orange' ? 'קרוב' : 'יש זמן'}
+                            {site.overallStatus === 'black' ? 'עבר' : site.overallStatus === 'red' ? 'הגיע הזמן' : site.overallStatus === 'orange' ? 'קרוב' : 'יש זמן'}
                           </span>
                         </div>
                       )}

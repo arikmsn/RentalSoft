@@ -94,7 +94,6 @@ export function WorkOrderDetailsPage() {
   const isAssignedTechnician = user?.id === workOrder?.technicianId;
   const canEdit = user?.role === 'manager' || user?.role === 'admin' || isAssignedTechnician;
   const canDelete = user?.role === 'manager' || user?.role === 'admin';
-  const canComplete = canEdit && workOrder?.status !== 'completed';
   const canChangeStatus = canEdit;
 
   const fetchData = useCallback(async () => {
@@ -208,37 +207,6 @@ export function WorkOrderDetailsPage() {
       } else {
         setError(t('errors.serverError'));
         setTimeout(() => setError(null), 3000);
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleComplete = async () => {
-    if (!id || !canComplete) return;
-    setSaving(true);
-    try {
-      const equipmentIds = scannedEquipment.map(eq => eq.id);
-      await offlineApi.completeWorkOrder(id, { 
-        done, 
-        todo,
-        equipmentIds: equipmentIds.length > 0 ? equipmentIds : undefined 
-      });
-      setSuccess(t('workOrder.workOrderCompleted'));
-      setTimeout(() => {
-        setSuccess(null);
-        navigate('/my-tasks');
-      }, 2000);
-    } catch (err: any) {
-      if (err.message === 'offline_queued') {
-        setWorkOrder((prev: any) => prev ? { ...prev, status: 'completed' } : null);
-        setSuccess(t('sync.syncedLater'));
-        setTimeout(() => {
-          setSuccess(null);
-          navigate('/my-tasks');
-        }, 2000);
-      } else {
-        setError(t('errors.serverError'));
       }
     } finally {
       setSaving(false);
@@ -863,18 +831,6 @@ export function WorkOrderDetailsPage() {
               {saving ? t('app.loading') : t('app.save')}
             </button>
           </div>
-        </div>
-      )}
-
-      {canComplete && (
-        <div className="fixed bottom-0 start-0 end-0 p-4 bg-white border-t border-gray-200 lg:relative lg:border-0 lg:p-0">
-          <button
-            onClick={handleComplete}
-            disabled={saving}
-            className="w-full px-4 py-4 bg-green-600 text-white rounded-xl font-bold text-lg hover:bg-green-700 disabled:opacity-50 shadow-lg lg:shadow-0"
-          >
-            {saving ? t('app.loading') : t('workOrder.completeWorkOrder')}
-          </button>
         </div>
       )}
 

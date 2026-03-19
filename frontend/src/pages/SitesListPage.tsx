@@ -4,6 +4,7 @@ import type { Site } from '../types';
 import { siteService } from '../services/siteService';
 import { useAuthStore } from '../stores/authStore';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
 
 const ISRAELI_CITIES = [
   'תל אביב', 'ירושלים', 'חיפה', 'באר שבע', 'רמת גן', 'פתח תקווה', 'נתניה', 'הרצליה',
@@ -16,6 +17,19 @@ const ISRAELI_CITIES = [
   'קדימה', 'צורן', 'שלומי', 'מעלות', 'יקנעם', 'נשר', 'קריית בנימין', 'אופקים',
   'שגב שלום', 'דימונה', 'ערד', 'מצפה רמון', 'קריית אונו', 'גבעת שמואל', 'יבנה'
 ].sort((a, b) => a.localeCompare(b, 'he'));
+
+interface SiteFormData {
+  name: string;
+  address: string;
+  city: string;
+  floor: string;
+  contact1Name: string;
+  contact1Phone: string;
+  rating: number;
+  isHighlighted: boolean;
+  latitude?: number;
+  longitude?: number;
+}
 
 export function SitesListPage() {
   const { t } = useTranslation();
@@ -34,7 +48,7 @@ export function SitesListPage() {
   const [siteToDelete, setSiteToDelete] = useState<Site | null>(null);
   const [citySearch, setCitySearch] = useState('');
   const [filteredCities, setFilteredCities] = useState(ISRAELI_CITIES);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SiteFormData>({
     name: '',
     address: '',
     city: '',
@@ -44,7 +58,7 @@ export function SitesListPage() {
     rating: 3,
     isHighlighted: false,
   });
-  const [editFormData, setEditFormData] = useState({
+  const [editFormData, setEditFormData] = useState<SiteFormData>({
     name: '',
     address: '',
     city: '',
@@ -91,7 +105,9 @@ export function SitesListPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await siteService.create(formData);
+      const payload: any = { ...formData };
+      console.log('[SiteCreate] Submitting with:', { address: payload.address, city: payload.city, lat: payload.latitude, lng: payload.longitude });
+      await siteService.create(payload);
       setShowForm(false);
       setFormData({ name: '', address: '', city: '', floor: '', contact1Name: '', contact1Phone: '', rating: 3, isHighlighted: false });
       fetchSites();
@@ -114,6 +130,8 @@ export function SitesListPage() {
       contact1Phone: site.contact1Phone || '',
       rating: site.rating || 3,
       isHighlighted: site.isHighlighted,
+      latitude: site.latitude,
+      longitude: site.longitude,
     });
     setShowEditForm(true);
   };
@@ -123,7 +141,9 @@ export function SitesListPage() {
     if (!editingSite) return;
     setSaving(true);
     try {
-      await siteService.update(editingSite.id, editFormData);
+      const payload: any = { ...editFormData };
+      console.log('[SiteUpdate] Submitting with:', { address: payload.address, city: payload.city, lat: payload.latitude, lng: payload.longitude });
+      await siteService.update(editingSite.id, payload);
       setShowEditForm(false);
       setEditingSite(null);
       fetchSites();
@@ -199,6 +219,8 @@ export function SitesListPage() {
     );
   }
 
+  const inputClasses = "w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800";
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -251,7 +273,7 @@ export function SitesListPage() {
                 </div>
               )}
               <div className="flex items-center gap-2 ms-auto">
-                {site.latitude && site.longitude && (
+                {(site.hasValidLocation || (site.latitude && site.longitude)) && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -303,19 +325,32 @@ export function SitesListPage() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  className={inputClasses}
                 />
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
-                  <input
-                    type="text"
-                    required
+                  <AddressAutocomplete
                     value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                    city={formData.city}
+                    onChange={(val) => setFormData({ ...formData, address: val })}
+                    onSelect={(sel) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        address: sel.address,
+                        city: sel.city || prev.city,
+                        latitude: sel.latitude,
+                        longitude: sel.longitude,
+                      }));
+                      if (sel.city) setCitySearch(sel.city);
+                    }}
+                    required
+                    className={inputClasses}
                   />
+                  {formData.latitude && formData.longitude && (
+                    <p className="text-xs text-success-600 mt-1">&#x2713; {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
@@ -323,7 +358,7 @@ export function SitesListPage() {
                     type="text"
                     value={formData.floor}
                     onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                    className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                    className={inputClasses}
                   />
                 </div>
               </div>
@@ -338,7 +373,7 @@ export function SitesListPage() {
                     setFormData({ ...formData, city: e.target.value });
                     setCitySearch(e.target.value);
                   }}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  className={inputClasses}
                 />
                 <datalist id="citySuggestions">
                   {filteredCities.map((city) => (
@@ -352,7 +387,7 @@ export function SitesListPage() {
                   type="text"
                   value={formData.contact1Name}
                   onChange={(e) => setFormData({ ...formData, contact1Name: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  className={inputClasses}
                 />
               </div>
               <div>
@@ -361,7 +396,7 @@ export function SitesListPage() {
                   type="tel"
                   value={formData.contact1Phone}
                   onChange={(e) => setFormData({ ...formData, contact1Phone: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  className={inputClasses}
                 />
               </div>
               <div className="flex gap-3 pt-3">
@@ -425,19 +460,31 @@ export function SitesListPage() {
                   required
                   value={editFormData.name}
                   onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  className={inputClasses}
                 />
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
-                  <input
-                    type="text"
-                    required
+                  <AddressAutocomplete
                     value={editFormData.address}
-                    onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
-                    className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                    city={editFormData.city}
+                    onChange={(val) => setEditFormData({ ...editFormData, address: val })}
+                    onSelect={(sel) => {
+                      setEditFormData((prev) => ({
+                        ...prev,
+                        address: sel.address,
+                        city: sel.city || prev.city,
+                        latitude: sel.latitude,
+                        longitude: sel.longitude,
+                      }));
+                    }}
+                    required
+                    className={inputClasses}
                   />
+                  {editFormData.latitude && editFormData.longitude && (
+                    <p className="text-xs text-success-600 mt-1">&#x2713; {editFormData.latitude.toFixed(4)}, {editFormData.longitude.toFixed(4)}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
@@ -445,7 +492,7 @@ export function SitesListPage() {
                     type="text"
                     value={editFormData.floor}
                     onChange={(e) => setEditFormData({ ...editFormData, floor: e.target.value })}
-                    className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                    className={inputClasses}
                   />
                 </div>
               </div>
@@ -457,7 +504,7 @@ export function SitesListPage() {
                   required
                   value={editFormData.city}
                   onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  className={inputClasses}
                 />
                 <datalist id="citySuggestionsEdit">
                   {filteredCities.map((city) => (
@@ -471,7 +518,7 @@ export function SitesListPage() {
                   type="text"
                   value={editFormData.contact1Name}
                   onChange={(e) => setEditFormData({ ...editFormData, contact1Name: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  className={inputClasses}
                 />
               </div>
               <div>
@@ -480,7 +527,7 @@ export function SitesListPage() {
                   type="tel"
                   value={editFormData.contact1Phone}
                   onChange={(e) => setEditFormData({ ...editFormData, contact1Phone: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+                  className={inputClasses}
                 />
               </div>
               <div className="flex items-center gap-3">

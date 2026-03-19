@@ -77,10 +77,11 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
 
         let statusColor: 'black' | 'red' | 'orange' | 'green' = 'green';
         let statusReason = 'no removal dates';
+        let earliestRemovalDate: Date | null = null;
 
         if (workOrderRemovalDates.length > 0) {
-          const earliestRemoval = new Date(Math.min(...workOrderRemovalDates.map(d => d.getTime())));
-          const daysUntilRemoval = Math.ceil((earliestRemoval.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          earliestRemovalDate = new Date(Math.min(...workOrderRemovalDates.map(d => d.getTime())));
+          const daysUntilRemoval = Math.ceil((earliestRemovalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
           if (daysUntilRemoval < 0) {
             statusColor = 'black';
@@ -102,7 +103,7 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
               workOrderId: wo.id,
               plannedRemovalDate: wo.plannedRemovalDate,
             })),
-            earliestRemovalDate: earliestRemoval,
+            earliestRemovalDate: earliestRemovalDate,
             today: now,
             daysUntilRemoval,
             statusColor,
@@ -127,6 +128,7 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
           equipment: undefined,
           equipmentCount,
           overallStatus: statusColor,
+          earliestRemovalDate,
           hasValidLocation,
         };
       })
