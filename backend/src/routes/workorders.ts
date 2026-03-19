@@ -489,13 +489,45 @@ router.delete('/:id/equipment/:equipmentId', authenticate, authorize('manager', 
 
 router.delete('/:id', authenticate, isManagerOrAdmin, async (req, res) => {
   try {
-    await prisma.workOrder.delete({
-      where: { id: req.params.id },
+    const workOrderId = req.params.id;
+
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id: workOrderId },
+      include: {
+        equipment: { include: { equipment: true } },
+      },
     });
 
+    if (!workOrder) {
+      return res.status(404).json({ message: 'Work order not found' });
+    }
+
+    console.log(`[WODelete] Deleting work order ${workOrderId}, type=${workOrder.type}, equipmentCount=${workOrder.equipment.length}`);
+
+    // 1. Release all equipment attached to this work order
+    for (const woEq of workOrder.equipment) {
+      await prisma.equipment.update({
+        where: { id: woEq.equipmentId },
+        data: { status: 'warehouse', siteId: null },
+      });
+    }
+
+    // 2. Delete child records in correct order
+    await prisma.activityLog.deleteMany({ where: { workOrderId } });
+    await prisma.checklistItem.deleteMany({ where: { workOrderId } });
+    await prisma.workOrderStatusHistory.deleteMany({ where: { workOrderId } });
+    await prisma.workOrderEquipment.deleteMany({ where: { workOrderId } });
+
+    // 3. Delete the work order
+    await prisma.workOrder.delete({ where: { id: workOrderId } });
+
+    console.log(`[WODelete] Work order ${workOrderId} deleted, equipment released`);
     res.json({ message: 'Work order deleted' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Delete work order error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'Work order not found' });
+    }
     res.status(500).json({ message: 'Server error' });
   }
 });

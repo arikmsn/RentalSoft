@@ -468,7 +468,6 @@ router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, r
   try {
     const siteId = req.params.id;
 
-    // Check what's linked to this site
     const site = await prisma.site.findUnique({
       where: { id: siteId },
       include: {
@@ -488,23 +487,35 @@ router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, r
 
     console.log(`[SiteDelete] Site ${site.name} (${siteId}): workOrders=${site._count.workOrders}, equipment=${site._count.equipment}, activityLogs=${site._count.activityLogs}`);
 
-    // Delete related records in correct order (respecting foreign keys)
-    // 1. Activity logs referencing this site
-    await prisma.activityLog.deleteMany({ where: { siteId } });
-
-    // 2. For each work order: delete checklist items, status history, work order equipment, then the work order
+    // Get all work order IDs for this site
     const workOrderIds = (await prisma.workOrder.findMany({ where: { siteId }, select: { id: true } })).map(wo => wo.id);
+
+    // 1. Delete ALL activity logs that reference this site OR any of its work orders
+    await prisma.activityLog.deleteMany({
+      where: {
+        OR: [
+          { siteId },
+          ...(workOrderIds.length > 0 ? [{ workOrderId: { in: workOrderIds } }] : []),
+        ],
+      },
+    });
+
+    // 2. Delete work order child records
     if (workOrderIds.length > 0) {
       await prisma.checklistItem.deleteMany({ where: { workOrderId: { in: workOrderIds } } });
       await prisma.workOrderStatusHistory.deleteMany({ where: { workOrderId: { in: workOrderIds } } });
       await prisma.workOrderEquipment.deleteMany({ where: { workOrderId: { in: workOrderIds } } });
+    }
+
+    // 3. Delete work orders
+    if (workOrderIds.length > 0) {
       await prisma.workOrder.deleteMany({ where: { siteId } });
     }
 
-    // 3. Unlink equipment (set siteId to null rather than deleting equipment)
+    // 4. Release equipment (set siteId to null, status to warehouse)
     await prisma.equipment.updateMany({ where: { siteId }, data: { siteId: null, status: 'warehouse' } });
 
-    // 4. Delete the site
+    // 5. Delete the site
     await prisma.site.delete({ where: { id: siteId } });
 
     console.log(`[SiteDelete] Site ${site.name} deleted successfully`);
@@ -512,6 +523,7 @@ router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, r
   } catch (error: any) {
     console.error('Delete site error:', error);
     if (error.code === 'P2003') {
+      console.error(`[SiteDelete] P2003 FK constraint error for site ${req.params.id}:`, error.meta);
       return res.status(409).json({
         message: 'לא ניתן למחוק את האתר – יש אליו רשומות מקושרות. נסה שוב או פנה למנהל.'
       });

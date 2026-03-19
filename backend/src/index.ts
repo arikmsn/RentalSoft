@@ -31,6 +31,7 @@ app.use(express.json());
 
 // Public config endpoint - exposes client-safe keys (no auth required)
 app.get('/api/config/public', (req, res) => {
+  console.log('[Config] /api/config/public called, hasKey:', !!config.googleMapsApiKey);
   res.json({
     googleMapsApiKey: config.googleMapsApiKey,
   });
