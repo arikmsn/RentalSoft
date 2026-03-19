@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rentalsoft-v1';
+const CACHE_NAME = 'rentalsoft-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -33,42 +33,45 @@ self.addEventListener('fetch', (event) => {
   }
 
   const url = new URL(event.request.url);
-  
-  // Only handle http(s) requests - skip chrome-extension://, about:, blob:, etc.
+
+  // Only handle http(s) requests
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     return;
   }
 
+  // Network-first for API calls — always get fresh data
   if (event.request.url.includes('/api/')) {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          return caches.match(event.request);
-        })
+      fetch(event.request).catch(() => caches.match(event.request))
     );
     return;
   }
 
+  // Network-first for navigation requests (index.html, SPA routes)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request) || caches.match('/'))
+    );
+    return;
+  }
+
+  // Cache-first for static assets (JS, CSS, images, fonts)
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        return response;
-      }
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
       return fetch(event.request).then((response) => {
-        if (response.ok) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+        // Only cache successful, same-origin static assets
+        if (response.ok && url.origin === self.location.origin) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
       });
