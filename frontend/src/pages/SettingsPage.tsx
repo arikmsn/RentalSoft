@@ -20,11 +20,11 @@ interface Technician {
   isActive: boolean;
 }
 
-type TabType = 'checklist' | 'workOrderTypes' | 'equipmentTypes' | 'technicians';
+type TabType = 'workOrderTypes' | 'equipmentTypes' | 'technicians';
 
 export function SettingsPage() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<TabType>('checklist');
+  const [activeTab, setActiveTab] = useState<TabType>('workOrderTypes');
   const [items, setItems] = useState<SettingsItem[] | Technician[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -52,9 +52,6 @@ export function SettingsPage() {
     try {
       let url = '';
       switch (activeTab) {
-        case 'checklist':
-          url = '/settings/checklist';
-          break;
         case 'workOrderTypes':
           url = '/settings/work-order-types';
           break;
@@ -82,9 +79,6 @@ export function SettingsPage() {
       const isEdit = !!editingItem;
       
       switch (activeTab) {
-        case 'checklist':
-          url = '/settings/checklist';
-          break;
         case 'workOrderTypes':
           url = '/settings/work-order-types';
           break;
@@ -156,9 +150,6 @@ export function SettingsPage() {
     try {
       let url = '';
       switch (activeTab) {
-        case 'checklist':
-          url = `/settings/checklist/${itemToDelete.id}`;
-          break;
         case 'workOrderTypes':
           url = `/settings/work-order-types/${itemToDelete.id}`;
           break;
@@ -183,7 +174,6 @@ export function SettingsPage() {
   };
 
   const tabs: { key: TabType; label: string }[] = [
-    { key: 'checklist', label: t('settings.checklist') },
     { key: 'workOrderTypes', label: t('settings.workOrderTypes') },
     { key: 'equipmentTypes', label: t('settings.equipmentTypes') },
     { key: 'technicians', label: t('settings.technicians') },

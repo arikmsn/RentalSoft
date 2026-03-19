@@ -503,7 +503,7 @@ router.patch('/:id/toggle-active', authenticate, authorize('manager', 'admin'), 
               await tx.equipment.update({
                 where: { id: link.equipment.id },
                 data: {
-                  status: 'warehouse',
+                  status: 'available',
                   siteId: null,
                   actualRemovalDate: new Date(),
                   plannedRemovalDate: null,
@@ -535,7 +535,7 @@ router.patch('/:id/toggle-active', authenticate, authorize('manager', 'admin'), 
 
       await prisma.equipment.updateMany({
         where: { siteId: id, status: 'at_customer' },
-        data: { siteId: null, status: 'warehouse' },
+        data: { siteId: null, status: 'available' },
       });
     }
 

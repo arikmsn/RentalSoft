@@ -340,37 +340,15 @@ router.post('/:id/complete', authenticate, async (req: AuthRequest, res) => {
 
     if (equipmentIds && equipmentIds.length > 0) {
       for (const equipmentId of equipmentIds) {
-        const equipment = await prisma.equipment.findUnique({
+        await prisma.equipment.update({
           where: { id: equipmentId },
+          data: {
+            status: 'available',
+            siteId: null,
+            plannedRemovalDate: null,
+            actualRemovalDate: new Date(),
+          },
         });
-
-        if (equipment) {
-          if (workOrder.type === 'removal') {
-            await prisma.equipment.update({
-              where: { id: equipmentId },
-              data: {
-                status: 'warehouse',
-                siteId: null,
-                actualRemovalDate: new Date(),
-                plannedRemovalDate: null,
-              },
-            });
-          } else if (workOrder.type === 'installation' && workOrder.plannedRemovalDate) {
-            await prisma.equipment.update({
-              where: { id: equipmentId },
-              data: {
-                plannedRemovalDate: workOrder.plannedRemovalDate,
-              },
-            });
-          } else if (newStatus && ['warehouse', 'at_customer', 'in_repair', 'available'].includes(newStatus)) {
-            await prisma.equipment.update({
-              where: { id: equipmentId },
-              data: {
-                status: newStatus,
-              },
-            });
-          }
-        }
       }
     }
 
@@ -474,11 +452,11 @@ router.delete('/:id/equipment/:equipmentId', authenticate, authorize('manager', 
       },
     });
 
-    // If not linked to any active work order, set back to warehouse and clear currentWorkOrderId
+    // If not linked to any active work order, set back to available
     if (!otherLinks) {
       await prisma.equipment.update({
         where: { id: equipmentId },
-        data: { status: 'warehouse' },
+        data: { status: 'available' },
       });
     }
 

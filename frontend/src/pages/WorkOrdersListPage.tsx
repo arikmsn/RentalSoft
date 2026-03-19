@@ -74,11 +74,10 @@ export function WorkOrdersListPage() {
   }, []);
 
   useEffect(() => {
-    if (!showForm) return;
     api.get<{id: string; name: string; isActive: boolean}[]>('/settings/work-order-types').then(res => {
       setWorkTypes(res.data.filter((wt: any) => wt.isActive !== false));
     }).catch(err => console.error('Failed to fetch work types:', err));
-  }, [showForm]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,7 +184,7 @@ export function WorkOrdersListPage() {
                         title={`${wo.statusColor === 'black' ? 'עבר תאריך' : wo.statusColor === 'red' ? 'הגיע הזמן' : wo.statusColor === 'orange' ? 'קרוב לפירוק' : 'יש זמן'}`}
                       />
                     )}
-                    {t(`workOrders.types.${wo.type}`)}
+                    {workTypes.find(wt => wt.name === wo.type)?.name || wo.type}
                   </h3>
                   <p className="text-sm text-surface-500 mt-1">
                     {wo.site ? wo.site.name : ''}
