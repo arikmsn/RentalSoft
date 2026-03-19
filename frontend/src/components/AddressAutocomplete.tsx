@@ -3,6 +3,7 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 export interface AddressSelection {
   address: string;
   city: string;
+  houseNumber: string;
   latitude: number;
   longitude: number;
 }
@@ -124,7 +125,6 @@ export function AddressAutocomplete({
   const acRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [ready, setReady] = useState(false);
 
-  // Keep latest callbacks in refs
   const onChangeRef = useRef(onChange);
   const onSelectRef = useRef(onSelect);
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
@@ -147,20 +147,23 @@ export function AddressAutocomplete({
 
     let street = '';
     let city = '';
+    let houseNumber = '';
 
     if (place.address_components) {
       for (const c of place.address_components) {
         if (c.types.includes('route')) street = c.long_name;
         if (c.types.includes('locality')) city = c.long_name;
         if (!city && c.types.includes('administrative_area_level_2')) city = c.long_name;
+        if (c.types.includes('street_number')) houseNumber = c.long_name;
       }
     }
     if (!street && place.name) street = place.name;
 
-    console.log('[Autocomplete] Selected:', { street, city, lat, lng });
+    const compositeAddress = city ? `${street}, ${city}` : street;
+    console.log('[Autocomplete] Selected:', { street, city, houseNumber, compositeAddress, lat, lng });
 
-    onChangeRef.current(street);
-    onSelectRef.current({ address: street, city, latitude: lat, longitude: lng });
+    onChangeRef.current(compositeAddress);
+    onSelectRef.current({ address: compositeAddress, city, houseNumber, latitude: lat, longitude: lng });
   }, []);
 
   // Load Google Maps and init Autocomplete

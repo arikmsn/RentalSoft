@@ -9,6 +9,7 @@ import { AddressAutocomplete } from '../components/AddressAutocomplete';
 interface SiteFormData {
   name: string;
   address: string;
+  streetName: string;
   city: string;
   houseNumber: string;
   floor: string;
@@ -23,6 +24,7 @@ interface SiteFormData {
 const emptyForm: SiteFormData = {
   name: '',
   address: '',
+  streetName: '',
   city: '',
   houseNumber: '',
   floor: '',
@@ -91,6 +93,7 @@ export function SitesListPage() {
     setEditFormData({
       name: site.name,
       address: site.address,
+      streetName: site.address,
       city: site.city,
       houseNumber: site.houseNumber || '',
       floor: site.floor || '',
@@ -232,13 +235,21 @@ export function SitesListPage() {
               value={data.address}
               onChange={(val) => setData({ ...data, address: val })}
               onSelect={(sel) => {
-                setData((prev) => ({
-                  ...prev,
-                  address: sel.address,
-                  city: sel.city || prev.city,
-                  latitude: sel.latitude,
-                  longitude: sel.longitude,
-                }));
+                setData((prev) => {
+                  const streetName = sel.address.split(',')[0].trim();
+                  const composite = sel.houseNumber
+                    ? `${streetName} ${sel.houseNumber}, ${sel.city}`
+                    : sel.address;
+                  return {
+                    ...prev,
+                    address: composite,
+                    streetName,
+                    city: sel.city || prev.city,
+                    houseNumber: sel.houseNumber || prev.houseNumber,
+                    latitude: sel.latitude,
+                    longitude: sel.longitude,
+                  };
+                });
               }}
               required
               className={inputClasses}
@@ -248,18 +259,6 @@ export function SitesListPage() {
             )}
           </div>
 
-          {/* City (auto-filled from autocomplete, editable) */}
-          <div>
-            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.city')}</label>
-            <input
-              type="text"
-              required
-              value={data.city}
-              onChange={(e) => setData({ ...data, city: e.target.value })}
-              className={inputClasses}
-            />
-          </div>
-
           {/* House number + Floor on same row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -267,7 +266,18 @@ export function SitesListPage() {
               <input
                 type="text"
                 value={data.houseNumber}
-                onChange={(e) => setData({ ...data, houseNumber: e.target.value })}
+                onChange={(e) => {
+                  const hn = e.target.value;
+                  setData((prev) => {
+                    const rawStreet = prev.streetName || prev.address.split(',')[0].trim();
+                    const city = prev.city;
+                    const streetWithoutNumber = rawStreet.replace(/\s*\d+\s*$/, '').trim();
+                    const composite = streetWithoutNumber && hn && city
+                      ? `${streetWithoutNumber} ${hn}, ${city}`
+                      : streetWithoutNumber || prev.address;
+                    return { ...prev, houseNumber: hn, address: composite };
+                  });
+                }}
                 className={inputClasses}
               />
             </div>
