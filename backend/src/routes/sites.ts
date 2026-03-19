@@ -13,7 +13,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
     const where: any = {};
     if (isActive === 'true') where.isActive = true;
     else if (isActive === 'false') where.isActive = false;
-    else where.isActive = true;
+    // no filter → all sites (active + inactive)
     if (search) {
       where.OR = [
         { name: { contains: String(search), mode: 'insensitive' } },
@@ -467,6 +467,7 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
 router.patch('/:id/toggle-active', authenticate, authorize('manager', 'admin'), async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user!.id;
 
     const site = await prisma.site.findUnique({ where: { id } });
     if (!site) return res.status(404).json({ message: 'Site not found' });
@@ -474,6 +475,60 @@ router.patch('/:id/toggle-active', authenticate, authorize('manager', 'admin'), 
     const newIsActive = !site.isActive;
 
     if (!newIsActive) {
+      const activeWorkOrders = await prisma.workOrder.findMany({
+        where: { siteId: id, status: { in: ['open', 'in_progress'] } },
+        include: {
+          equipment: { include: { equipment: true } },
+        },
+      });
+
+      for (const wo of activeWorkOrders) {
+        await prisma.$transaction(async (tx) => {
+          await tx.workOrder.update({
+            where: { id: wo.id },
+            data: { status: 'completed', actualDate: new Date() },
+          });
+
+          await tx.workOrderStatusHistory.create({
+            data: {
+              workOrderId: wo.id,
+              previousStatus: wo.status,
+              newStatus: 'completed',
+              changedById: userId,
+            },
+          });
+
+          for (const link of wo.equipment) {
+            if (wo.type === 'removal') {
+              await tx.equipment.update({
+                where: { id: link.equipment.id },
+                data: {
+                  status: 'warehouse',
+                  siteId: null,
+                  actualRemovalDate: new Date(),
+                  plannedRemovalDate: null,
+                },
+              });
+            } else if (wo.type === 'installation' && wo.plannedRemovalDate) {
+              await tx.equipment.update({
+                where: { id: link.equipment.id },
+                data: { plannedRemovalDate: wo.plannedRemovalDate },
+              });
+            }
+          }
+
+          await tx.activityLog.create({
+            data: {
+              workOrderId: wo.id,
+              siteId: id,
+              userId,
+              actionType: 'workorder_completed',
+              notes: `Work order auto-completed when site was deactivated`,
+            },
+          });
+        });
+      }
+
       await prisma.equipment.updateMany({
         where: { siteId: id, status: 'at_customer' },
         data: { siteId: null, status: 'warehouse' },
@@ -485,7 +540,7 @@ router.patch('/:id/toggle-active', authenticate, authorize('manager', 'admin'), 
       data: { isActive: newIsActive },
     });
 
-    res.json({ ...updated, message: newIsActive ? 'Site activated' : 'Site deactivated and equipment released' });
+    res.json({ ...updated, message: newIsActive ? 'Site activated' : 'Site deactivated and all work orders completed' });
   } catch (error) {
     console.error('Toggle site active error:', error);
     res.status(500).json({ message: 'Server error' });

@@ -122,10 +122,10 @@ export function SitesListPage() {
   const handleToggleActive = async (site: Site, e?: React.MouseEvent) => {
     e?.stopPropagation();
     try {
-      const updated = await siteService.toggleActive(site.id);
-      setSites(prev => prev.map(s => s.id === updated.id ? { ...s, isActive: updated.isActive } : s));
+      await siteService.toggleActive(site.id);
+      await fetchSites(search, activeFilter);
       if (editingSite?.id === site.id) {
-        setEditingSite({ ...editingSite, isActive: updated.isActive });
+        setEditingSite({ ...editingSite, isActive: !site.isActive });
       }
     } catch (err: any) {
       console.error('Failed to toggle site active:', err);
