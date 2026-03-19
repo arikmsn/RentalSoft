@@ -331,7 +331,7 @@ export function MapPage() {
                 <Popup>
                   <div className="text-right min-w-[180px] p-1">
                     <h3 className="font-semibold text-surface-800 text-sm">
-                      {site.workOrders && site.workOrders.length > 0 ? t(`workOrders.types.${site.workOrders[0].type}`) : site.name}
+                      {site.name}
                     </h3>
                     <p className="text-xs text-surface-600 mt-1">
                       {site.address}{site.floor ? `, קומה ${site.floor}` : ''}

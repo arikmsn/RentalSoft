@@ -68,6 +68,13 @@ export function DashboardPage() {
     return () => window.removeEventListener('site-updated', refresh);
   }, []);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'בוקר טוב';
+    if (hour >= 12 && hour < 18) return 'צהריים טובים';
+    return 'ערב טוב';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -102,7 +109,7 @@ export function DashboardPage() {
       {/* Header */}
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-surface-800">
-          {t('dashboard.title')}
+          {getGreeting()}
         </h1>
         <p className="text-sm text-surface-400 mt-1">{user?.name} &middot; {formatDate(new Date())}</p>
       </div>
