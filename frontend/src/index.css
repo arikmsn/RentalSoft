@@ -80,3 +80,10 @@ button, a {
   .animate-stagger-4 { animation-delay: 200ms; }
   .animate-stagger-5 { animation-delay: 250ms; }
 }
+
+/* Google Places Autocomplete dropdown – must sit above modals (z-50 = 50) */
+.pac-container {
+  z-index: 10000 !important;
+  direction: rtl;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}

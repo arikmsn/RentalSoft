@@ -230,7 +230,6 @@ export function SitesListPage() {
             <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
             <AddressAutocomplete
               value={data.address}
-              city={data.city}
               onChange={(val) => setData({ ...data, address: val })}
               onSelect={(sel) => {
                 setData((prev) => ({

@@ -9,7 +9,6 @@ export interface AddressSelection {
 
 interface AddressAutocompleteProps {
   value: string;
-  city?: string;
   onChange: (value: string) => void;
   onSelect: (selection: AddressSelection) => void;
   placeholder?: string;
@@ -17,52 +16,54 @@ interface AddressAutocompleteProps {
   className?: string;
 }
 
-// Track whether the Google Maps script is loading / loaded
-let googleScriptStatus: 'idle' | 'loading' | 'loaded' | 'error' = 'idle';
-const loadCallbacks: Array<() => void> = [];
+// ── Google Maps script loader (singleton) ──────────────────────────
+let scriptStatus: 'idle' | 'loading' | 'loaded' | 'error' = 'idle';
+const waiters: Array<() => void> = [];
 
-function loadGoogleMapsScript(): Promise<void> {
+function ensureGoogleMaps(): Promise<void> {
+  // Already available (e.g. loaded by another component or a previous render)
+  if (typeof google !== 'undefined' && google.maps?.places) {
+    scriptStatus = 'loaded';
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
-    if (googleScriptStatus === 'loaded') {
-      resolve();
-      return;
-    }
+    if (scriptStatus === 'loaded') { resolve(); return; }
 
-    loadCallbacks.push(resolve);
-
-    if (googleScriptStatus === 'loading') return;
+    waiters.push(resolve);
+    if (scriptStatus === 'loading') return; // script tag already appended
 
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      console.error('[AddressAutocomplete] VITE_GOOGLE_MAPS_API_KEY is not set');
-      googleScriptStatus = 'error';
-      reject(new Error('Missing Google Maps API key'));
+      console.error('[Autocomplete] VITE_GOOGLE_MAPS_API_KEY is not set');
+      scriptStatus = 'error';
+      reject(new Error('Missing API key'));
       return;
     }
 
-    googleScriptStatus = 'loading';
+    scriptStatus = 'loading';
+    console.log('[Autocomplete] Loading Google Maps script…');
 
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=he&region=IL`;
-    script.async = true;
-    script.defer = true;
-
-    script.onload = () => {
-      googleScriptStatus = 'loaded';
-      loadCallbacks.forEach((cb) => cb());
-      loadCallbacks.length = 0;
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=he&region=IL`;
+    s.async = true;
+    s.defer = true;
+    s.onload = () => {
+      console.log('[Autocomplete] Google Maps script loaded');
+      scriptStatus = 'loaded';
+      waiters.forEach((cb) => cb());
+      waiters.length = 0;
     };
-
-    script.onerror = () => {
-      googleScriptStatus = 'error';
-      console.error('[AddressAutocomplete] Failed to load Google Maps script');
-      reject(new Error('Failed to load Google Maps'));
+    s.onerror = () => {
+      console.error('[Autocomplete] Google Maps script FAILED to load');
+      scriptStatus = 'error';
+      reject(new Error('Script load error'));
     };
-
-    document.head.appendChild(script);
+    document.head.appendChild(s);
   });
 }
 
+// ── Component ──────────────────────────────────────────────────────
 export function AddressAutocomplete({
   value,
   onChange,
@@ -72,94 +73,95 @@ export function AddressAutocomplete({
   className = '',
 }: AddressAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const skipNextChange = useRef(false);
+  const acRef = useRef<google.maps.places.Autocomplete | null>(null);
 
-  const handlePlaceChanged = useCallback(() => {
-    if (!autocompleteRef.current) return;
+  // Keep latest callbacks in refs so the place_changed listener is never stale
+  const onChangeRef = useRef(onChange);
+  const onSelectRef = useRef(onSelect);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+  useEffect(() => { onSelectRef.current = onSelect; }, [onSelect]);
 
-    const place = autocompleteRef.current.getPlace();
+  // Stable handler that reads from refs
+  const onPlaceChanged = useCallback(() => {
+    const ac = acRef.current;
+    if (!ac) return;
+
+    const place = ac.getPlace();
+    console.log('[Autocomplete] place_changed fired', place?.name, place?.geometry?.location?.lat());
+
     if (!place.geometry?.location) {
-      console.warn('[AddressAutocomplete] Place has no geometry:', place);
+      console.warn('[Autocomplete] No geometry on selected place');
       return;
     }
 
     const lat = place.geometry.location.lat();
     const lng = place.geometry.location.lng();
 
-    // Extract address components
     let street = '';
     let city = '';
 
     if (place.address_components) {
-      for (const comp of place.address_components) {
-        if (comp.types.includes('route')) {
-          street = comp.long_name;
-        }
-        if (comp.types.includes('locality')) {
-          city = comp.long_name;
-        }
-        if (!city && comp.types.includes('administrative_area_level_2')) {
-          city = comp.long_name;
-        }
+      for (const c of place.address_components) {
+        if (c.types.includes('route')) street = c.long_name;
+        if (c.types.includes('locality')) city = c.long_name;
+        if (!city && c.types.includes('administrative_area_level_2')) city = c.long_name;
       }
     }
+    if (!street && place.name) street = place.name;
 
-    // Fallback: use structured_formatting or name
-    if (!street && place.name) {
-      street = place.name;
-    }
+    console.log('[Autocomplete] Parsed:', { street, city, lat, lng, formatted: place.formatted_address });
 
-    skipNextChange.current = true;
-    onChange(street);
+    // Update the React-controlled value
+    onChangeRef.current(street);
+    onSelectRef.current({ address: street, city, latitude: lat, longitude: lng });
+  }, []);
 
-    onSelect({
-      address: street,
-      city,
-      latitude: lat,
-      longitude: lng,
-    });
-
-    console.log('[AddressAutocomplete] Selected:', { street, city, lat, lng, formattedAddress: place.formatted_address });
-  }, [onChange, onSelect]);
-
-  // Initialize Google Places Autocomplete
+  // Init once
   useEffect(() => {
-    let cancelled = false;
+    let dead = false;
 
-    const init = async () => {
-      try {
-        await loadGoogleMapsScript();
-      } catch {
-        return;
-      }
+    (async () => {
+      try { await ensureGoogleMaps(); } catch { return; }
+      if (dead) return;
 
-      if (cancelled || !inputRef.current) return;
-      if (autocompleteRef.current) return; // Already initialized
+      const input = inputRef.current;
+      if (!input) { console.warn('[Autocomplete] inputRef not ready'); return; }
+      if (acRef.current) return; // already bound
 
-      const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
+      console.log('[Autocomplete] Initializing Autocomplete on input');
+
+      const ac = new google.maps.places.Autocomplete(input, {
         types: ['address'],
         componentRestrictions: { country: 'il' },
         fields: ['geometry', 'address_components', 'formatted_address', 'name'],
       });
 
-      autocomplete.addListener('place_changed', handlePlaceChanged);
-      autocompleteRef.current = autocomplete;
-    };
+      ac.addListener('place_changed', onPlaceChanged);
+      acRef.current = ac;
 
-    init();
+      console.log('[Autocomplete] Ready');
+    })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [handlePlaceChanged]);
+    return () => { dead = true; };
+  }, [onPlaceChanged]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (skipNextChange.current) {
-      skipNextChange.current = false;
-      return;
+  // ── Render ─────────────────────────────────────────────────────
+  // We use an **uncontrolled** input so Google can freely mutate its value.
+  // We sync the initial / programmatic value via defaultValue + imperative set.
+  const lastPushedValue = useRef(value);
+
+  useEffect(() => {
+    // Only push value changes that come from outside (e.g. form reset)
+    if (inputRef.current && value !== lastPushedValue.current) {
+      inputRef.current.value = value;
+      lastPushedValue.current = value;
     }
-    onChange(e.target.value);
+  }, [value]);
+
+  const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const val = (e.target as HTMLInputElement).value;
+    lastPushedValue.current = val;
+    onChange(val);
   };
 
   return (
@@ -167,8 +169,8 @@ export function AddressAutocomplete({
       <input
         ref={inputRef}
         type="text"
-        value={value}
-        onChange={handleChange}
+        defaultValue={value}
+        onInput={handleInput}
         placeholder={placeholder}
         required={required}
         className={className}
