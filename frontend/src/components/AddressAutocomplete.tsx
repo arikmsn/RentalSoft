@@ -1,22 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-
-interface NominatimResult {
-  place_id: number;
-  display_name: string;
-  lat: string;
-  lon: string;
-  address?: {
-    road?: string;
-    house_number?: string;
-    city?: string;
-    town?: string;
-    village?: string;
-    suburb?: string;
-    neighbourhood?: string;
-    state?: string;
-    country?: string;
-  };
-}
+import { useRef, useEffect, useCallback } from 'react';
 
 export interface AddressSelection {
   address: string;
@@ -35,149 +17,163 @@ interface AddressAutocompleteProps {
   className?: string;
 }
 
+// Track whether the Google Maps script is loading / loaded
+let googleScriptStatus: 'idle' | 'loading' | 'loaded' | 'error' = 'idle';
+const loadCallbacks: Array<() => void> = [];
+
+function loadGoogleMapsScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (googleScriptStatus === 'loaded') {
+      resolve();
+      return;
+    }
+
+    loadCallbacks.push(resolve);
+
+    if (googleScriptStatus === 'loading') return;
+
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      console.error('[AddressAutocomplete] VITE_GOOGLE_MAPS_API_KEY is not set');
+      googleScriptStatus = 'error';
+      reject(new Error('Missing Google Maps API key'));
+      return;
+    }
+
+    googleScriptStatus = 'loading';
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=he&region=IL`;
+    script.async = true;
+    script.defer = true;
+
+    script.onload = () => {
+      googleScriptStatus = 'loaded';
+      loadCallbacks.forEach((cb) => cb());
+      loadCallbacks.length = 0;
+    };
+
+    script.onerror = () => {
+      googleScriptStatus = 'error';
+      console.error('[AddressAutocomplete] Failed to load Google Maps script');
+      reject(new Error('Failed to load Google Maps'));
+    };
+
+    document.head.appendChild(script);
+  });
+}
+
 export function AddressAutocomplete({
   value,
-  city,
   onChange,
   onSelect,
   placeholder = '',
   required = false,
   className = '',
 }: AddressAutocompleteProps) {
-  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const skipNextSearch = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const skipNextChange = useRef(false);
 
-  const searchAddress = useCallback(async (query: string) => {
-    if (query.length < 2) {
-      setSuggestions([]);
+  const handlePlaceChanged = useCallback(() => {
+    if (!autocompleteRef.current) return;
+
+    const place = autocompleteRef.current.getPlace();
+    if (!place.geometry?.location) {
+      console.warn('[AddressAutocomplete] Place has no geometry:', place);
       return;
     }
 
-    setLoading(true);
-    try {
-      const searchQuery = city ? `${query}, ${city}, ישראל` : `${query}, ישראל`;
-      const encoded = encodeURIComponent(searchQuery);
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5&countrycodes=il&addressdetails=1&accept-language=he`,
-        { headers: { 'User-Agent': 'RentalSoft/1.0', 'Accept-Language': 'he' } }
-      );
-      
-      if (response.ok) {
-        const data: NominatimResult[] = await response.json();
-        setSuggestions(data);
-        setShowSuggestions(data.length > 0);
+    const lat = place.geometry.location.lat();
+    const lng = place.geometry.location.lng();
+
+    // Extract address components
+    let street = '';
+    let city = '';
+
+    if (place.address_components) {
+      for (const comp of place.address_components) {
+        if (comp.types.includes('route')) {
+          street = comp.long_name;
+        }
+        if (comp.types.includes('locality')) {
+          city = comp.long_name;
+        }
+        if (!city && comp.types.includes('administrative_area_level_2')) {
+          city = comp.long_name;
+        }
       }
-    } catch (err) {
-      console.error('[AddressAutocomplete] Search error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [city]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    onChange(newValue);
-
-    if (skipNextSearch.current) {
-      skipNextSearch.current = false;
-      return;
     }
 
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      searchAddress(newValue);
-    }, 400);
-  };
+    // Fallback: use structured_formatting or name
+    if (!street && place.name) {
+      street = place.name;
+    }
 
-  const formatDisplayName = (result: NominatimResult): string => {
-    const addr = result.address;
-    const parts: string[] = [];
-    if (addr?.road) parts.push(addr.road);
-    const cityName = addr?.city || addr?.town || addr?.village || '';
-    if (cityName) parts.push(cityName);
-    if (parts.length > 0) return parts.join(', ');
-    // Fallback: take the first 2-3 comma parts of display_name
-    const displayParts = result.display_name.split(',').map(s => s.trim());
-    return displayParts.slice(0, 3).join(', ');
-  };
-
-  const handleSelect = (result: NominatimResult) => {
-    const lat = parseFloat(result.lat);
-    const lng = parseFloat(result.lon);
-    
-    const addr = result.address;
-    // Extract street name only (no house number)
-    const street = addr?.road || result.display_name.split(',')[0].trim();
-    const cityStr = addr?.city || addr?.town || addr?.village || '';
-
-    skipNextSearch.current = true;
+    skipNextChange.current = true;
     onChange(street);
-    setShowSuggestions(false);
-    setSuggestions([]);
 
     onSelect({
       address: street,
-      city: cityStr,
+      city,
       latitude: lat,
       longitude: lng,
     });
 
-    console.log('[AddressAutocomplete] Selected:', { street, city: cityStr, lat, lng, displayName: result.display_name });
+    console.log('[AddressAutocomplete] Selected:', { street, city, lat, lng, formattedAddress: place.formatted_address });
+  }, [onChange, onSelect]);
+
+  // Initialize Google Places Autocomplete
+  useEffect(() => {
+    let cancelled = false;
+
+    const init = async () => {
+      try {
+        await loadGoogleMapsScript();
+      } catch {
+        return;
+      }
+
+      if (cancelled || !inputRef.current) return;
+      if (autocompleteRef.current) return; // Already initialized
+
+      const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
+        types: ['address'],
+        componentRestrictions: { country: 'il' },
+        fields: ['geometry', 'address_components', 'formatted_address', 'name'],
+      });
+
+      autocomplete.addListener('place_changed', handlePlaceChanged);
+      autocompleteRef.current = autocomplete;
+    };
+
+    init();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [handlePlaceChanged]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (skipNextChange.current) {
+      skipNextChange.current = false;
+      return;
+    }
+    onChange(e.target.value);
   };
 
-  // Close on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Cleanup debounce
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
-
   return (
-    <div ref={containerRef} className="relative">
+    <div className="relative">
       <input
+        ref={inputRef}
         type="text"
         value={value}
         onChange={handleChange}
-        onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
         placeholder={placeholder}
         required={required}
         className={className}
         autoComplete="off"
       />
-      {loading && (
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 text-xs">
-          ...
-        </div>
-      )}
-      {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-surface-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
-          {suggestions.map((result) => (
-            <button
-              key={result.place_id}
-              type="button"
-              onClick={() => handleSelect(result)}
-              className="w-full text-right px-4 py-3 hover:bg-surface-50 text-sm text-surface-700 border-b border-surface-100 last:border-b-0 transition-colors"
-            >
-              {formatDisplayName(result)}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
