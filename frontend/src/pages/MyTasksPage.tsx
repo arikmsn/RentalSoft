@@ -54,11 +54,7 @@ export function MyTasksPage() {
   const handleNavigate = (site: DBSite | undefined) => {
     if (!site) return;
     let wazeUrl = '';
-    if (site.latitude && site.longitude) {
-      wazeUrl = `https://www.waze.com/ul?ll=${site.latitude},${site.longitude}&q=${encodeURIComponent(site.address)}`;
-    } else {
-      wazeUrl = `https://www.waze.com/ul?q=${encodeURIComponent(`${site.address}, ${site.city}`)}`;
-    }
+    wazeUrl = `https://www.waze.com/ul?ll=${site.latitude},${site.longitude}&q=${encodeURIComponent(site.address)}`;
     window.open(wazeUrl, '_blank');
   };
 
@@ -141,7 +137,7 @@ export function MyTasksPage() {
                 {task.site && (
                   <div className="mb-3 p-2 bg-gray-50 rounded-lg">
                     <p className="font-medium text-sm">{task.site.name}</p>
-                    <p className="text-xs text-gray-500">{task.site.address}, {task.site.city}</p>
+                    <p className="text-xs text-gray-500">{task.site.address}</p>
                     {task.site.contact1Phone && (
                       <button
                         onClick={() => handleCall(task.site?.contact1Phone)}

@@ -151,11 +151,7 @@ export function MapPage() {
       const woName = primaryWo ? t(`workOrders.types.${primaryWo.type}`) : site.name;
       const woDetailUrl = primaryWo ? `/workorders/${primaryWo.id}` : `/sites/${site.id}`;
 
-      // Build full address: "הצבר 2, פתח תקווה, קומה 3"
-      let fullAddress = site.address;
-      if (site.houseNumber) fullAddress += ` ${site.houseNumber}`;
-      fullAddress += `, ${site.city}`;
-      if (site.floor) fullAddress += `, קומה ${site.floor}`;
+      const fullAddress = site.address;
 
       // Installation date from earliest work order
       const installationDate = site.workOrders && site.workOrders.length > 0
@@ -329,7 +325,7 @@ export function MapPage() {
                       {site.workOrders && site.workOrders.length > 0 ? t(`workOrders.types.${site.workOrders[0].type}`) : site.name}
                     </h3>
                     <p className="text-xs text-surface-600 mt-1">
-                      {site.address}{site.houseNumber ? ` ${site.houseNumber}` : ''}, {site.city}{site.floor ? `, קומה ${site.floor}` : ''}
+                      {site.address}{site.floor ? `, קומה ${site.floor}` : ''}
                     </p>
                     {site.workOrders && site.workOrders.length > 0 && (
                       <div className="mt-2 text-xs space-y-0.5">

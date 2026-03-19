@@ -123,7 +123,7 @@ export interface Alert {
   id: string;
   equipmentId: string;
   workOrderId: string | null;
-  type: 'past_removal' | 'close_to_removal' | 'long_stay';
+  type: 'past_removal' | 'close_to_removal';
   daysRemaining: number;
   createdAt: Date;
   siteName: string;

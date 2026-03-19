@@ -34,8 +34,6 @@ export function AlertsPage() {
         return 'bg-danger-50 border-danger-200';
       case 'close_to_removal':
         return 'bg-warning-50 border-warning-200';
-      case 'long_stay':
-        return 'bg-warning-50/60 border-warning-200/60';
       default:
         return 'bg-surface-50 border-surface-200';
     }
@@ -45,7 +43,6 @@ export function AlertsPage() {
     switch (type) {
       case 'past_removal': return '🔴';
       case 'close_to_removal': return '🟠';
-      case 'long_stay': return '🟡';
       default: return '⚪';
     }
   };

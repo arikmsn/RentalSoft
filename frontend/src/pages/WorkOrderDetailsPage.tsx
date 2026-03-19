@@ -216,11 +216,7 @@ export function WorkOrderDetailsPage() {
   const handleNavigate = (site: Site | undefined) => {
     if (!site) return;
     let wazeUrl = '';
-    if (site.latitude && site.longitude) {
-      wazeUrl = `https://www.waze.com/ul?ll=${site.latitude},${site.longitude}&q=${encodeURIComponent(site.address)}`;
-    } else {
-      wazeUrl = `https://www.waze.com/ul?q=${encodeURIComponent(`${site.address}, ${site.city}`)}`;
-    }
+    wazeUrl = `https://www.waze.com/ul?ll=${site.latitude},${site.longitude}&q=${encodeURIComponent(site.address)}`;
     window.open(wazeUrl, '_blank');
   };
 
@@ -656,7 +652,7 @@ export function WorkOrderDetailsPage() {
           <div className="p-3 bg-gray-50 rounded-lg mb-4">
             <h3 className="font-semibold mb-2">{t('workOrder.siteDetails')}</h3>
             <p className="font-medium">{workOrder.site.name}</p>
-            <p className="text-sm text-gray-500">{workOrder.site.address}, {workOrder.site.city}</p>
+            <p className="text-sm text-gray-500">{workOrder.site.address}</p>
             {workOrder.site.floor && (
               <p className="text-sm text-gray-500">{t('sites.floor')}: {workOrder.site.floor}</p>
             )}

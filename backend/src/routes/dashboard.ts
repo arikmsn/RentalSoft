@@ -145,13 +145,13 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
         ? Math.ceil((new Date(eq.plannedRemovalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
         : 0;
 
-      let alertType: 'past_removal' | 'close_to_removal' | 'long_stay';
+      let alertType: 'past_removal' | 'close_to_removal';
       if (daysRemaining < 0) {
         alertType = 'past_removal';
-      } else if (daysRemaining <= 7) {
+      } else if (daysRemaining <= 2) {
         alertType = 'close_to_removal';
       } else {
-        alertType = 'long_stay';
+        return null;
       }
 
       // Get active work order for this equipment
@@ -166,13 +166,13 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
         daysRemaining,
         createdAt: now,
         siteName: eq.site?.name || '',
-        siteAddress: eq.site ? `${eq.site.city || ''} ${eq.site.address || ''}`.trim() : '',
+        siteAddress: eq.site?.address || '',
         siteContact: eq.site?.contact1Name || '',
         sitePhone: eq.site?.contact1Phone || '',
       };
     });
 
-    res.json(alerts);
+    res.json(alerts.filter(Boolean));
   } catch (error) {
     console.error('Get alerts error:', error);
     // Return empty array instead of 500 to keep dashboard working

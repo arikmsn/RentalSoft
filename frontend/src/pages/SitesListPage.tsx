@@ -341,10 +341,7 @@ export function SitesListPage() {
                 <span className="px-2.5 py-1 bg-warning-100 text-warning-700 text-xs rounded-full font-medium">⭐</span>
               )}
             </div>
-            <p className="text-surface-500 text-sm">
-              {site.address}{site.houseNumber ? ` ${site.houseNumber}` : ''}
-            </p>
-            <p className="text-surface-400 text-sm mt-1">{site.city}</p>
+            <p className="text-surface-500 text-sm">{site.address}</p>
 
             <div className="mt-4 pt-3 border-t border-surface-100 flex items-center justify-between">
               {site.rating && (
