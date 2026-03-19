@@ -49,7 +49,6 @@ export function EquipmentListPage() {
     type: '',
     status: 'warehouse' as EquipmentStatus,
     condition: 'ok' as 'ok' | 'not_ok' | 'wearout',
-    plannedRemovalDate: '',
   });
   const [savingEdit, setSavingEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -118,7 +117,6 @@ export function EquipmentListPage() {
       type: eq.type,
       status: eq.status,
       condition: eq.condition,
-      plannedRemovalDate: eq.plannedRemovalDate ? new Date(eq.plannedRemovalDate).toISOString().split('T')[0] : '',
     });
     setShowDetails(true);
   };
@@ -133,7 +131,6 @@ export function EquipmentListPage() {
         type: editFormData.type,
         status: editFormData.status,
         condition: editFormData.condition,
-        plannedRemovalDate: editFormData.plannedRemovalDate ? new Date(editFormData.plannedRemovalDate) : undefined,
       });
       setShowDetails(false);
       setSelectedEquipment(null);
@@ -145,21 +142,6 @@ export function EquipmentListPage() {
     } finally {
       setSavingEdit(false);
     }
-  };
-
-  const getProgressColor = (plannedRemoval?: Date) => {
-    if (!plannedRemoval) return 'bg-gray-200';
-    const now = new Date();
-    const planned = new Date(plannedRemoval);
-    const installed = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    const total = planned.getTime() - installed.getTime();
-    const elapsed = now.getTime() - installed.getTime();
-    const percentage = (elapsed / total) * 100;
-
-    if (percentage >= 100) return 'bg-red-500';
-    if (percentage >= 75) return 'bg-orange-500';
-    if (percentage >= 50) return 'bg-yellow-500';
-    return 'bg-green-500';
   };
 
   const filteredEquipment = equipment
@@ -270,26 +252,18 @@ export function EquipmentListPage() {
                     {eq.activeWorkOrder.site?.name}
                   </span>
                 </div>
+                {eq.nextPlannedRemovalDate && (
+                  <div className="flex justify-between text-xs text-surface-500 mt-2">
+                    <span>{t('equipment.plannedRemoval')}</span>
+                    <span className="font-medium">{formatDate(eq.nextPlannedRemovalDate)}</span>
+                  </div>
+                )}
               </div>
             )}
             
             {!eq.activeWorkOrder && (
               <div className="mt-3 pt-3 border-t border-surface-100">
                 <span className="text-xs text-surface-400">לא משויך לעבודה</span>
-              </div>
-            )}
-            {eq.plannedRemovalDate && eq.status === 'at_customer' && (
-              <div className="mt-4 pt-3 border-t border-surface-100">
-                <div className="flex justify-between text-xs text-surface-500 mb-2">
-                  <span>{t('equipment.plannedRemoval')}</span>
-                  <span className="font-medium">{formatDate(eq.plannedRemovalDate)}</span>
-                </div>
-                <div className="h-1.5 bg-surface-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${getProgressColor(eq.plannedRemovalDate)} transition-all`}
-                    style={{ width: '50%' }}
-                  />
-                </div>
               </div>
             )}
           </div>
@@ -491,15 +465,6 @@ export function EquipmentListPage() {
                   <option value="not_ok">{t('equipment.conditions.notOk')}</option>
                   <option value="wearout">{t('equipment.conditions.wearout')}</option>
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.plannedRemoval')}</label>
-                <input
-                  type="date"
-                  value={editFormData.plannedRemovalDate}
-                  onChange={(e) => setEditFormData({ ...editFormData, plannedRemovalDate: e.target.value })}
-                  className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                />
               </div>
               <div className="flex gap-3 pt-3">
                 <button

@@ -35,6 +35,7 @@ export interface Equipment {
       city: string;
     };
   } | null;
+  nextPlannedRemovalDate?: Date | null;
 }
 
 export interface Site {

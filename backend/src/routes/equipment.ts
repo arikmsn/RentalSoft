@@ -41,6 +41,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
                 id: true, 
                 status: true, 
                 type: true,
+                plannedRemovalDate: true,
                 site: { select: { id: true, name: true, city: true } },
               },
             },
@@ -52,9 +53,17 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
 
     const equipmentWithAttachment = equipment.map(eq => {
       const activeWorkOrder = eq.workOrders[0]?.workOrder;
+      const workOrdersWithDates = eq.workOrders.filter(wo => wo.workOrder.plannedRemovalDate);
+      const nextPlannedRemovalDate = workOrdersWithDates.length > 0
+        ? workOrdersWithDates.sort((a, b) => 
+            new Date(a.workOrder.plannedRemovalDate!).getTime() - 
+            new Date(b.workOrder.plannedRemovalDate!).getTime()
+          )[0].workOrder.plannedRemovalDate
+        : null;
       return {
         ...eq,
         activeWorkOrder: activeWorkOrder || null,
+        nextPlannedRemovalDate,
       };
     });
 
@@ -207,14 +216,13 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
 
 router.patch('/:id', authenticate, isManagerOrAdmin, async (req: AuthRequest, res) => {
   try {
-    const { qrTag, type, status, condition, plannedRemovalDate } = req.body;
+    const { qrTag, type, status, condition } = req.body;
 
     const updateData: any = {};
     if (qrTag) updateData.qrTag = qrTag;
     if (type) updateData.type = type;
     if (status) updateData.status = status;
     if (condition) updateData.condition = condition;
-    if (plannedRemovalDate) updateData.plannedRemovalDate = new Date(plannedRemovalDate);
 
     const equipment = await prisma.equipment.update({
       where: { id: req.params.id },

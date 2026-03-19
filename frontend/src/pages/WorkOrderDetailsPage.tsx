@@ -726,33 +726,26 @@ export function WorkOrderDetailsPage() {
           </div>
         )}
 
-        {canChangeStatus && (
-          <div className="p-3 bg-primary-50 rounded-lg border border-primary-100">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-primary-700">{t('workOrders.status')}:</span>
-              {showStatusDropdown ? (
-                <select
-                  value={workOrder.status}
-                  onChange={(e) => handleStatusChange(e.target.value as WorkOrderStatus)}
-                  onBlur={() => setShowStatusDropdown(false)}
-                  autoFocus
-                  className={`px-3 py-2 rounded-lg text-sm font-medium border-2 cursor-pointer ${statusColors[workOrder.status]}`}
-                >
-                  <option value="open">{t('workOrders.statuses.open')}</option>
-                  <option value="in_progress">{t('workOrders.statuses.in_progress')}</option>
-                  <option value="completed">{t('workOrders.statuses.completed')}</option>
-                </select>
-              ) : (
-                <button
-                  onClick={() => setShowStatusDropdown(true)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium cursor-pointer hover:opacity-80 ${statusColors[workOrder.status]}`}
-                >
-                  {t(`workOrders.statuses.${workOrder.status}`)}
-                </button>
-              )}
-            </div>
+        <div className="p-3 bg-primary-50 rounded-lg border border-primary-100">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-primary-700">{t('workOrders.status')}:</span>
+            {canChangeStatus ? (
+              <select
+                value={workOrder.status}
+                onChange={(e) => handleStatusChange(e.target.value as WorkOrderStatus)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium border-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 ${statusColors[workOrder.status]}`}
+              >
+                <option value="open">{t('workOrders.statuses.open')}</option>
+                <option value="in_progress">{t('workOrders.statuses.in_progress')}</option>
+                <option value="completed">{t('workOrders.statuses.completed')}</option>
+              </select>
+            ) : (
+              <span className={`px-3 py-2 rounded-lg text-sm font-medium ${statusColors[workOrder.status]}`}>
+                {t(`workOrders.statuses.${workOrder.status}`)}
+              </span>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
