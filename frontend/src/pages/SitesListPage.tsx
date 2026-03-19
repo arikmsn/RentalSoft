@@ -239,9 +239,15 @@ export function SitesListPage() {
             
             <div className="mt-4 pt-3 border-t border-surface-100 flex items-center justify-between">
               {site.rating && (
-                <div className="flex items-center gap-1">
-                  <span className="text-warning-500">★</span>
-                  <span className="text-sm text-surface-600 font-medium">{site.rating}</span>
+                <div className="flex items-center gap-0.5">
+                  {[1, 2, 3, 4, 5].map((level) => (
+                    <div
+                      key={level}
+                      className={`w-4 h-2 rounded-sm ${
+                        level <= site.rating! ? 'bg-warning-500' : 'bg-surface-200'
+                      }`}
+                    />
+                  ))}
                 </div>
               )}
               <div className="flex items-center gap-2 ms-auto">

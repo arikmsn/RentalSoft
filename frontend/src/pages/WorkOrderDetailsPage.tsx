@@ -27,13 +27,6 @@ const statusColors: Record<string, string> = {
   completed: 'bg-green-100 text-green-800',
 };
 
-const equipmentStatusColors: Record<string, string> = {
-  warehouse: 'bg-blue-100 text-blue-800',
-  at_customer: 'bg-green-100 text-green-800',
-  in_repair: 'bg-red-100 text-red-800',
-  available: 'bg-gray-100 text-gray-800',
-};
-
 interface ScannedEquipment extends Equipment {
   addedAt: Date;
 }
@@ -761,9 +754,6 @@ export function WorkOrderDetailsPage() {
                 <div>
                   <p className="font-medium">{eq.type}</p>
                   <p className="text-sm text-gray-500">{eq.qrTag}</p>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${equipmentStatusColors[eq.status]}`}>
-                    {t(`equipment.statuses.${eq.status.replace('_', '')}`)}
-                  </span>
                 </div>
                 {canEdit && (
                   <button

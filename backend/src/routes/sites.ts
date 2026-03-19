@@ -117,6 +117,7 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
         return {
           ...site,
           equipment: undefined,
+          equipmentCount: atCustomerEquipment.length,
           statusCounts: {
             red: redCount,
             orange: orangeCount,
@@ -128,7 +129,12 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
       })
     );
 
-    const validSites = sitesWithStatus.filter(s => s.hasValidLocation && s.latitude != null && s.longitude != null);
+    const validSites = sitesWithStatus.filter(s => 
+      s.hasValidLocation && 
+      s.latitude != null && 
+      s.longitude != null &&
+      s.workOrders.length > 0
+    );
 
     res.json(validSites);
   } catch (error) {

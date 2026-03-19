@@ -33,6 +33,7 @@ interface SiteWithStatus {
     type: string;
     plannedDate: Date | string;
   }>;
+  equipmentCount?: number;
 }
 
 const statusColors = {
@@ -71,6 +72,7 @@ export function MapPage() {
   const [search, setSearch] = useState('');
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const hasInitializedBounds = useRef(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -156,6 +158,16 @@ export function MapPage() {
           </div>`
         : '';
 
+      const equipmentCountHtml = site.equipmentCount !== undefined
+        ? `<div class="mt-2 flex items-center justify-center gap-1 text-sm text-surface-600">
+            <span>🔧</span>
+            <span>${site.equipmentCount}</span>
+          </div>`
+        : '';
+
+      const primaryWorkOrderId = site.workOrders && site.workOrders.length > 0 ? site.workOrders[0].id : null;
+      const actionsUrl = primaryWorkOrderId ? `/workorders/${primaryWorkOrderId}` : `/sites/${site.id}`;
+
       const popup = L.popup({
         closeButton: true,
         className: 'site-popup'
@@ -165,6 +177,7 @@ export function MapPage() {
           <div class="text-center min-w-[150px] p-1">
             <h3 class="font-semibold text-surface-800">${site.name}</h3>
             <p class="text-sm text-surface-600">${site.address}</p>
+            ${equipmentCountHtml}
             ${site.statusCounts ? `
               <div class="mt-2 flex justify-center gap-2 text-xs">
                 ${site.statusCounts.red > 0 ? `<span class="px-2 py-1 bg-danger-100 text-danger-700 rounded-full">🔴 ${site.statusCounts.red}</span>` : ''}
@@ -176,7 +189,7 @@ export function MapPage() {
             ${workOrdersHtml}
             <div class="mt-2 flex flex-col gap-1">
               <a href="https://www.waze.com/ul?ll=${lat},${lng}&q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener noreferrer" class="w-full px-2 py-2 rounded-lg text-sm font-medium text-center text-white bg-primary-600 hover:bg-primary-700" style="color: #ffffff !important;">ניווט</a>
-              <a href="/sites/${site.id}" class="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 text-center" style="color: #374151;">פעולות</a>
+              <a href="${actionsUrl}" class="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 text-center" style="color: #374151;">פעולות</a>
             </div>
           </div>
         `);
@@ -194,9 +207,9 @@ export function MapPage() {
     }
   };
 
-  // Fit map bounds to markers when data loads
+  // Fit map bounds to markers only on initial load
   useEffect(() => {
-    if (!mapRef.current || filteredSites.length === 0) return;
+    if (!mapRef.current || filteredSites.length === 0 || hasInitializedBounds.current) return;
     
     const coords = filteredSites
       .filter(s => s.latitude && s.longitude)
@@ -204,6 +217,7 @@ export function MapPage() {
     
     if (coords.length > 0) {
       console.log('[Map] Fitting bounds to', coords.length, 'sites');
+      hasInitializedBounds.current = true;
       const bounds = L.latLngBounds(coords);
       mapRef.current.fitBounds(bounds, { padding: [50, 50] });
       // Ensure map size is correct after fitting bounds
