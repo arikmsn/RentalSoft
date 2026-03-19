@@ -28,23 +28,11 @@ export function AlertsPage() {
     return filter === 'all' || alert.type === filter;
   });
 
-  const getAlertColor = (type: Alert['type']) => {
-    switch (type) {
-      case 'past_removal':
-        return 'bg-danger-50 border-danger-200';
-      case 'close_to_removal':
-        return 'bg-warning-50 border-warning-200';
-      default:
-        return 'bg-surface-50 border-surface-200';
-    }
-  };
-
-  const getAlertIcon = (type: Alert['type']) => {
-    switch (type) {
-      case 'past_removal': return '🔴';
-      case 'close_to_removal': return '🟠';
-      default: return '⚪';
-    }
+  const getAlertDotColor = (alert: Alert) => {
+    if (alert.daysRemaining < 0) return { dot: 'bg-surface-800', border: 'border-surface-800', bg: 'bg-surface-50' };
+    if (alert.daysRemaining <= 2) return { dot: 'bg-danger-500', border: 'border-danger-400', bg: 'bg-danger-50' };
+    if (alert.daysRemaining <= 7) return { dot: 'bg-warning-500', border: 'border-warning-400', bg: 'bg-warning-50' };
+    return { dot: 'bg-success-500', border: 'border-success-400', bg: 'bg-success-50' };
   };
 
   if (loading) {
@@ -62,8 +50,8 @@ export function AlertsPage() {
       <div className="flex gap-2 flex-wrap">
         {([
           { key: 'all' as const, label: t('equipment.filters.all'), activeClass: 'bg-primary-600 text-white shadow-sm' },
-          { key: 'past_removal' as const, label: t('alerts.pastRemoval'), activeClass: 'bg-danger-600 text-white shadow-sm' },
-          { key: 'close_to_removal' as const, label: t('alerts.closeToRemoval'), activeClass: 'bg-warning-600 text-white shadow-sm' },
+          { key: 'past_removal' as const, label: t('alerts.pastRemoval'), activeClass: 'bg-surface-800 text-white shadow-sm' },
+          { key: 'close_to_removal' as const, label: t('alerts.closeToRemoval'), activeClass: 'bg-danger-600 text-white shadow-sm' },
         ]).map((btn) => (
           <button
             key={btn.key}
@@ -80,14 +68,16 @@ export function AlertsPage() {
       </div>
 
       <div className="space-y-3">
-        {filteredAlerts.map((alert) => (
+        {filteredAlerts.map((alert) => {
+          const colors = getAlertDotColor(alert);
+          return (
           <div
             key={alert.id}
-            className={`p-4 rounded-2xl border ${getAlertColor(alert.type)} transition-all duration-200`}
+            className={`p-4 rounded-2xl border-2 ${colors.border} ${colors.bg} transition-all duration-200`}
           >
             <div className="flex justify-between items-start gap-3">
               <div className="flex items-start gap-3 flex-1 min-w-0">
-                <span className="text-lg mt-0.5 shrink-0">{getAlertIcon(alert.type)}</span>
+                <span className={`w-3 h-3 rounded-full mt-1.5 shrink-0 ${colors.dot}`} />
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-surface-800 text-sm sm:text-base">
                     {alert.siteName || t('equipment.title')}
@@ -125,7 +115,8 @@ export function AlertsPage() {
               </div>
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {filteredAlerts.length === 0 && (

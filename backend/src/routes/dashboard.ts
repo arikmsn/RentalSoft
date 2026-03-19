@@ -21,11 +21,9 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
       sitesWithEquipment,
       todayWorkOrders,
       openWorkOrders,
-      overdueRemovals,
-      upcomingRemovals,
+      sites,
     ] = await Promise.all([
       prisma.equipment.count(),
-      // Available = not attached to any active work order
       prisma.equipment.count({
         where: {
           NOT: {
@@ -53,22 +51,27 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
       prisma.workOrder.count({
         where: { status: { in: ['open', 'in_progress'] } },
       }),
-      prisma.equipment.count({
-        where: {
-          status: 'at_customer',
-          plannedRemovalDate: { lt: new Date() },
-        },
-      }),
-      prisma.equipment.count({
-        where: {
-          status: 'at_customer',
-          plannedRemovalDate: {
-            gte: new Date(),
-            lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      prisma.site.findMany({
+        include: {
+          workOrders: {
+            where: { status: { not: 'completed' } },
           },
         },
       }),
     ]);
+
+    let overdueRemovals = 0;
+    let upcomingRemovals = 0;
+    for (const site of sites) {
+      const removalDates = site.workOrders
+        .map((wo) => wo.plannedRemovalDate)
+        .filter((d): d is Date => d !== null);
+      if (removalDates.length === 0) continue;
+      const earliest = new Date(Math.min(...removalDates.map((d) => d.getTime())));
+      const { statusColor } = computeWorkOrderStatus(earliest, new Date());
+      if (statusColor === 'black') overdueRemovals++;
+      else if (statusColor === 'red') upcomingRemovals++;
+    }
 
     res.json({
       totalEquipment,

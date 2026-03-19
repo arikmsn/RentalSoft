@@ -88,8 +88,8 @@ export function DashboardPage() {
   const statCards = [
     { value: stats?.availableEquipment || 0, label: t('dashboard.availableEquipment'), color: 'text-primary-600', bg: 'bg-primary-50', icon: '📦', onClick: () => navigate('/equipment?filter=available') },
     { value: stats?.sitesWithEquipment || 0, label: t('dashboard.sitesWithEquipment'), color: 'text-success-600', bg: 'bg-success-50', icon: '📍', onClick: () => navigate('/equipment?filter=at_customer') },
-    { value: stats?.overdueRemovals || 0, label: t('dashboard.overdueRemovals'), color: 'text-danger-600', bg: 'bg-danger-50', icon: '🔴', onClick: () => navigate('/workorders?filter=open') },
-    { value: stats?.upcomingRemovals || 0, label: t('dashboard.upcomingRemovals'), color: 'text-warning-600', bg: 'bg-warning-50', icon: '🟡', onClick: undefined },
+    { value: stats?.overdueRemovals || 0, label: t('dashboard.overdueRemovals'), color: 'text-surface-800', bg: 'bg-surface-100', icon: '⚫', onClick: () => navigate('/alerts?type=past_removal') },
+    { value: stats?.upcomingRemovals || 0, label: t('dashboard.upcomingRemovals'), color: 'text-danger-600', bg: 'bg-danger-50', icon: '🔴', onClick: undefined },
   ];
 
   return (
@@ -140,33 +140,37 @@ export function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-2 max-h-[320px] overflow-y-auto">
-            {alerts.slice(0, 5).map((alert) => (
+            {alerts.slice(0, 5).map((alert) => {
+              const isBlack = alert.daysRemaining < 0;
+              const borderColor = isBlack ? 'border-surface-800' : 'border-danger-400';
+              const dotColor = isBlack ? 'bg-surface-800' : 'bg-danger-500';
+              const textColor = isBlack ? 'text-surface-700' : 'text-danger-700';
+              return (
               <Link
                 key={alert.id}
                 to={alert.workOrderId ? `/workorders/${alert.workOrderId}` : `/equipment/${alert.equipmentId}`}
                 className="block"
               >
-                <div className="flex items-center gap-3 p-3 bg-danger-50 rounded-xl hover:bg-danger-100 transition-colors border border-danger-100">
-                  <div className="w-8 h-8 bg-danger-100 rounded-lg flex items-center justify-center shrink-0">
-                    <span className="text-sm">⚠️</span>
-                  </div>
+                <div className={`flex items-center gap-3 p-3 bg-white rounded-xl hover:bg-surface-50 transition-colors border-2 ${borderColor}`}>
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotColor}`} />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-danger-800 truncate">
+                    <p className={`font-medium text-sm truncate ${textColor}`}>
                       {alert.siteName || t('equipment.title')}
                     </p>
-                    <p className="text-xs text-danger-600 truncate">
+                    <p className="text-xs text-surface-500 truncate">
                       {alert.siteAddress}
                     </p>
-                    <p className="text-xs text-danger-500 mt-0.5">
+                    <p className="text-xs font-medium mt-0.5 text-surface-600">
                       {alert.daysRemaining > 0
                         ? `${alert.daysRemaining} ${t('alerts.daysRemaining')}`
                         : `${Math.abs(alert.daysRemaining)} ${t('alerts.daysOverdue')}`}
                     </p>
                   </div>
-                  <span className="text-danger-300 text-lg shrink-0">&larr;</span>
+                  <span className="text-surface-400 text-lg shrink-0">&larr;</span>
                 </div>
               </Link>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>
