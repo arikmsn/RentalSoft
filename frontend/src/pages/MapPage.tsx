@@ -18,6 +18,8 @@ interface SiteWithStatus {
   name: string;
   address: string;
   city: string;
+  houseNumber?: string | null;
+  floor?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   isHighlighted: boolean;
@@ -145,66 +147,41 @@ export function MapPage() {
       const lat = Number(site.latitude);
       const lng = Number(site.longitude);
       
-      const workOrdersHtml = site.workOrders && site.workOrders.length > 0
-        ? `<div class="mt-2 text-xs text-right max-h-24 overflow-y-auto">
-            <div class="font-medium text-surface-700 mb-1">הזמנות עבודה:</div>
-            ${site.workOrders.map(wo => `
-              <a href="/workorders/${wo.id}" class="block py-1 px-2 mb-1 bg-surface-50 hover:bg-surface-100 rounded text-primary-600 hover:text-primary-700 text-decoration-none truncate">
-                ${t(`workOrders.types.${wo.type}`)} - ${new Date(wo.plannedDate).toLocaleDateString('he-IL')}
-              </a>
-            `).join('')}
-          </div>`
-        : '';
+      const primaryWo = site.workOrders && site.workOrders.length > 0 ? site.workOrders[0] : null;
+      const woName = primaryWo ? t(`workOrders.types.${primaryWo.type}`) : site.name;
+      const woDetailUrl = primaryWo ? `/workorders/${primaryWo.id}` : `/sites/${site.id}`;
 
-      const statusColorMap: Record<string, string> = {
-        black: '#1f2937',
-        red: '#ef4444',
-        orange: '#f97316',
-        green: '#22c55e',
-      };
-      const statusLabelMap: Record<string, string> = {
-        black: 'עבר תאריך',
-        red: 'הגיע הזמן',
-        orange: 'קרוב לפירוק',
-        green: 'יש זמן',
-      };
-
-      const getStatusEmoji = (status: string) => {
-        switch (status) {
-          case 'black': return '⚫';
-          case 'red': return '🔴';
-          case 'orange': return '🟠';
-          case 'green': return '🟢';
-          default: return '⚪';
-        }
-      };
-
-      const statusHtml = site.overallStatus
-        ? `<div class="mt-2 flex items-center justify-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white" style="background-color: ${statusColorMap[site.overallStatus]}">
-              ${getStatusEmoji(site.overallStatus)}
-              ${statusLabelMap[site.overallStatus]}
-            </span>
-          </div>`
-        : '';
-
-      const primaryWorkOrderId = site.workOrders && site.workOrders.length > 0 ? site.workOrders[0].id : null;
-      const actionsUrl = primaryWorkOrderId ? `/workorders/${primaryWorkOrderId}` : `/sites/${site.id}`;
+      // Build full address: "הצבר 2, פתח תקווה, קומה 3"
+      let fullAddress = site.address;
+      if (site.houseNumber) fullAddress += ` ${site.houseNumber}`;
+      fullAddress += `, ${site.city}`;
+      if (site.floor) fullAddress += `, קומה ${site.floor}`;
 
       // Installation date from earliest work order
       const installationDate = site.workOrders && site.workOrders.length > 0
         ? new Date(site.workOrders[site.workOrders.length - 1].plannedDate).toLocaleDateString('he-IL')
         : null;
 
-      // Removal date from the earliestRemovalDate field
+      // Removal date
       const removalDate = site.earliestRemovalDate
         ? new Date(site.earliestRemovalDate).toLocaleDateString('he-IL')
         : null;
 
-      const datesHtml = (installationDate || removalDate) 
-        ? `<div class="mt-2 text-xs text-right space-y-0.5">
-            ${installationDate ? `<div><span class="font-medium text-surface-600">תאריך התקנה:</span> <span class="text-surface-800">${installationDate}</span></div>` : ''}
-            ${removalDate ? `<div><span class="font-medium text-surface-600">מתפנה בתאריך:</span> <span class="text-surface-800">${removalDate}</span></div>` : ''}
+      const statusColorMap: Record<string, string> = {
+        black: '#1f2937', red: '#ef4444', orange: '#f97316', green: '#22c55e',
+      };
+      const statusLabelMap: Record<string, string> = {
+        black: 'עבר תאריך', red: 'הגיע הזמן', orange: 'קרוב לפירוק', green: 'יש זמן',
+      };
+      const statusEmojiMap: Record<string, string> = {
+        black: '⚫', red: '🔴', orange: '🟠', green: '🟢',
+      };
+
+      const statusHtml = site.overallStatus
+        ? `<div class="mt-2 flex items-center justify-center">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white" style="background-color: ${statusColorMap[site.overallStatus]}">
+              ${statusEmojiMap[site.overallStatus]} ${statusLabelMap[site.overallStatus]}
+            </span>
           </div>`
         : '';
 
@@ -214,16 +191,17 @@ export function MapPage() {
       })
         .setLatLng([lat, lng])
         .setContent(`
-          <div class="text-center min-w-[150px] p-1">
-            <h3 class="font-semibold text-surface-800">${site.name}</h3>
-            <p class="text-sm text-surface-600">${site.address}</p>
-            ${datesHtml}
+          <div class="text-right min-w-[180px] p-1">
+            <h3 class="font-semibold text-surface-800 text-sm">${woName}</h3>
+            <p class="text-xs text-surface-600 mt-1">${fullAddress}</p>
+            <div class="mt-2 text-xs space-y-0.5">
+              ${installationDate ? `<div><span class="font-medium text-surface-600">תאריך התקנה:</span> <span class="text-surface-800">${installationDate}</span></div>` : ''}
+              ${removalDate ? `<div><span class="font-medium text-surface-600">מתפנה בתאריך:</span> <span class="text-surface-800">${removalDate}</span></div>` : ''}
+            </div>
             ${statusHtml}
-            ${site.isHighlighted ? `<span class="text-xs text-warning-600 font-medium">⚠️</span>` : ''}
-            ${workOrdersHtml}
             <div class="mt-2 flex flex-col gap-1">
-              <a href="https://www.waze.com/ul?ll=${lat},${lng}&q=${encodeURIComponent(site.address)}" target="_blank" rel="noopener noreferrer" class="w-full px-2 py-2 rounded-lg text-sm font-medium text-center text-white bg-primary-600 hover:bg-primary-700" style="color: #ffffff !important;">ניווט</a>
-              <a href="${actionsUrl}" class="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 text-center" style="color: #374151;">פעולות</a>
+              <a href="https://www.waze.com/ul?ll=${lat},${lng}&q=${encodeURIComponent(fullAddress)}" target="_blank" rel="noopener noreferrer" class="w-full px-2 py-2 rounded-lg text-sm font-medium text-center text-white bg-primary-600 hover:bg-primary-700" style="color: #ffffff !important;">ניווט</a>
+              <a href="${woDetailUrl}" class="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 text-center" style="color: #374151;">פירוט</a>
             </div>
           </div>
         `);
@@ -344,11 +322,15 @@ export function MapPage() {
                 }}
               >
                 <Popup>
-                  <div className="text-center min-w-[150px] p-1">
-                    <h3 className="font-semibold text-surface-800">{site.name}</h3>
-                    <p className="text-sm text-surface-600">{site.address}</p>
+                  <div className="text-right min-w-[180px] p-1">
+                    <h3 className="font-semibold text-surface-800 text-sm">
+                      {site.workOrders && site.workOrders.length > 0 ? t(`workOrders.types.${site.workOrders[0].type}`) : site.name}
+                    </h3>
+                    <p className="text-xs text-surface-600 mt-1">
+                      {site.address}{site.houseNumber ? ` ${site.houseNumber}` : ''}, {site.city}{site.floor ? `, קומה ${site.floor}` : ''}
+                    </p>
                     {site.workOrders && site.workOrders.length > 0 && (
-                      <div className="mt-1 text-xs text-right space-y-0.5">
+                      <div className="mt-2 text-xs space-y-0.5">
                         <div><span className="font-medium text-surface-600">תאריך התקנה:</span> <span className="text-surface-800">{new Date(site.workOrders[site.workOrders.length - 1].plannedDate).toLocaleDateString('he-IL')}</span></div>
                         {site.earliestRemovalDate && (
                           <div><span className="font-medium text-surface-600">מתפנה בתאריך:</span> <span className="text-surface-800">{new Date(site.earliestRemovalDate).toLocaleDateString('he-IL')}</span></div>
@@ -356,7 +338,7 @@ export function MapPage() {
                       </div>
                     )}
                     {site.overallStatus && (
-                      <div className="mt-2 flex items-center justify-center gap-2">
+                      <div className="mt-2 flex items-center justify-center">
                         <span
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white"
                           style={{ backgroundColor: statusColors[site.overallStatus] }}
@@ -366,21 +348,18 @@ export function MapPage() {
                         </span>
                       </div>
                     )}
-                    {site.isHighlighted && (
-                      <span className="text-xs text-warning-600 font-medium">⚠️ {t('sites.highlight')}</span>
-                    )}
                     <div className="mt-2 flex flex-col gap-1">
                       <button
                         onClick={() => handleNavigate(site)}
                         className="w-full px-2 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
                       >
-                        🚗 {t('sites.navigate')}
+                        ניווט
                       </button>
                       <Link
-                        to={`/sites/${site.id}`}
-                        className="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 transition-colors"
+                        to={site.workOrders && site.workOrders.length > 0 ? `/workorders/${site.workOrders[0].id}` : `/sites/${site.id}`}
+                        className="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 transition-colors text-center"
                       >
-                        {t('app.actions')}
+                        פירוט
                       </Link>
                     </div>
                   </div>

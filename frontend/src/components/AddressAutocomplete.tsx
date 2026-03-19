@@ -11,12 +11,14 @@ interface NominatimResult {
     city?: string;
     town?: string;
     village?: string;
+    suburb?: string;
+    neighbourhood?: string;
     state?: string;
     country?: string;
   };
 }
 
-interface AddressSelection {
+export interface AddressSelection {
   address: string;
   city: string;
   latitude: number;
@@ -57,11 +59,11 @@ export function AddressAutocomplete({
 
     setLoading(true);
     try {
-      const searchQuery = city ? `${query}, ${city}, Israel` : `${query}, Israel`;
+      const searchQuery = city ? `${query}, ${city}, ישראל` : `${query}, ישראל`;
       const encoded = encodeURIComponent(searchQuery);
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5&countrycodes=il&addressdetails=1`,
-        { headers: { 'User-Agent': 'RentalSoft/1.0' } }
+        `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5&countrycodes=il&addressdetails=1&accept-language=he`,
+        { headers: { 'User-Agent': 'RentalSoft/1.0', 'Accept-Language': 'he' } }
       );
       
       if (response.ok) {
@@ -91,29 +93,40 @@ export function AddressAutocomplete({
     }, 400);
   };
 
+  const formatDisplayName = (result: NominatimResult): string => {
+    const addr = result.address;
+    const parts: string[] = [];
+    if (addr?.road) parts.push(addr.road);
+    const cityName = addr?.city || addr?.town || addr?.village || '';
+    if (cityName) parts.push(cityName);
+    if (parts.length > 0) return parts.join(', ');
+    // Fallback: take the first 2-3 comma parts of display_name
+    const displayParts = result.display_name.split(',').map(s => s.trim());
+    return displayParts.slice(0, 3).join(', ');
+  };
+
   const handleSelect = (result: NominatimResult) => {
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
     
     const addr = result.address;
-    const street = addr?.road || '';
-    const houseNumber = addr?.house_number || '';
-    const addressStr = houseNumber ? `${street} ${houseNumber}` : street || result.display_name.split(',')[0];
+    // Extract street name only (no house number)
+    const street = addr?.road || result.display_name.split(',')[0].trim();
     const cityStr = addr?.city || addr?.town || addr?.village || '';
 
     skipNextSearch.current = true;
-    onChange(addressStr);
+    onChange(street);
     setShowSuggestions(false);
     setSuggestions([]);
 
     onSelect({
-      address: addressStr,
+      address: street,
       city: cityStr,
       latitude: lat,
       longitude: lng,
     });
 
-    console.log('[AddressAutocomplete] Selected:', { address: addressStr, city: cityStr, lat, lng });
+    console.log('[AddressAutocomplete] Selected:', { street, city: cityStr, lat, lng, displayName: result.display_name });
   };
 
   // Close on outside click
@@ -160,7 +173,7 @@ export function AddressAutocomplete({
               onClick={() => handleSelect(result)}
               className="w-full text-right px-4 py-3 hover:bg-surface-50 text-sm text-surface-700 border-b border-surface-100 last:border-b-0 transition-colors"
             >
-              {result.display_name}
+              {formatDisplayName(result)}
             </button>
           ))}
         </div>

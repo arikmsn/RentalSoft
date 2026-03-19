@@ -6,22 +6,11 @@ import { useAuthStore } from '../stores/authStore';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
 
-const ISRAELI_CITIES = [
-  'תל אביב', 'ירושלים', 'חיפה', 'באר שבע', 'רמת גן', 'פתח תקווה', 'נתניה', 'הרצליה',
-  'רמת השרון', 'גבעתיים', 'חולון', 'בני ברק', 'ראשון לציון', 'נס ציונה', 'אשדוד',
-  'אשקלון', 'רחובות', 'הוד השרון', 'כרמיאל', 'טבריה', 'צפת', 'נהריה', 'עפולה',
-  'קריית ביאליק', 'קריית מוצקין', 'קריית ים', 'קריית שמונה', 'אילת', 'מודיעין',
-  'לוד', 'רמלה', 'נתבג', 'גדרה', 'שדרות', 'אריאל', 'בית שמש', 'מעלה אדומים',
-  'צור הדסה', 'ביתר עילית', 'קריית גת', 'קריית מלאכי', 'יבנה', 'שפיים', 'זכרון יעקב',
-  'באקה אל גרבייה', 'קלנסווה', 'כפר קרע', 'ערערה', 'בסמת', 'טייבה', 'טירה', 'כפר יונה',
-  'קדימה', 'צורן', 'שלומי', 'מעלות', 'יקנעם', 'נשר', 'קריית בנימין', 'אופקים',
-  'שגב שלום', 'דימונה', 'ערד', 'מצפה רמון', 'קריית אונו', 'גבעת שמואל', 'יבנה'
-].sort((a, b) => a.localeCompare(b, 'he'));
-
 interface SiteFormData {
   name: string;
   address: string;
   city: string;
+  houseNumber: string;
   floor: string;
   contact1Name: string;
   contact1Phone: string;
@@ -30,6 +19,18 @@ interface SiteFormData {
   latitude?: number;
   longitude?: number;
 }
+
+const emptyForm: SiteFormData = {
+  name: '',
+  address: '',
+  city: '',
+  houseNumber: '',
+  floor: '',
+  contact1Name: '',
+  contact1Phone: '',
+  rating: 3,
+  isHighlighted: false,
+};
 
 export function SitesListPage() {
   const { t } = useTranslation();
@@ -46,46 +47,13 @@ export function SitesListPage() {
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [siteToDelete, setSiteToDelete] = useState<Site | null>(null);
-  const [citySearch, setCitySearch] = useState('');
-  const [filteredCities, setFilteredCities] = useState(ISRAELI_CITIES);
-  const [formData, setFormData] = useState<SiteFormData>({
-    name: '',
-    address: '',
-    city: '',
-    floor: '',
-    contact1Name: '',
-    contact1Phone: '',
-    rating: 3,
-    isHighlighted: false,
-  });
-  const [editFormData, setEditFormData] = useState<SiteFormData>({
-    name: '',
-    address: '',
-    city: '',
-    floor: '',
-    contact1Name: '',
-    contact1Phone: '',
-    rating: 3,
-    isHighlighted: false,
-  });
+  const [formData, setFormData] = useState<SiteFormData>({ ...emptyForm });
+  const [editFormData, setEditFormData] = useState<SiteFormData>({ ...emptyForm });
 
   const canEdit = user?.role === 'manager' || user?.role === 'admin';
   const canDelete = user?.role === 'manager' || user?.role === 'admin';
 
-  useEffect(() => {
-    fetchSites();
-  }, []);
-
-  useEffect(() => {
-    if (!citySearch) {
-      setFilteredCities(ISRAELI_CITIES);
-    } else {
-      const filtered = ISRAELI_CITIES.filter(city => 
-        city.toLowerCase().includes(citySearch.toLowerCase())
-      );
-      setFilteredCities(filtered);
-    }
-  }, [citySearch]);
+  useEffect(() => { fetchSites(); }, []);
 
   const fetchSites = async () => {
     try {
@@ -94,8 +62,7 @@ export function SitesListPage() {
       setSites(data);
     } catch (err: any) {
       console.error('Failed to fetch sites:', err);
-      const message = err?.response?.data?.message || err?.message || 'Failed to fetch sites';
-      setError(message);
+      setError(err?.response?.data?.message || err?.message || 'Failed to fetch sites');
     } finally {
       setLoading(false);
     }
@@ -106,10 +73,10 @@ export function SitesListPage() {
     setSaving(true);
     try {
       const payload: any = { ...formData };
-      console.log('[SiteCreate] Submitting with:', { address: payload.address, city: payload.city, lat: payload.latitude, lng: payload.longitude });
+      console.log('[SiteCreate] Submitting:', { address: payload.address, city: payload.city, houseNumber: payload.houseNumber, lat: payload.latitude, lng: payload.longitude });
       await siteService.create(payload);
       setShowForm(false);
-      setFormData({ name: '', address: '', city: '', floor: '', contact1Name: '', contact1Phone: '', rating: 3, isHighlighted: false });
+      setFormData({ ...emptyForm });
       fetchSites();
     } catch (err: any) {
       console.error('Failed to create site:', err);
@@ -125,6 +92,7 @@ export function SitesListPage() {
       name: site.name,
       address: site.address,
       city: site.city,
+      houseNumber: site.houseNumber || '',
       floor: site.floor || '',
       contact1Name: site.contact1Name || '',
       contact1Phone: site.contact1Phone || '',
@@ -142,7 +110,7 @@ export function SitesListPage() {
     setSaving(true);
     try {
       const payload: any = { ...editFormData };
-      console.log('[SiteUpdate] Submitting with:', { address: payload.address, city: payload.city, lat: payload.latitude, lng: payload.longitude });
+      console.log('[SiteUpdate] Submitting:', { address: payload.address, city: payload.city, houseNumber: payload.houseNumber, lat: payload.latitude, lng: payload.longitude });
       await siteService.update(editingSite.id, payload);
       setShowEditForm(false);
       setEditingSite(null);
@@ -180,20 +148,17 @@ export function SitesListPage() {
   };
 
   const filteredSites = sites
-    .filter((site) => {
-      return !search || 
-        site.name.toLowerCase().includes(search.toLowerCase()) ||
-        site.address.toLowerCase().includes(search.toLowerCase()) ||
-        site.city.toLowerCase().includes(search.toLowerCase());
-    })
+    .filter((site) =>
+      !search ||
+      site.name.toLowerCase().includes(search.toLowerCase()) ||
+      site.address.toLowerCase().includes(search.toLowerCase()) ||
+      site.city.toLowerCase().includes(search.toLowerCase())
+    )
     .sort((a, b) => a.name.localeCompare(b.name, 'he'));
 
   const handleNavigate = (site: Site) => {
     if (site.latitude && site.longitude) {
-      window.open(
-        `https://www.waze.com/ul?ll=${site.latitude},${site.longitude}&q=${encodeURIComponent(site.address)}`,
-        '_blank'
-      );
+      window.open(`https://www.waze.com/ul?ll=${site.latitude},${site.longitude}&q=${encodeURIComponent(site.address)}`, '_blank');
     }
   };
 
@@ -209,10 +174,7 @@ export function SitesListPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 space-y-4">
         <div className="text-danger-500 text-center px-4">{error}</div>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200"
-        >
+        <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200">
           {t('app.refresh')}
         </button>
       </div>
@@ -220,6 +182,144 @@ export function SitesListPage() {
   }
 
   const inputClasses = "w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800";
+
+  const renderSiteForm = (
+    data: SiteFormData,
+    setData: React.Dispatch<React.SetStateAction<SiteFormData>>,
+    onSubmit: (e: React.FormEvent) => void,
+    onCancel: () => void,
+    title: string,
+    isEdit: boolean = false,
+  ) => (
+    <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-xl font-bold text-surface-800">{title}</h2>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-surface-500">{t('sites.rating')}:</span>
+              <select
+                value={data.rating}
+                onChange={(e) => setData({ ...data, rating: Number(e.target.value) })}
+                className="px-2 py-1 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+              >
+                {[1, 2, 3, 4, 5].map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            </div>
+            {isEdit && canDelete && editingSite && (
+              <button
+                type="button"
+                onClick={() => handleDeleteClick(editingSite)}
+                className="text-danger-600 hover:text-danger-700 p-2 rounded-lg hover:bg-danger-50 transition-colors"
+                title={t('app.delete')}
+              >
+                🗑️
+              </button>
+            )}
+          </div>
+        </div>
+        <form onSubmit={onSubmit} className="space-y-4">
+          {/* Site name */}
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.name')}</label>
+            <input type="text" required value={data.name} onChange={(e) => setData({ ...data, name: e.target.value })} className={inputClasses} />
+          </div>
+
+          {/* Address (autocomplete) */}
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
+            <AddressAutocomplete
+              value={data.address}
+              city={data.city}
+              onChange={(val) => setData({ ...data, address: val })}
+              onSelect={(sel) => {
+                setData((prev) => ({
+                  ...prev,
+                  address: sel.address,
+                  city: sel.city || prev.city,
+                  latitude: sel.latitude,
+                  longitude: sel.longitude,
+                }));
+              }}
+              required
+              className={inputClasses}
+            />
+            {data.latitude && data.longitude && (
+              <p className="text-xs text-success-600 mt-1">&#x2713; {data.latitude.toFixed(4)}, {data.longitude.toFixed(4)}</p>
+            )}
+          </div>
+
+          {/* City (auto-filled from autocomplete, editable) */}
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.city')}</label>
+            <input
+              type="text"
+              required
+              value={data.city}
+              onChange={(e) => setData({ ...data, city: e.target.value })}
+              className={inputClasses}
+            />
+          </div>
+
+          {/* House number + Floor on same row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-2">מס' בית</label>
+              <input
+                type="text"
+                value={data.houseNumber}
+                onChange={(e) => setData({ ...data, houseNumber: e.target.value })}
+                className={inputClasses}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
+              <input
+                type="text"
+                value={data.floor}
+                onChange={(e) => setData({ ...data, floor: e.target.value })}
+                className={inputClasses}
+              />
+            </div>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.contact1')}</label>
+            <input type="text" value={data.contact1Name} onChange={(e) => setData({ ...data, contact1Name: e.target.value })} className={inputClasses} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.phone1')}</label>
+            <input type="tel" value={data.contact1Phone} onChange={(e) => setData({ ...data, contact1Phone: e.target.value })} className={inputClasses} />
+          </div>
+
+          {/* Highlight (edit only) */}
+          {isEdit && (
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="editIsHighlighted"
+                checked={data.isHighlighted}
+                onChange={(e) => setData({ ...data, isHighlighted: e.target.checked })}
+                className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+              />
+              <label htmlFor="editIsHighlighted" className="text-sm text-surface-700">{t('sites.highlight')}</label>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-3">
+            <button type="button" onClick={onCancel} className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium">
+              {t('app.cancel')}
+            </button>
+            <button type="submit" disabled={saving} className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200">
+              {saving ? t('app.loading') : t('app.save')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -251,34 +351,26 @@ export function SitesListPage() {
             <div className="flex justify-between items-start mb-3">
               <h3 className="font-semibold text-lg text-surface-800">{site.name}</h3>
               {site.isHighlighted && (
-                <span className="px-2.5 py-1 bg-warning-100 text-warning-700 text-xs rounded-full font-medium">
-                  ⭐
-                </span>
+                <span className="px-2.5 py-1 bg-warning-100 text-warning-700 text-xs rounded-full font-medium">⭐</span>
               )}
             </div>
-            <p className="text-surface-500 text-sm">{site.address}</p>
+            <p className="text-surface-500 text-sm">
+              {site.address}{site.houseNumber ? ` ${site.houseNumber}` : ''}
+            </p>
             <p className="text-surface-400 text-sm mt-1">{site.city}</p>
-            
+
             <div className="mt-4 pt-3 border-t border-surface-100 flex items-center justify-between">
               {site.rating && (
                 <div className="flex items-center gap-0.5">
                   {[1, 2, 3, 4, 5].map((level) => (
-                    <div
-                      key={level}
-                      className={`w-4 h-2 rounded-sm ${
-                        level <= site.rating! ? 'bg-warning-500' : 'bg-surface-200'
-                      }`}
-                    />
+                    <div key={level} className={`w-4 h-2 rounded-sm ${level <= site.rating! ? 'bg-warning-500' : 'bg-surface-200'}`} />
                   ))}
                 </div>
               )}
               <div className="flex items-center gap-2 ms-auto">
                 {(site.hasValidLocation || (site.latitude && site.longitude)) && (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleNavigate(site);
-                    }}
+                    onClick={(e) => { e.stopPropagation(); handleNavigate(site); }}
                     className="text-sm text-primary-600 hover:text-primary-700 font-medium px-3 py-1.5 hover:bg-primary-50 rounded-lg transition-colors"
                   >
                     {t('sites.navigate')}
@@ -291,275 +383,14 @@ export function SitesListPage() {
       </div>
 
       {filteredSites.length === 0 && (
-        <div className="text-center py-12 text-surface-500">
-          {t('errors.notFound')}
-        </div>
+        <div className="text-center py-12 text-surface-500">{t('errors.notFound')}</div>
       )}
 
       {/* Add Site Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold text-surface-800">{t('sites.addNew')}</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-surface-500">{t('sites.rating')}:</span>
-                <select
-                  value={formData.rating}
-                  onChange={(e) => setFormData({ ...formData, rating: Number(e.target.value) })}
-                  className="px-2 py-1 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                >
-                  <option value={1}>1</option>
-                  <option value={2}>2</option>
-                  <option value={3}>3</option>
-                  <option value={4}>4</option>
-                  <option value={5}>5</option>
-                </select>
-              </div>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.name')}</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className={inputClasses}
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
-                  <AddressAutocomplete
-                    value={formData.address}
-                    city={formData.city}
-                    onChange={(val) => setFormData({ ...formData, address: val })}
-                    onSelect={(sel) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        address: sel.address,
-                        city: sel.city || prev.city,
-                        latitude: sel.latitude,
-                        longitude: sel.longitude,
-                      }));
-                      if (sel.city) setCitySearch(sel.city);
-                    }}
-                    required
-                    className={inputClasses}
-                  />
-                  {formData.latitude && formData.longitude && (
-                    <p className="text-xs text-success-600 mt-1">&#x2713; {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
-                  <input
-                    type="text"
-                    value={formData.floor}
-                    onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                    className={inputClasses}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.city')}</label>
-                <input
-                  type="text"
-                  list="citySuggestions"
-                  required
-                  value={formData.city}
-                  onChange={(e) => {
-                    setFormData({ ...formData, city: e.target.value });
-                    setCitySearch(e.target.value);
-                  }}
-                  className={inputClasses}
-                />
-                <datalist id="citySuggestions">
-                  {filteredCities.map((city) => (
-                    <option key={city} value={city} />
-                  ))}
-                </datalist>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.contact1')}</label>
-                <input
-                  type="text"
-                  value={formData.contact1Name}
-                  onChange={(e) => setFormData({ ...formData, contact1Name: e.target.value })}
-                  className={inputClasses}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.phone1')}</label>
-                <input
-                  type="tel"
-                  value={formData.contact1Phone}
-                  onChange={(e) => setFormData({ ...formData, contact1Phone: e.target.value })}
-                  className={inputClasses}
-                />
-              </div>
-              <div className="flex gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
-                >
-                  {t('app.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200"
-                >
-                  {saving ? t('app.loading') : t('app.save')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {showForm && renderSiteForm(formData, setFormData, handleSubmit, () => setShowForm(false), t('sites.addNew'))}
 
-      {showEditForm && editingSite && (
-        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-xl font-bold text-surface-800">{t('app.edit')}</h2>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-surface-500">{t('sites.rating')}:</span>
-                  <select
-                    value={editFormData.rating}
-                    onChange={(e) => setEditFormData({ ...editFormData, rating: Number(e.target.value) })}
-                    className="px-2 py-1 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-                  >
-                    <option value={1}>1</option>
-                    <option value={2}>2</option>
-                    <option value={3}>3</option>
-                    <option value={4}>4</option>
-                    <option value={5}>5</option>
-                  </select>
-                </div>
-                {canDelete && editingSite && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteClick(editingSite)}
-                    className="text-danger-600 hover:text-danger-700 p-2 rounded-lg hover:bg-danger-50 transition-colors"
-                    title={t('app.delete')}
-                  >
-                    🗑️
-                  </button>
-                )}
-              </div>
-            </div>
-            <form onSubmit={handleUpdate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.name')}</label>
-                <input
-                  type="text"
-                  required
-                  value={editFormData.name}
-                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  className={inputClasses}
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
-                  <AddressAutocomplete
-                    value={editFormData.address}
-                    city={editFormData.city}
-                    onChange={(val) => setEditFormData({ ...editFormData, address: val })}
-                    onSelect={(sel) => {
-                      setEditFormData((prev) => ({
-                        ...prev,
-                        address: sel.address,
-                        city: sel.city || prev.city,
-                        latitude: sel.latitude,
-                        longitude: sel.longitude,
-                      }));
-                    }}
-                    required
-                    className={inputClasses}
-                  />
-                  {editFormData.latitude && editFormData.longitude && (
-                    <p className="text-xs text-success-600 mt-1">&#x2713; {editFormData.latitude.toFixed(4)}, {editFormData.longitude.toFixed(4)}</p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
-                  <input
-                    type="text"
-                    value={editFormData.floor}
-                    onChange={(e) => setEditFormData({ ...editFormData, floor: e.target.value })}
-                    className={inputClasses}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.city')}</label>
-                <input
-                  type="text"
-                  list="citySuggestionsEdit"
-                  required
-                  value={editFormData.city}
-                  onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
-                  className={inputClasses}
-                />
-                <datalist id="citySuggestionsEdit">
-                  {filteredCities.map((city) => (
-                    <option key={city} value={city} />
-                  ))}
-                </datalist>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.contact1')}</label>
-                <input
-                  type="text"
-                  value={editFormData.contact1Name}
-                  onChange={(e) => setEditFormData({ ...editFormData, contact1Name: e.target.value })}
-                  className={inputClasses}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.phone1')}</label>
-                <input
-                  type="tel"
-                  value={editFormData.contact1Phone}
-                  onChange={(e) => setEditFormData({ ...editFormData, contact1Phone: e.target.value })}
-                  className={inputClasses}
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="editIsHighlighted"
-                  checked={editFormData.isHighlighted}
-                  onChange={(e) => setEditFormData({ ...editFormData, isHighlighted: e.target.checked })}
-                  className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-                />
-                <label htmlFor="editIsHighlighted" className="text-sm text-surface-700">{t('sites.highlight')}</label>
-              </div>
-              <div className="flex gap-3 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setShowEditForm(false)}
-                  className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
-                >
-                  {t('app.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200"
-                >
-                  {saving ? t('app.loading') : t('app.save')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Edit Site Modal */}
+      {showEditForm && editingSite && renderSiteForm(editFormData, setEditFormData, handleUpdate, () => setShowEditForm(false), t('app.edit'), true)}
 
       {showDeleteConfirm && siteToDelete && (
         <ConfirmDialog

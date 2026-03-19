@@ -43,6 +43,7 @@ export interface Site {
   name: string;
   address: string;
   city: string;
+  houseNumber?: string;
   floor?: string;
   apartment?: string;
   contact1Name?: string;

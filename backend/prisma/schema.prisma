@@ -114,6 +114,7 @@ model Site {
   name           String
   address        String
   city           String
+  houseNumber    String?
   floor          String?
   apartment      String?
   contact1Name   String?

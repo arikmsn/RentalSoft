@@ -321,6 +321,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
       name,
       address,
       city,
+      houseNumber,
       floor,
       apartment,
       contact1Name,
@@ -360,6 +361,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         name,
         address,
         city,
+        houseNumber,
         floor,
         apartment,
         contact1Name,
@@ -392,6 +394,7 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
       name,
       address,
       city,
+      houseNumber,
       floor,
       apartment,
       contact1Name,
@@ -436,6 +439,7 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
     if (name !== undefined) updateData.name = name;
     if (address !== undefined) updateData.address = address;
     if (city !== undefined) updateData.city = city;
+    if (houseNumber !== undefined) updateData.houseNumber = houseNumber;
     if (floor !== undefined) updateData.floor = floor;
     if (apartment !== undefined) updateData.apartment = apartment;
     if (contact1Name !== undefined) updateData.contact1Name = contact1Name;
