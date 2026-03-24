@@ -25,6 +25,11 @@ enum EquipmentCondition {
   wearout
 }
 
+enum EquipmentConditionState {
+  OK
+  NOT_OK
+}
+
 enum WorkOrderStatus {
   open
   in_progress
@@ -65,11 +70,13 @@ model Equipment {
   type                String
   status              EquipmentStatus  @default(available)
   condition           EquipmentCondition @default(ok)
+  conditionState      EquipmentConditionState @default(OK)
   siteId              String?
   lastScanDate        DateTime?
   installationDate    DateTime?
   plannedRemovalDate  DateTime?
   actualRemovalDate   DateTime?
+  purchaseDate        DateTime?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
 
@@ -78,6 +85,9 @@ model Equipment {
   equipmentTypes  EquipmentType? @relation(fields: [typeId], references: [id])
   typeId          String?
   workOrders     WorkOrderEquipment[]
+  location        EquipmentLocation? @relation(fields: [currentLocationId], references: [id])
+  currentLocationId String?
+  notes          EquipmentNote[]
 }
 
 model EquipmentType {
@@ -127,19 +137,20 @@ model Site {
 }
 
 model WorkOrder {
-  id                 String           @id @default(uuid())
-  type               String?
-  workTypeId         String?
-  siteId             String
-  technicianId       String?
-  status             WorkOrderStatus  @default(open)
-  plannedDate        DateTime
-  actualDate         DateTime?
-  done               String?
-  todo               String?
-  plannedRemovalDate DateTime?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  id                       String           @id @default(uuid())
+  type                     String?
+  workTypeId               String?
+  siteId                   String
+  technicianId             String?
+  status                   WorkOrderStatus  @default(open)
+  plannedDate              DateTime
+  actualDate               DateTime?
+  done                     String?
+  todo                     String?
+  plannedRemovalDate       DateTime?
+  isNextVisitPotentialRemoval Boolean        @default(false)
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
 
   site       Site          @relation(fields: [siteId], references: [id])
   technician Technician?  @relation(fields: [technicianId], references: [id])
@@ -253,4 +264,24 @@ model WorkOrderEquipment {
   equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
 
   @@unique([workOrderId, equipmentId])
+}
+
+model EquipmentLocation {
+  id               String   @id @default(uuid())
+  name             String   @unique
+  isDefaultCustomer Boolean @default(false)
+  isSystem         Boolean @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  equipment Equipment[]
+}
+
+model EquipmentNote {
+  id          String   @id @default(uuid())
+  equipmentId String
+  text        String
+  createdAt   DateTime @default(now())
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
 }

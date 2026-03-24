@@ -364,3 +364,89 @@ router.delete('/technicians/:id', async (req: Request, res: Response) => {
 });
 
 export default router;
+
+// Equipment Locations
+router.get('/equipment-locations', async (req: Request, res: Response) => {
+  try {
+    const locations = await prisma.equipmentLocation.findMany({
+      orderBy: { name: 'asc' },
+    });
+    res.json(locations);
+  } catch (error) {
+    console.error('Error fetching equipment locations:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/equipment-locations', async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+    const existing = await prisma.equipmentLocation.findUnique({ where: { name } });
+    if (existing) {
+      return res.status(400).json({ message: 'Location name already exists' });
+    }
+    const location = await prisma.equipmentLocation.create({
+      data: { name, isDefaultCustomer: false, isSystem: false },
+    });
+    res.json(location);
+  } catch (error) {
+    console.error('Error creating equipment location:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/equipment-locations/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    const existing = await prisma.equipmentLocation.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ message: 'Location not found' });
+    }
+    if (existing.isSystem) {
+      return res.status(400).json({ message: 'Cannot edit system location' });
+    }
+    if (name && name !== existing.name) {
+      const duplicate = await prisma.equipmentLocation.findUnique({ where: { name } });
+      if (duplicate) {
+        return res.status(400).json({ message: 'Location name already exists' });
+      }
+    }
+    const location = await prisma.equipmentLocation.update({
+      where: { id },
+      data: { name },
+    });
+    res.json(location);
+  } catch (error) {
+    console.error('Error updating equipment location:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/equipment-locations/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.equipmentLocation.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ message: 'Location not found' });
+    }
+    if (existing.isSystem) {
+      return res.status(400).json({ message: 'Cannot delete system location' });
+    }
+    const inUse = await prisma.equipment.count({ where: { currentLocationId: id } });
+    if (inUse > 0) {
+      return res.status(400).json({ message: 'Location is in use by equipment' });
+    }
+    await prisma.equipmentLocation.delete({ where: { id } });
+    res.json({ message: 'Location deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting equipment location:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'Location not found' });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+});

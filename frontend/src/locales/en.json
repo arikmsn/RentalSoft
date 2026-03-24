@@ -20,7 +20,9 @@
     "yes": "Yes",
     "no": "No",
     "refresh": "Refresh",
-    "select": "Select"
+    "select": "Select",
+    "today": "Today",
+    "view": "View"
   },
   "auth": {
     "login": "Login",
@@ -59,6 +61,8 @@
     "site": "Site",
     "lastScan": "Last Scan",
     "plannedRemoval": "Available on date",
+    "nextVisit": "Next Visit Date",
+    "isPotentialRemoval": "Removal",
     "estimatedRemovalDate": "Estimated Removal Date",
     "actualRemoval": "Actual Removal",
     "installationDate": "Installation Date",
@@ -77,8 +81,26 @@
       "notOk": "Not OK",
       "wearout": "Wear-out"
     },
+    "location": "Location",
+    "locationPlaceholder": "None",
+    "purchaseDate": "Purchase Date",
+    "conditionState": {
+      "ok": "OK",
+      "notOk": "Not OK"
+    },
+    "notes": "Notes",
+    "addNote": "Add Note",
+    "noteSaved": "Note saved",
+    "noNotes": "No notes",
+    "basicInfo": "Basic Info",
+    "conditionAndLocation": "Condition & Location",
+    "assignedWorkOrder": "Assigned Work Order"
+  },
+  "equipment": {
     "filters": {
       "all": "All",
+      "available": "Available",
+      "atWorkorder": "At Work",
       "atCustomer": "At Customer",
       "inWarehouse": "In Warehouse",
       "inRepair": "In Repair",
@@ -146,7 +168,31 @@
       "oneWeek": "1 Week",
       "twoWeeks": "2 Weeks",
       "custom": "Custom"
-    }
+    },
+    "viewMode": {
+      "list": "List",
+      "calendar": "Weekly Calendar"
+    },
+    "weekView": "Show entire week",
+    "noWorksForDay": "No works for this day",
+    "viewList": "List",
+    "viewCalendar": "Calendar",
+    "weeklyCalendar": "Weekly Calendar",
+    "weeklyTotal": "Total"
+  },
+  "settings": {
+    "equipmentLocations": "Equipment Locations",
+    "addLocation": "Add Location",
+    "editLocation": "Edit Location",
+    "deleteLocation": "Delete Location",
+    "locationName": "Location Name",
+    "systemLocation": "System Location",
+    "cannotDeleteSystemLocation": "Cannot delete system location",
+    "cannotEditSystemLocation": "Cannot edit system location",
+    "locationInUse": "Location is in use",
+    "duplicateLocationName": "Location name already exists",
+    "selectLocation": "Select Location",
+    "confirmLocation": "Confirm"
   },
   "map": {
     "title": "Sites Map",

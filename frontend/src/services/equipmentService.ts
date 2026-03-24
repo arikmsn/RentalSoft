@@ -22,6 +22,9 @@ export interface UpdateEquipmentRequest {
   type?: string;
   status?: EquipmentStatus;
   condition?: EquipmentCondition;
+  conditionState?: 'OK' | 'NOT_OK';
+  purchaseDate?: string | null;
+  currentLocationId?: string | null;
   siteId?: string;
   plannedRemovalDate?: Date;
 }

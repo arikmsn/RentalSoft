@@ -6,11 +6,13 @@ const router = Router();
 
 router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
-    const { status, type, search, available } = req.query;
+    const { status, type, search, available, locationId, conditionState } = req.query;
 
     const where: any = {};
     if (status) where.status = status;
     if (type) where.type = type;
+    if (locationId) where.currentLocationId = locationId;
+    if (conditionState) where.conditionState = conditionState;
     if (search) {
       where.OR = [
         { qrTag: { contains: String(search), mode: 'insensitive' } },
@@ -47,6 +49,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
             },
           },
         },
+        location: { select: { id: true, name: true } },
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -216,18 +219,38 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
 
 router.patch('/:id', authenticate, isManagerOrAdmin, async (req: AuthRequest, res) => {
   try {
-    const { qrTag, type, status, condition } = req.body;
+    const { qrTag, type, status, condition, conditionState, purchaseDate, currentLocationId } = req.body;
 
     const updateData: any = {};
     if (qrTag) updateData.qrTag = qrTag;
     if (type) updateData.type = type;
     if (status) updateData.status = status;
     if (condition) updateData.condition = condition;
+    if (conditionState) updateData.conditionState = conditionState;
+    if (purchaseDate !== undefined) updateData.purchaseDate = purchaseDate ? new Date(purchaseDate) : null;
+    if (currentLocationId !== undefined) updateData.currentLocationId = currentLocationId || null;
 
     const equipment = await prisma.equipment.update({
       where: { id: req.params.id },
       data: updateData,
     });
+
+    // If setting to NOT_OK, unassign from any active work orders
+    if (conditionState === 'NOT_OK') {
+      const activeAssignments = await prisma.workOrderEquipment.findMany({
+        where: {
+          equipmentId: equipment.id,
+          workOrder: { status: { in: ['open', 'in_progress'] } },
+        },
+      });
+      for (const assignment of activeAssignments) {
+        await prisma.workOrderEquipment.delete({ where: { id: assignment.id } });
+      }
+      await prisma.equipment.update({
+        where: { id: equipment.id },
+        data: { status: 'available', siteId: null },
+      });
+    }
 
     const activeWorkOrder = await prisma.workOrderEquipment.findFirst({
       where: {
@@ -310,6 +333,54 @@ router.post('/:id/scan', authenticate, async (req: AuthRequest, res) => {
     });
   } catch (error) {
     console.error('Scan equipment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Equipment notes
+router.get('/:id/notes', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const notes = await prisma.equipmentNote.findMany({
+      where: { equipmentId: id },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(notes);
+  } catch (error) {
+    console.error('Error fetching equipment notes:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/:id/notes', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+    if (!text) {
+      return res.status(400).json({ message: 'Text is required' });
+    }
+    const note = await prisma.equipmentNote.create({
+      data: {
+        equipmentId: id,
+        text,
+      },
+    });
+    res.json(note);
+  } catch (error) {
+    console.error('Error creating equipment note:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/:equipmentId/notes/:noteId', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { noteId } = req.params;
+    await prisma.equipmentNote.delete({
+      where: { id: noteId },
+    });
+    res.json({ message: 'Note deleted' });
+  } catch (error) {
+    console.error('Error deleting equipment note:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

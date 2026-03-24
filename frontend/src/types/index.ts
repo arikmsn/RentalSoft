@@ -19,6 +19,9 @@ export interface Equipment {
   type: string;
   status: EquipmentStatus;
   condition: EquipmentCondition;
+  conditionState?: 'OK' | 'NOT_OK';
+  purchaseDate?: Date | null;
+  currentLocationId?: string | null;
   siteId?: string;
   lastScanDate?: Date;
   installationDate?: Date;
@@ -36,6 +39,10 @@ export interface Equipment {
     };
   } | null;
   nextPlannedRemovalDate?: Date | null;
+  location?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 export interface Site {

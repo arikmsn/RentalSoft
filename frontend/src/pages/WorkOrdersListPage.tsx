@@ -30,6 +30,7 @@ export function WorkOrdersListPage() {
   const [workTypes, setWorkTypes] = useState<{id: string; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'active' | 'completed' | 'all'>('active');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -39,6 +40,7 @@ export function WorkOrdersListPage() {
     technicianId: '',
     plannedDate: '',
     plannedRemovalDate: '',
+    isNextVisitPotentialRemoval: false,
   });
 
   useEffect(() => {
@@ -84,9 +86,10 @@ export function WorkOrdersListPage() {
         technicianId: formData.technicianId,
         plannedDate: new Date(formData.plannedDate),
         plannedRemovalDate: formData.plannedRemovalDate ? new Date(formData.plannedRemovalDate) : undefined,
+        isNextVisitPotentialRemoval: formData.isNextVisitPotentialRemoval,
       });
       setShowForm(false);
-      setFormData({ type: '', workTypeId: '', siteId: '', technicianId: '', plannedDate: '', plannedRemovalDate: '' });
+      setFormData({ type: '', workTypeId: '', siteId: '', technicianId: '', plannedDate: '', plannedRemovalDate: '', isNextVisitPotentialRemoval: false });
       const data = await workOrderService.getAll();
       setWorkOrders(data);
     } catch (err: any) {
@@ -159,57 +162,81 @@ export function WorkOrdersListPage() {
         >
           {t('equipment.filters.all')}
         </button>
-      </div>
-
-      <div className="space-y-3">
-        {filteredWorkOrders.map((wo) => (
-          <Link
-            key={wo.id}
-            to={`/workorders/${wo.id}`}
-            className="block bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100"
+        <div className="ml-auto flex gap-2 bg-white border border-surface-200 rounded-xl p-1">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
+              viewMode === 'list' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
+            }`}
           >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <div>
-                  <h3 className="font-semibold text-surface-800 flex items-center gap-2">
-                    {wo.status !== 'completed' && wo.statusColor && (wo.equipmentCount ? (
-                      <span
-                        className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusDotColors[wo.statusColor] || 'bg-surface-300'}`}
-                      />
-                    ) : (
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0 border-2 border-surface-400" />
-                    ))}
-                    {wo.workTypeName || wo.type || t('workOrders.workType')}
-                  </h3>
-                  <p className="text-sm text-surface-500 mt-1">
-                    {wo.site ? wo.site.name : ''}
-                    {wo.site ? `, ${wo.site.city}` : ''}
-                  </p>
-                  <p className="text-xs text-surface-400 mt-0.5">
-                    {t('workOrders.plannedDate')}: <span className="font-medium">{formatDate(wo.plannedDate)}</span>
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[wo.status]}`}>
-                  {t(`workOrders.statuses.${wo.status}`)}
-                </span>
-                {wo.equipmentCount !== undefined && wo.equipmentCount > 0 && (
-                  <div className="flex items-center gap-1 text-xs text-surface-500 bg-surface-100 px-2 py-1 rounded-full">
-                    <span>🔧</span>
-                    <span>{wo.equipmentCount}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </Link>
-        ))}
+            📋 {t('workOrders.viewList')}
+          </button>
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
+              viewMode === 'calendar' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
+            }`}
+          >
+            📅 {t('workOrders.viewCalendar')}
+          </button>
+        </div>
       </div>
 
-      {filteredWorkOrders.length === 0 && (
-        <div className="text-center py-12 text-surface-500">
-          {t('errors.notFound')}
-        </div>
+      {viewMode === 'calendar' ? (
+        <WeeklyCalendar workOrders={filteredWorkOrders} t={t} />
+      ) : (
+        <>
+          <div className="space-y-3">
+            {filteredWorkOrders.map((wo) => (
+              <Link
+                key={wo.id}
+                to={`/workorders/${wo.id}`}
+                className="block bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    <div>
+                      <h3 className="font-semibold text-surface-800 flex items-center gap-2">
+                        {wo.status !== 'completed' && wo.statusColor && (wo.equipmentCount ? (
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusDotColors[wo.statusColor] || 'bg-surface-300'}`}
+                          />
+                        ) : (
+                          <span className="w-2.5 h-2.5 rounded-full shrink-0 border-2 border-surface-400" />
+                        ))}
+                        {wo.site ? wo.site.name : ''}
+                      </h3>
+                      <p className="text-sm text-surface-500 mt-1">
+                        {wo.workTypeName || wo.type || t('workOrders.workType')}
+                        {wo.site ? `, ${wo.site.city}` : ''}
+                      </p>
+                      <p className="text-xs text-surface-400 mt-0.5">
+                        {t('workOrders.plannedDate')}: <span className="font-medium">{formatDate(wo.plannedDate)}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[wo.status]}`}>
+                      {t(`workOrders.statuses.${wo.status}`)}
+                    </span>
+                    {wo.equipmentCount !== undefined && wo.equipmentCount > 0 && (
+                      <div className="flex items-center gap-1 text-xs text-surface-500 bg-surface-100 px-2 py-1 rounded-full">
+                        <span>🔧</span>
+                        <span>{wo.equipmentCount}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {filteredWorkOrders.length === 0 && (
+            <div className="text-center py-12 text-surface-500">
+              {t('errors.notFound')}
+            </div>
+          )}
+        </>
       )}
 
       {/* Add Work Order Modal */}
@@ -278,13 +305,22 @@ export function WorkOrdersListPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.plannedRemoval')}</label>
+                <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.nextVisit')}</label>
                 <input
                   type="date"
                   value={formData.plannedRemovalDate}
                   onChange={(e) => setFormData({ ...formData, plannedRemovalDate: e.target.value })}
                   className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                 />
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.isNextVisitPotentialRemoval}
+                    onChange={(e) => setFormData({ ...formData, isNextVisitPotentialRemoval: e.target.checked })}
+                    className="w-4 h-4 rounded text-primary-600"
+                  />
+                  <span className="text-sm text-surface-700">{t('equipment.isPotentialRemoval')}</span>
+                </label>
               </div>
               <div className="flex gap-3 pt-3">
                 <button
@@ -306,6 +342,75 @@ export function WorkOrdersListPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) {
+  const getStartOfWeek = (date: Date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+  };
+
+  const today = new Date();
+  const weekStart = getStartOfWeek(today);
+  const days: { date: Date; label: string }[] = [];
+  
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    const isToday = d.toDateString() === today.toDateString();
+    days.push({
+      date: d,
+      label: isToday ? `${t('app.today')} - ${d.toLocaleDateString('he-IL', { weekday: 'short' })}` : d.toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric' }),
+    });
+  }
+
+  const getWorkOrdersForDay = (date: Date) => {
+    return workOrders.filter(wo => {
+      if (!wo.plannedDate) return false;
+      const woDate = new Date(wo.plannedDate);
+      return woDate.toDateString() === date.toDateString();
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-2xl p-4 shadow-card">
+      <h2 className="text-lg font-semibold mb-4 text-surface-800">{t('workOrders.weeklyCalendar')}</h2>
+      <div className="grid grid-cols-7 gap-2">
+        {days.map((day, idx) => {
+          const dayWorkOrders = getWorkOrdersForDay(day.date);
+          return (
+            <div key={idx} className="min-h-[200px] bg-surface-50 rounded-xl p-3">
+              <div className="text-sm font-medium text-surface-700 mb-2 text-center">{day.label}</div>
+              <div className="space-y-2">
+                {dayWorkOrders.map(wo => (
+                  <Link
+                    key={wo.id}
+                    to={`/workorders/${wo.id}`}
+                    className={`block p-2 rounded-lg text-xs ${
+                      wo.status === 'completed' ? 'bg-success-100 text-success-700' :
+                      wo.status === 'in_progress' ? 'bg-warning-100 text-warning-700' :
+                      'bg-primary-100 text-primary-700'
+                    }`}
+                  >
+                    <div className="font-medium truncate">{wo.workTypeName || wo.type}</div>
+                    <div className="truncate opacity-75">{wo.site?.name}</div>
+                  </Link>
+                ))}
+                {dayWorkOrders.length === 0 && (
+                  <div className="text-xs text-surface-400 text-center py-4">-</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 pt-4 border-t border-surface-200 text-sm text-surface-500">
+        {t('workOrders.weeklyTotal')}: {workOrders.length} {t('workOrders.title').toLowerCase()}
+      </div>
     </div>
   );
 }

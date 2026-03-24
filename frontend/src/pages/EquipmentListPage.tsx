@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import type { Equipment, EquipmentStatus } from '../types';
 import { equipmentService } from '../services/equipmentService';
 import { BaseQrScanner } from '../components/qr/BaseQrScanner';
@@ -14,6 +15,12 @@ interface SettingsEquipmentType {
   isActive?: boolean;
 }
 
+interface SettingsEquipmentLocation {
+  id: string;
+  name: string;
+  isSystem?: boolean;
+}
+
 const statusColors: Record<EquipmentStatus, string> = {
   available: 'bg-success-100 text-success-700',
   assigned_to_work: 'bg-primary-100 text-primary-700',
@@ -21,10 +28,17 @@ const statusColors: Record<EquipmentStatus, string> = {
 
 export function EquipmentListPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [equipmentTypes, setEquipmentTypes] = useState<SettingsEquipmentType[]>([]);
+  const [locations, setLocations] = useState<SettingsEquipmentLocation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<EquipmentStatus | 'all' | 'available' | 'at_workorder'>('all');
+  const [filters, setFilters] = useState({
+    status: 'all' as string,
+    location: 'all' as string,
+    condition: 'all' as string,
+    type: 'all' as string,
+  });
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -72,9 +86,11 @@ export function EquipmentListPage() {
     Promise.all([
       equipmentService.getAll(),
       api.get<SettingsEquipmentType[]>('/settings/equipment-types').then(res => res.data),
-    ]).then(([eqData, typesData]) => {
+      api.get<SettingsEquipmentLocation[]>('/settings/equipment-locations').then(res => res.data),
+    ]).then(([eqData, typesData, locData]) => {
       setEquipment(eqData);
       setEquipmentTypes(typesData.filter((t: SettingsEquipmentType) => t.isActive !== false));
+      setLocations(locData);
     }).catch((err) => {
       console.error('Failed to fetch data:', err);
     }).finally(() => {
@@ -110,15 +126,6 @@ export function EquipmentListPage() {
     }
   };
 
-  const handleViewDetails = (eq: Equipment) => {
-    setSelectedEquipment(eq);
-    setEditFormData({
-      qrTag: eq.qrTag,
-      type: eq.type,
-    });
-    setShowDetails(true);
-  };
-
   const handleUpdateEquipment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEquipment) return;
@@ -144,12 +151,22 @@ export function EquipmentListPage() {
     .filter((eq) => {
       let matchesFilter = true;
       
-      if (filter === 'all') {
-        matchesFilter = true;
-      } else if (filter === 'available') {
-        matchesFilter = eq.status === 'available';
-      } else if (filter === 'at_workorder') {
-        matchesFilter = eq.status === 'assigned_to_work';
+      if (filters.status !== 'all') {
+        if (filters.status === 'available') matchesFilter = eq.status === 'available';
+        else if (filters.status === 'assigned_to_work') matchesFilter = eq.status === 'assigned_to_work';
+      }
+      
+      if (filters.type !== 'all') {
+        matchesFilter = matchesFilter && eq.type === filters.type;
+      }
+      
+      if (filters.condition !== 'all') {
+        if (filters.condition === 'OK') matchesFilter = matchesFilter && (eq as any).conditionState === 'OK';
+        else if (filters.condition === 'NOT_OK') matchesFilter = matchesFilter && (eq as any).conditionState === 'NOT_OK';
+      }
+
+      if (filters.location !== 'all') {
+        matchesFilter = matchesFilter && (eq as any).location?.id === filters.location;
       }
       
       const matchesSearch = !search || 
@@ -188,13 +205,42 @@ export function EquipmentListPage() {
           className="flex-1 px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 placeholder:text-surface-400"
         />
         <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as EquipmentStatus | 'all' | 'available' | 'at_workorder')}
+          value={filters.status}
+          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
           className="px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 min-h-[48px]"
         >
-          <option value="all">{t('equipment.filters.all')}</option>
+          <option value="all">{t('equipment.status')}: {t('equipment.filters.all')}</option>
           <option value="available">{t('equipment.filters.available')}</option>
-          <option value="at_workorder">{t('equipment.filters.atWorkorder')}</option>
+          <option value="assigned_to_work">{t('equipment.filters.atWorkorder')}</option>
+        </select>
+        <select
+          value={filters.condition}
+          onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
+          className="px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 min-h-[48px]"
+        >
+          <option value="all">{t('equipment.condition')}: {t('equipment.filters.all')}</option>
+          <option value="OK">{t('equipment.conditionState.ok')}</option>
+          <option value="NOT_OK">{t('equipment.conditionState.notOk')}</option>
+        </select>
+        <select
+          value={filters.type}
+          onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+          className="px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 min-h-[48px]"
+        >
+          <option value="all">{t('equipment.type')}: {t('equipment.filters.all')}</option>
+          {equipmentTypes.map((type) => (
+            <option key={type.id} value={type.name}>{type.name}</option>
+          ))}
+        </select>
+        <select
+          value={filters.location}
+          onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+          className="px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 min-h-[48px]"
+        >
+          <option value="all">{t('equipment.location')}: {t('equipment.filters.all')}</option>
+          {locations.map((loc) => (
+            <option key={loc.id} value={loc.id}>{loc.name}</option>
+          ))}
         </select>
       </div>
 
@@ -205,7 +251,7 @@ export function EquipmentListPage() {
             className="bg-white rounded-2xl p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100"
           >
             <div className="flex justify-between items-start mb-3">
-              <div className="flex-1" onClick={() => handleViewDetails(eq)}>
+              <div className="flex-1" onClick={() => navigate(`/equipment/${eq.id}`)}>
                 <h3 className="font-semibold text-lg text-surface-800 cursor-pointer">{eq.qrTag}</h3>
                 <p className="text-surface-500 text-sm mt-0.5">{eq.type}</p>
               </div>
@@ -213,7 +259,7 @@ export function EquipmentListPage() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleViewDetails(eq);
+                    navigate(`/equipment/${eq.id}`);
                   }}
                   className="p-2 hover:bg-surface-100 rounded-lg transition-colors"
                   title={t('app.actions')}

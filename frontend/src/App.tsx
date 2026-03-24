@@ -4,6 +4,7 @@ import {
   LoginPage,
   DashboardPage,
   EquipmentListPage,
+  EquipmentDetailsPage,
   SitesListPage,
   WorkOrdersListPage,
   WorkOrderDetailsPage,
@@ -34,7 +35,7 @@ function App() {
       <Route element={<MainLayout />}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/equipment" element={<EquipmentListPage />} />
-        <Route path="/equipment/:id" element={<EquipmentListPage />} />
+        <Route path="/equipment/:id" element={<EquipmentDetailsPage />} />
         <Route path="/sites" element={<SitesListPage />} />
         <Route path="/sites/:id" element={<SitesListPage />} />
         <Route path="/workorders" element={<WorkOrdersListPage />} />

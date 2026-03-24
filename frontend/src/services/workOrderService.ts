@@ -15,6 +15,7 @@ export interface CreateWorkOrderRequest {
   technicianId: string;
   plannedDate: Date;
   plannedRemovalDate?: Date;
+  isNextVisitPotentialRemoval?: boolean;
 }
 
 export interface UpdateWorkOrderRequest {
@@ -28,6 +29,7 @@ export interface UpdateWorkOrderRequest {
   done?: string;
   todo?: string;
   plannedRemovalDate?: Date;
+  isNextVisitPotentialRemoval?: boolean;
 }
 
 export interface CompleteWorkOrderRequest {

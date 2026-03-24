@@ -32,9 +32,11 @@ interface SiteWithStatus {
     workTypeName?: string;
     plannedDate: Date | string;
     plannedRemovalDate?: Date | string | null;
+    isNextVisitPotentialRemoval?: boolean;
   }>;
   equipmentCount?: number;
   hasEquipment?: boolean;
+  hasPotentialRemoval?: boolean;
 }
 
 const statusColors: Record<string, string> = {
@@ -44,11 +46,12 @@ const statusColors: Record<string, string> = {
   green: '#22c55e',
 };
 
-const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green' | null, selected?: boolean, hasEquipment?: boolean) => {
+const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green' | null, selected?: boolean, hasEquipment?: boolean, hasPotentialRemoval?: boolean) => {
   const color = status ? statusColors[status] : '#9ca3af';
   const size = selected ? 32 : 24;
   const borderWidth = selected ? 4 : 3;
   const isHollow = !hasEquipment;
+  const emoji = hasPotentialRemoval ? '😊' : '';
   return L.divIcon({
     className: 'custom-marker',
     html: `<div style="
@@ -59,7 +62,11 @@ const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green' | null, sel
       border: ${borderWidth} solid ${isHollow ? color : 'white'};
       box-shadow: ${isHollow ? 'none' : '0 2px 4px rgba(0,0,0,0.3)'};
       ${selected ? 'z-index: 1000;' : ''}
-    "></div>`,
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: ${hasPotentialRemoval ? '14px' : '0'};
+    ">${emoji}</div>`,
     iconSize: [size, size],
     iconAnchor: [size/2, size/2],
     popupAnchor: [0, -size/2],
@@ -324,7 +331,7 @@ export function MapPage() {
               <Marker
                 key={site.id}
                 position={[lat, lng]}
-                icon={getMarkerIcon(site.overallStatus, selectedSiteId === site.id, site.hasEquipment)}
+                icon={getMarkerIcon(site.overallStatus, selectedSiteId === site.id, site.hasEquipment, site.hasPotentialRemoval)}
                 eventHandlers={{
                   click: () => handleSiteClick(site),
                 }}

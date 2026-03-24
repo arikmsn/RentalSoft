@@ -157,9 +157,9 @@ async function updateEquipmentStatusForWorkOrder(workOrderId: string) {
 
 router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRequest, res) => {
   try {
-    const { type, workTypeId, siteId, technicianId, plannedDate, plannedRemovalDate, equipmentIds } = req.body;
+    const { type, workTypeId, siteId, technicianId, plannedDate, plannedRemovalDate, equipmentIds, isNextVisitPotentialRemoval } = req.body;
 
-    console.log(`[CreateWorkOrder] Request body:`, JSON.stringify({ type, workTypeId, siteId, technicianId, plannedDate, plannedRemovalDate, equipmentIds }, null, 2));
+    console.log(`[CreateWorkOrder] Request body:`, JSON.stringify({ type, workTypeId, siteId, technicianId, plannedDate, plannedRemovalDate, equipmentIds, isNextVisitPotentialRemoval }, null, 2));
 
     const workOrder = await prisma.workOrder.create({
       data: {
@@ -169,6 +169,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         technicianId,
         plannedDate: new Date(plannedDate),
         plannedRemovalDate: plannedRemovalDate ? new Date(plannedRemovalDate) : null,
+        isNextVisitPotentialRemoval: isNextVisitPotentialRemoval || false,
         equipment: equipmentIds && equipmentIds.length > 0 ? {
           create: equipmentIds.map((eqId: string) => ({ equipmentId: eqId }))
         } : undefined,
@@ -206,7 +207,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
 
 router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
   try {
-    const { type, status, technicianId, plannedDate, actualDate, done, todo, plannedRemovalDate } = req.body;
+    const { type, status, technicianId, plannedDate, actualDate, done, todo, plannedRemovalDate, isNextVisitPotentialRemoval } = req.body;
     const userRole = req.user!.role;
     const userId = req.user!.id;
 
@@ -256,6 +257,7 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
         ...(done !== undefined && { done }),
         ...(todo !== undefined && { todo }),
         ...(plannedRemovalDate && { plannedRemovalDate: new Date(plannedRemovalDate) }),
+        ...(isNextVisitPotentialRemoval !== undefined && userRole !== 'technician' && { isNextVisitPotentialRemoval }),
       },
       include: {
         site: true,
@@ -384,6 +386,19 @@ router.post('/:id/equipment', authenticate, authorize('manager', 'admin'), async
     const { equipmentId } = req.body;
     const workOrderId = req.params.id;
 
+    // Check if equipment exists and is in OK condition
+    const equipment = await prisma.equipment.findUnique({
+      where: { id: equipmentId },
+    });
+
+    if (!equipment) {
+      return res.status(404).json({ message: 'Equipment not found' });
+    }
+
+    if (equipment.conditionState === 'NOT_OK') {
+      return res.status(400).json({ message: 'Cannot assign equipment with status "לא תקין"' });
+    }
+
     // Check if already linked to this work order
     const existing = await prisma.workOrderEquipment.findFirst({
       where: { workOrderId, equipmentId },
@@ -418,14 +433,22 @@ router.post('/:id/equipment', authenticate, authorize('manager', 'admin'), async
       });
     }
 
+    // Auto-set location to "לקוח" when assigning to a work
+    const customerLocation = await prisma.equipmentLocation.findFirst({
+      where: { isDefaultCustomer: true },
+    });
+
     await prisma.workOrderEquipment.create({
       data: { workOrderId, equipmentId },
     });
 
-    // Update equipment status to assigned_to_work and set currentWorkOrderId
+    // Update equipment status to assigned_to_work and set location
     await prisma.equipment.update({
       where: { id: equipmentId },
-      data: { status: 'assigned_to_work' },
+      data: { 
+        status: 'assigned_to_work',
+        currentLocationId: customerLocation?.id || null,
+      },
     });
 
     const workOrder = await prisma.workOrder.findUnique({

@@ -20,7 +20,9 @@
     "yes": "כן",
     "no": "לא",
     "refresh": "רענן",
-    "select": "בחר"
+    "select": "בחר",
+    "today": "היום",
+    "view": "צפה"
   },
   "auth": {
     "login": "התחברות",
@@ -59,6 +61,8 @@
     "site": "אתר",
     "lastScan": "סריקה אחרונה",
     "plannedRemoval": "מתפנה בתאריך",
+    "nextVisit": "תאריך ביקור הבא",
+    "isPotentialRemoval": "פירוק",
     "estimatedRemovalDate": "תאריך פירוק משוער",
     "actualRemoval": "פירוק בפועל",
     "installationDate": "תאריך התקנה",
@@ -98,7 +102,21 @@
       "largeMachine": "מכונה גדולה",
       "mediumMachine": "מכונה בינונית",
       "smallMachine": "מכונה קטנה"
-    }
+    },
+    "location": "מיקום",
+    "locationPlaceholder": "ללא",
+    "purchaseDate": "תאריך קנייה",
+    "conditionState": {
+      "ok": "תקין",
+      "notOk": "לא תקין"
+    },
+    "notes": "הערות",
+    "addNote": "הערה חדשה",
+    "noteSaved": "ההערה נשמרה",
+    "noNotes": "אין הערות",
+    "basicInfo": "מידע בסיסי",
+    "conditionAndLocation": "מצב ומיקום",
+    "assignedWorkOrder": "עבודה משויכת"
   },
   "sites": {
     "title": "אתרים",
@@ -150,7 +168,31 @@
       "oneWeek": "שבוע",
       "twoWeeks": "שבועיים",
       "custom": "מותאם אישית"
-    }
+    },
+    "viewMode": {
+      "list": "רשימה",
+      "calendar": "לוח שבועי"
+    },
+    "weekView": "צפה בכל השבוע",
+    "noWorksForDay": "אין עבודות ליום זה",
+    "viewList": "רשימה",
+    "viewCalendar": "לוח שבועי",
+    "weeklyCalendar": "לוח שבועי",
+    "weeklyTotal": "סה\"כ"
+  },
+  "settings": {
+    "equipmentLocations": "מיקום ציוד",
+    "addLocation": "הוסף מיקום",
+    "editLocation": "ערוך מיקום",
+    "deleteLocation": "מחק מיקום",
+    "locationName": "שם המיקום",
+    "systemLocation": "מיקום מערכת",
+    "cannotDeleteSystemLocation": "לא ניתן למחוק מיקום מערכת",
+    "cannotEditSystemLocation": "לא ניתן לערוך מיקום מערכת",
+    "locationInUse": "המיקום בשימוש",
+    "duplicateLocationName": "שם מיקום כבר קיים",
+    "selectLocation": "בחר מיקום",
+    "confirmLocation": "אשר"
   },
   "map": {
     "title": "מפת אתרים",

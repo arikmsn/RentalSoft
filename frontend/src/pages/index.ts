@@ -1,6 +1,7 @@
 export * from './LoginPage';
 export * from './DashboardPage';
 export * from './EquipmentListPage';
+export * from './EquipmentDetailsPage';
 export * from './SitesListPage';
 export * from './WorkOrdersListPage';
 export * from './WorkOrderDetailsPage';
