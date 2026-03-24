@@ -194,7 +194,7 @@ export function SettingsPage() {
   const tabs: { key: TabType; label: string }[] = [
     { key: 'workOrderTypes', label: t('settings.workOrderTypes') },
     { key: 'equipmentTypes', label: t('settings.equipmentTypes') },
-    { key: 'equipmentLocations', label: t('settings.equipmentLocations') },
+    { key: 'equipmentLocations', label: 'מיקומי ציוד' },
     { key: 'technicians', label: t('settings.technicians') },
   ];
 

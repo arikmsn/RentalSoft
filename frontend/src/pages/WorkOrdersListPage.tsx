@@ -246,6 +246,9 @@ export function WorkOrdersListPage() {
                           <span className="w-2.5 h-2.5 rounded-full shrink-0 border-2 border-surface-400" />
                         ))}
                         {wo.site ? wo.site.name : ''}
+                        {(wo as any).isNextVisitPotentialRemoval && (
+                          <span className="px-1.5 py-0.5 bg-surface-800 text-white text-xs rounded-full font-bold">פ</span>
+                        )}
                       </h3>
                       <p className="text-sm text-surface-500 mt-1">
                         {wo.workTypeName || wo.type || t('workOrders.workType')}
@@ -253,6 +256,9 @@ export function WorkOrdersListPage() {
                       </p>
                       <p className="text-xs text-surface-400 mt-0.5">
                         {t('workOrders.plannedDate')}: <span className="font-medium">{formatDate(wo.plannedDate)}</span>
+                        {wo.plannedRemovalDate && (
+                          <> | {t('equipment.nextVisit')}: <span className="font-medium">{formatDate(wo.plannedRemovalDate)}</span></>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -409,9 +415,12 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
   const days = getDaysInRange();
 
   const getWorkOrdersForDay = (date: Date) => {
+    // Calendar shows only OPEN and IN_PROGRESS works
     return workOrders.filter(wo => {
-      if (!wo.plannedDate) return false;
-      const woDate = new Date(wo.plannedDate);
+      if (wo.status === 'completed') return false;
+      // Use plannedRemovalDate (next visit date) for grouping
+      if (!wo.plannedRemovalDate) return false;
+      const woDate = new Date(wo.plannedRemovalDate);
       return woDate.toDateString() === date.toDateString();
     });
   };
@@ -423,8 +432,9 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
   const handleDateChange = async (woId: string, newDate: string) => {
     setSavingDate(woId);
     try {
+      // Update plannedRemovalDate (next visit date)
       await workOrderService.update(woId, {
-        plannedDate: new Date(newDate),
+        plannedRemovalDate: new Date(newDate),
       });
       if (onRefresh) {
         setTimeout(() => onRefresh(), 100);
@@ -494,19 +504,31 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
                     }`}
                   >
                     <Link to={`/workorders/${wo.id}`} className="block">
-                      <div className="font-medium text-surface-800">{wo.site?.name}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="font-medium text-surface-800">{wo.site?.name}</div>
+                        {(wo as any).isNextVisitPotentialRemoval && (
+                          <span className="px-1.5 py-0.5 bg-surface-800 text-white text-xs rounded-full font-bold">פ</span>
+                        )}
+                      </div>
                       <div className="text-surface-600 text-xs">{wo.workTypeName || wo.type}</div>
                       <div className="text-surface-500 text-xs mt-0.5">{wo.site?.address}</div>
                     </Link>
-                    <div className="mt-2 pt-2 border-t border-surface-200 flex items-center gap-2">
-                      <label className="text-xs text-surface-500">{t('equipment.nextVisit')}:</label>
-                      <input
-                        type="date"
-                        value={wo.plannedDate ? new Date(wo.plannedDate).toISOString().split('T')[0] : ''}
-                        onChange={(e) => handleDateChange(wo.id, e.target.value)}
-                        disabled={savingDate === wo.id}
-                        className="text-xs px-2 py-1 border border-surface-200 rounded focus:ring-1 focus:ring-primary-500 bg-white"
-                      />
+                    <div className="mt-2 pt-2 border-t border-surface-200 space-y-1">
+                      {wo.plannedDate && (
+                        <div className="text-xs text-surface-500">
+                          תאריך התקנה: {new Date(wo.plannedDate).toLocaleDateString('he-IL')}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-surface-500">{t('equipment.nextVisit')}:</label>
+                        <input
+                          type="date"
+                          value={wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : ''}
+                          onChange={(e) => handleDateChange(wo.id, e.target.value)}
+                          disabled={savingDate === wo.id}
+                          className="text-xs px-2 py-1 border border-surface-200 rounded focus:ring-1 focus:ring-primary-500 bg-white"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
