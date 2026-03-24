@@ -101,7 +101,7 @@ export function DashboardPage() {
     { value: stats?.availableEquipment || 0, label: t('dashboard.availableEquipment'), color: 'text-primary-600', bg: 'bg-primary-50', icon: '📦', onClick: () => navigate('/equipment?filter=available') },
     { value: stats?.sitesWithEquipment || 0, label: t('dashboard.sitesWithEquipment'), color: 'text-success-600', bg: 'bg-success-50', icon: '📍', onClick: () => navigate('/equipment?filter=at_customer') },
     { value: stats?.overdueRemovals || 0, label: t('dashboard.overdueRemovals'), color: 'text-surface-800', bg: 'bg-surface-100', icon: '⚫', onClick: () => navigate('/alerts?type=past_removal') },
-    { value: stats?.upcomingRemovals || 0, label: t('dashboard.upcomingRemovals'), color: 'text-danger-600', bg: 'bg-danger-50', icon: '🔴', onClick: undefined },
+    { value: stats?.upcomingRemovals || 0, label: t('dashboard.upcomingRemovals'), color: 'text-danger-600', bg: 'bg-danger-50', icon: '🔴', onClick: () => navigate('/workorders?view=calendar') },
   ];
 
   return (
@@ -120,7 +120,7 @@ export function DashboardPage() {
           <div
             key={i}
             onClick={card.onClick}
-            className={`bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100 ${card.onClick ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+            className={`bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100 ${card.onClick !== undefined ? 'cursor-pointer active:scale-[0.98]' : ''}`}
           >
             <div className="flex items-center justify-between mb-3">
               <span className={`w-10 h-10 ${card.bg} rounded-xl flex items-center justify-center text-lg`}>{card.icon}</span>
@@ -176,7 +176,9 @@ export function DashboardPage() {
                     <p className="text-xs font-medium mt-0.5 text-surface-600">
                       {alert.daysRemaining > 0
                         ? `${alert.daysRemaining} ${t('alerts.daysRemaining')}`
-                        : `${Math.abs(alert.daysRemaining)} ${t('alerts.daysOverdue')}`}
+                        : alert.daysRemaining === 0
+                          ? `היום`
+                          : `${Math.abs(alert.daysRemaining)} ${t('alerts.daysOverdue')}`}
                     </p>
                   </div>
                   <span className="text-surface-400 text-lg shrink-0">&larr;</span>

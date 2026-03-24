@@ -408,7 +408,6 @@ function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) 
       await workOrderService.update(woId, {
         plannedDate: new Date(newDate),
       });
-      window.location.reload();
     } catch (err) {
       console.error('Failed to update date:', err);
     } finally {

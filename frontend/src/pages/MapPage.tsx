@@ -51,7 +51,7 @@ const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green' | null, sel
   const size = selected ? 32 : 24;
   const borderWidth = selected ? 4 : 3;
   const isHollow = !hasEquipment;
-  const emoji = hasPotentialRemoval ? '😊' : '';
+  const innerIcon = hasPotentialRemoval ? 'פ' : '';
   return L.divIcon({
     className: 'custom-marker',
     html: `<div style="
@@ -66,7 +66,9 @@ const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green' | null, sel
       align-items: center;
       justify-content: center;
       font-size: ${hasPotentialRemoval ? '14px' : '0'};
-    ">${emoji}</div>`,
+      color: white;
+      font-weight: bold;
+    ">${innerIcon}</div>`,
     iconSize: [size, size],
     iconAnchor: [size/2, size/2],
     popupAnchor: [0, -size/2],

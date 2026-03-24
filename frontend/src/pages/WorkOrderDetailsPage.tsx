@@ -888,14 +888,15 @@ export function WorkOrderDetailsPage() {
       {showLocationPopup && (
         <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-float">
-            <h2 className="text-xl font-bold mb-4 text-surface-800">{t('equipment.selectLocation')}</h2>
-            <p className="text-surface-600 mb-4">{t('workOrder.selectNewLocationForEquipment')}</p>
+            <h2 className="text-xl font-bold mb-2 text-surface-800">הסרת ציוד</h2>
+            <p className="text-surface-600 mb-4">האם אתה בטוח שברצונך להסיר את הציוד מהעבודה?</p>
+            <p className="text-sm text-surface-500 mb-3">בחר מיקום לציוד</p>
             <select
               value={selectedLocationId}
               onChange={(e) => setSelectedLocationId(e.target.value)}
               className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 mb-4"
             >
-              <option value="">-- {t('app.select')} --</option>
+              <option value="">-- בחר --</option>
               {equipmentLocations.map((loc) => (
                 <option key={loc.id} value={loc.id}>{loc.name}</option>
               ))}
@@ -905,14 +906,14 @@ export function WorkOrderDetailsPage() {
                 onClick={() => { setShowLocationPopup(false); setEquipmentToRemove(null); }}
                 className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
               >
-                {t('app.cancel')}
+                ביטול
               </button>
               <button
                 onClick={confirmRemoveEquipment}
                 disabled={!selectedLocationId}
                 className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200"
               >
-                {t('app.confirm')}
+                אישור
               </button>
             </div>
           </div>

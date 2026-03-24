@@ -213,8 +213,8 @@
     "availableEquipment": "ציוד פנוי",
     "activeEquipment": "ציוד פעיל",
     "sitesWithEquipment": "אתרים עם ציוד",
-    "overdueRemovals": "פירוקים באיחור",
-    "upcomingRemovals": "פירוקים קרובים",
+    "overdueRemovals": "ביקורים שלא בוצעו בזמן",
+    "upcomingRemovals": "ביקורים בימים הקרובים",
     "noAlerts": "אין התראות"
   },
   "alerts": {

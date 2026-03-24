@@ -111,7 +111,7 @@ export function EquipmentListPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await equipmentService.create({
+      const created = await equipmentService.create({
         qrTag: formData.qrTag,
         type: formData.type,
       });
@@ -119,6 +119,7 @@ export function EquipmentListPage() {
       setFormData({ qrTag: '', type: '' });
       const data = await equipmentService.getAll();
       setEquipment(data);
+      navigate(`/equipment/${created.id}`);
     } catch (err: any) {
       console.error('Failed to create equipment:', err);
       alert(err?.response?.data?.message || 'Failed to create equipment');
@@ -197,17 +198,17 @@ export function EquipmentListPage() {
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-row gap-3">
         <input
           type="text"
           placeholder={t('app.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 placeholder:text-surface-400"
+          className="flex-1 min-w-0 px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 placeholder:text-surface-400"
         />
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`px-4 py-3 border rounded-xl transition-all flex items-center gap-2 min-h-[48px] ${
+          className={`px-4 py-3 border rounded-xl transition-all flex items-center gap-2 shrink-0 min-h-[48px] ${
             showFilters ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-surface-200 bg-white text-surface-700 hover:bg-surface-50'
           }`}
         >
