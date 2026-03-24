@@ -162,7 +162,11 @@ export function WorkOrdersListPage() {
         >
           {t('equipment.filters.all')}
         </button>
-        <div className="ml-auto flex gap-2 bg-white border border-surface-200 rounded-xl p-1">
+      </div>
+
+      {/* View mode toggle - mobile: top-left, desktop: right side */}
+      <div className="block lg:hidden mb-3">
+        <div className="flex gap-2 bg-white border border-surface-200 rounded-xl p-1 w-fit">
           <button
             onClick={() => setViewMode('list')}
             className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
@@ -180,6 +184,25 @@ export function WorkOrdersListPage() {
             📅 {t('workOrders.viewCalendar')}
           </button>
         </div>
+      </div>
+
+      <div className="hidden lg:flex gap-2 bg-white border border-surface-200 rounded-xl p-1 ml-auto w-fit">
+        <button
+          onClick={() => setViewMode('list')}
+          className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
+            viewMode === 'list' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
+          }`}
+        >
+          📋 {t('workOrders.viewList')}
+        </button>
+        <button
+          onClick={() => setViewMode('calendar')}
+          className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
+            viewMode === 'calendar' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
+          }`}
+        >
+          📅 {t('workOrders.viewCalendar')}
+        </button>
       </div>
 
       {viewMode === 'calendar' ? (
@@ -349,6 +372,7 @@ export function WorkOrdersListPage() {
 function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) {
   const today = new Date();
   const [dateRange, setDateRange] = useState({ start: today, days: 6 });
+  const [savingDate, setSavingDate] = useState<string | null>(null);
 
   const getDaysInRange = () => {
     const days: { date: Date; label: string }[] = [];
@@ -376,6 +400,20 @@ function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) 
 
   const handleRangeChange = (days: number) => {
     setDateRange({ start: today, days });
+  };
+
+  const handleDateChange = async (woId: string, newDate: string) => {
+    setSavingDate(woId);
+    try {
+      await workOrderService.update(woId, {
+        plannedDate: new Date(newDate),
+      });
+      window.location.reload();
+    } catch (err) {
+      console.error('Failed to update date:', err);
+    } finally {
+      setSavingDate(null);
+    }
   };
 
   return (
@@ -427,18 +465,29 @@ function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) 
               </div>
               <div className="space-y-2">
                 {dayWorkOrders.map(wo => (
-                  <Link
+                  <div
                     key={wo.id}
-                    to={`/workorders/${wo.id}`}
                     className={`block p-3 rounded-xl text-sm ${
                       wo.status === 'completed' ? 'bg-success-50 border border-success-100' :
                       wo.status === 'in_progress' ? 'bg-warning-50 border border-warning-100' :
                       'bg-primary-50 border border-primary-100'
                     }`}
                   >
-                    <div className="font-medium text-surface-800">{wo.workTypeName || wo.type}</div>
-                    <div className="text-surface-600 text-xs mt-1">{wo.site?.name}</div>
-                  </Link>
+                    <Link to={`/workorders/${wo.id}`} className="block">
+                      <div className="font-medium text-surface-800">{wo.workTypeName || wo.type}</div>
+                      <div className="text-surface-600 text-xs mt-1">{wo.site?.address}</div>
+                    </Link>
+                    <div className="mt-2 pt-2 border-t border-surface-200 flex items-center gap-2">
+                      <label className="text-xs text-surface-500">{t('equipment.nextVisit')}:</label>
+                      <input
+                        type="date"
+                        value={wo.plannedDate ? new Date(wo.plannedDate).toISOString().split('T')[0] : ''}
+                        onChange={(e) => handleDateChange(wo.id, e.target.value)}
+                        disabled={savingDate === wo.id}
+                        className="text-xs px-2 py-1 border border-surface-200 rounded focus:ring-1 focus:ring-primary-500"
+                      />
+                    </div>
+                  </div>
                 ))}
                 {dayWorkOrders.length === 0 && (
                   <div className="text-xs text-surface-400 py-2">-</div>

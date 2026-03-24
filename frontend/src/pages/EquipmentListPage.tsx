@@ -315,26 +315,26 @@ export function EquipmentListPage() {
                 </button>
               </div>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[eq.status]}`}>
                 {eq.status === 'available' ? t('equipment.statuses.available') : t('equipment.statuses.assigned_to_work')}
               </span>
+              {(eq as any).conditionState === 'NOT_OK' && (
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-danger-100 text-danger-700">
+                  {t('equipment.conditionState.notOk')}
+                </span>
+              )}
             </div>
             
             {/* Work Order Attachment Info */}
             {eq.activeWorkOrder && (
               <div className="mt-3 pt-3 border-t border-surface-100">
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded-full font-medium">
-                    {t('equipment.assignedToWorkOrder')}
-                  </span>
-                  <span className="text-surface-600">
-                    {eq.activeWorkOrder.site?.name}
-                  </span>
+                <div className="text-xs text-surface-600">
+                  {eq.activeWorkOrder.site?.name}
                 </div>
                 {eq.nextPlannedRemovalDate && (
                   <div className="flex justify-between text-xs text-surface-500 mt-2">
-                    <span>{t('equipment.plannedRemoval')}</span>
+                    <span>{t('equipment.nextVisit')}</span>
                     <span className="font-medium">{formatDate(eq.nextPlannedRemovalDate)}</span>
                   </div>
                 )}

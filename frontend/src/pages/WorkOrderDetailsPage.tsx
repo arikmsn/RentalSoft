@@ -715,7 +715,7 @@ export function WorkOrderDetailsPage() {
         {workOrder.plannedRemovalDate && (
           <div className="p-3 bg-orange-50 rounded-lg mb-4">
             <p className="text-sm text-orange-800">
-              {t('equipment.plannedRemoval')}: {formatDate(workOrder.plannedRemovalDate)}
+              {t('equipment.nextVisit')}: {formatDate(workOrder.plannedRemovalDate)}
             </p>
           </div>
         )}

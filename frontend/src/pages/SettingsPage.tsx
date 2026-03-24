@@ -194,8 +194,8 @@ export function SettingsPage() {
   const tabs: { key: TabType; label: string }[] = [
     { key: 'workOrderTypes', label: t('settings.workOrderTypes') },
     { key: 'equipmentTypes', label: t('settings.equipmentTypes') },
-    { key: 'technicians', label: t('settings.technicians') },
     { key: 'equipmentLocations', label: t('settings.equipmentLocations') },
+    { key: 'technicians', label: t('settings.technicians') },
   ];
 
   return (
@@ -253,11 +253,6 @@ export function SettingsPage() {
                     <p className="font-medium text-surface-800">{item.name}</p>
                     {itemAny.username && (
                       <p className="text-sm text-surface-500">{itemAny.username}</p>
-                    )}
-                    {isSystemLocation && (
-                      <span className="text-xs bg-surface-100 text-surface-500 px-2 py-0.5 rounded mt-1 inline-block">
-                        {t('settings.systemLocation')}
-                      </span>
                     )}
                   </div>
                 </div>
@@ -338,7 +333,8 @@ export function SettingsPage() {
                       />
                     </div>
                   )}
-                  <div className="flex items-center gap-3">
+                  {activeTab !== 'equipmentLocations' && (
+                    <div className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         id="isActiveNonTech"
@@ -348,6 +344,7 @@ export function SettingsPage() {
                       />
                       <label htmlFor="isActiveNonTech" className="text-sm text-surface-700">{t('settings.active')}</label>
                     </div>
+                  )}
                 </>
               )}
               <div className="flex gap-3 pt-3">
