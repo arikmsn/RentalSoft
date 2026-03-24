@@ -247,7 +247,7 @@ export function WorkOrdersListPage() {
                         ))}
                         {wo.site ? wo.site.name : ''}
                         {(wo as any).isNextVisitPotentialRemoval && (
-                          <span className="px-1.5 py-0.5 bg-surface-800 text-white text-xs rounded-full font-bold">פ</span>
+                          <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-md font-bold">פ</span>
                         )}
                       </h3>
                       <p className="text-sm text-surface-500 mt-1">
@@ -515,7 +515,7 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
                       <div className="flex items-center gap-2">
                         <div className="font-medium text-surface-800">{wo.site?.name}</div>
                         {(wo as any).isNextVisitPotentialRemoval && (
-                          <span className="px-1.5 py-0.5 bg-surface-800 text-white text-xs rounded-full font-bold">פ</span>
+                          <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-md font-bold">פ</span>
                         )}
                       </div>
                       <div className="text-surface-600 text-xs">{wo.workTypeName || wo.type}</div>
@@ -528,6 +528,9 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
                         </div>
                       )}
                       <div className="flex items-center gap-2">
+                        {(wo as any).isNextVisitPotentialRemoval && (
+                          <span className="px-1 py-0.5 bg-orange-100 text-orange-700 text-xs rounded font-bold">פ</span>
+                        )}
                         <label className="text-xs text-surface-500">{t('equipment.nextVisit')}:</label>
                         <input
                           type="date"
