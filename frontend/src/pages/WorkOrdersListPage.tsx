@@ -397,6 +397,7 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
   const today = new Date();
   const [dateRange, setDateRange] = useState({ start: today, days: 6 });
   const [savingDate, setSavingDate] = useState<string | null>(null);
+  const [editingDateId, setEditingDateId] = useState<string | null>(null);
 
   const getDaysInRange = () => {
     const days: { date: Date; label: string }[] = [];
@@ -418,6 +419,8 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
     // Calendar shows only OPEN and IN_PROGRESS works
     return workOrders.filter(wo => {
       if (wo.status === 'completed') return false;
+      // Keep work visible if it's being edited (date picker open)
+      if (editingDateId === wo.id) return true;
       // Use plannedRemovalDate (next visit date) for grouping
       if (!wo.plannedRemovalDate) return false;
       const woDate = new Date(wo.plannedRemovalDate);
@@ -436,6 +439,7 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
       await workOrderService.update(woId, {
         plannedRemovalDate: new Date(newDate),
       });
+      setEditingDateId(null);
       if (onRefresh) {
         setTimeout(() => onRefresh(), 100);
       }
@@ -443,6 +447,7 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
       console.error('Failed to update date:', err);
     } finally {
       setSavingDate(null);
+      setEditingDateId(null);
     }
   };
 
@@ -525,6 +530,8 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
                           type="date"
                           value={wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : ''}
                           onChange={(e) => handleDateChange(wo.id, e.target.value)}
+                          onFocus={() => setEditingDateId(wo.id)}
+                          onBlur={() => setEditingDateId(null)}
                           disabled={savingDate === wo.id}
                           className="text-xs px-2 py-1 border border-surface-200 rounded focus:ring-1 focus:ring-primary-500 bg-white"
                         />
