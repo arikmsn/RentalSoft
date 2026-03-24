@@ -104,7 +104,7 @@ router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
         technician: { select: { id: true, name: true } },
         checklist: true,
         equipment: { include: { equipment: true } },
-        workType: { select: { name: true } },
+        workType: { select: { id: true, name: true } },
       },
     });
 

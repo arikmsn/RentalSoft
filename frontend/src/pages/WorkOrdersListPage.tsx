@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import type { WorkOrder, WorkOrderStatus, Site } from '../types';
 import { workOrderService } from '../services/workOrderService';
 import { siteService } from '../services/siteService';
@@ -30,7 +30,8 @@ export function WorkOrdersListPage() {
   const [workTypes, setWorkTypes] = useState<{id: string; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'active' | 'completed' | 'all'>('active');
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [searchParams] = useSearchParams();
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>(searchParams.get('view') === 'calendar' ? 'calendar' : 'list');
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -132,36 +133,23 @@ export function WorkOrdersListPage() {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={() => setFilter('active')}
-          className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
-            filter === 'active'
-              ? 'bg-primary-600 text-white shadow-sm'
-              : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
-          }`}
-        >
-          {t('workOrders.filters.active')}
-        </button>
-        <button
-          onClick={() => setFilter('completed')}
-          className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
-            filter === 'completed'
-              ? 'bg-primary-600 text-white shadow-sm'
-              : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
-          }`}
-        >
-          {t('workOrders.statuses.completed')}
-        </button>
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2.5 rounded-xl transition-all duration-200 font-medium min-h-[44px] ${
-            filter === 'all'
-              ? 'bg-primary-600 text-white shadow-sm'
-              : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50 hover:border-surface-300'
-          }`}
-        >
-          {t('equipment.filters.all')}
-        </button>
+        {([
+          { key: 'active' as const, label: t('workOrders.filters.active'), activeClass: 'bg-primary-600 text-white shadow-sm' },
+          { key: 'completed' as const, label: t('workOrders.statuses.completed'), activeClass: 'bg-success-600 text-white shadow-sm' },
+          { key: 'all' as const, label: t('equipment.filters.all'), activeClass: 'bg-surface-600 text-white shadow-sm' },
+        ]).map((btn) => (
+          <button
+            key={btn.key}
+            onClick={() => setFilter(btn.key)}
+            className={`px-4 py-2 rounded-xl transition-all font-medium text-sm ${
+              filter === btn.key
+                ? btn.activeClass
+                : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50'
+            }`}
+          >
+            {btn.label}
+          </button>
+        ))}
       </div>
 
       {/* View mode toggle - mobile: top-left, desktop: right side */}
@@ -206,7 +194,11 @@ export function WorkOrdersListPage() {
       </div>
 
       {viewMode === 'calendar' ? (
-        <WeeklyCalendar workOrders={filteredWorkOrders} t={t} />
+        <WeeklyCalendar workOrders={filteredWorkOrders} t={t} onRefresh={() => {
+          workOrderService.getAll().then(data => {
+            setWorkOrders(data);
+          }).catch(console.error);
+        }} />
       ) : (
         <>
           <div className="space-y-3">
@@ -369,7 +361,7 @@ export function WorkOrdersListPage() {
   );
 }
 
-function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) {
+function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[]; t: any; onRefresh?: () => void }) {
   const today = new Date();
   const [dateRange, setDateRange] = useState({ start: today, days: 6 });
   const [savingDate, setSavingDate] = useState<string | null>(null);
@@ -408,6 +400,9 @@ function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) 
       await workOrderService.update(woId, {
         plannedDate: new Date(newDate),
       });
+      if (onRefresh) {
+        setTimeout(() => onRefresh(), 100);
+      }
     } catch (err) {
       console.error('Failed to update date:', err);
     } finally {

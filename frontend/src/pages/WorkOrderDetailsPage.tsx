@@ -389,7 +389,41 @@ export function WorkOrderDetailsPage() {
   };
 
   const handleStatusChange = async (newStatus: WorkOrderStatus) => {
-    if (!id) return;
+    if (!id || !workOrder) return;
+    
+    // Show confirmation when completing a work
+    if (newStatus === 'completed' && workOrder.status !== 'completed') {
+      const confirmed = window.confirm('האם העבודה הושלמה?');
+      if (!confirmed) return;
+      
+      setSaving(true);
+      try {
+        // Update work status to completed
+        await workOrderService.update(id, { status: 'completed' });
+        
+        // Release all equipment from this work
+        for (const eq of scannedEquipment) {
+          try {
+            await workOrderService.removeEquipment(id, eq.id);
+            await equipmentService.update(eq.id, { status: 'available', currentLocationId: null });
+          } catch (eqErr) {
+            console.warn('Failed to release equipment:', eqErr);
+          }
+        }
+        
+        setSuccess(t('app.success'));
+        setTimeout(() => setSuccess(null), 3000);
+        fetchData();
+      } catch (err: any) {
+        console.error('Failed to complete work:', err);
+        setError(err?.response?.data?.message || t('errors.serverError'));
+        setTimeout(() => setError(null), 3000);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    
     setShowStatusDropdown(false);
     setSaving(true);
     try {
