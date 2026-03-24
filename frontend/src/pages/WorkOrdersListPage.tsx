@@ -120,9 +120,14 @@ export function WorkOrdersListPage() {
       );
     })
     .sort((a, b) => {
-      const dateA = a.plannedDate ? new Date(a.plannedDate).getTime() : Infinity;
-      const dateB = b.plannedDate ? new Date(b.plannedDate).getTime() : Infinity;
-      return dateA - dateB;
+      // Sort by next visit date (plannedRemovalDate) descending - latest first
+      const dateA = a.plannedRemovalDate ? new Date(a.plannedRemovalDate).getTime() : 0;
+      const dateB = b.plannedRemovalDate ? new Date(b.plannedRemovalDate).getTime() : 0;
+      // Works without next visit date go to the end
+      if (dateA === 0 && dateB === 0) return 0;
+      if (dateA === 0) return 1;
+      if (dateB === 0) return -1;
+      return dateB - dateA;
     });
 
   if (loading) {
@@ -398,6 +403,11 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
   const [dateRange, setDateRange] = useState({ start: today, days: 6 });
   const [savingDate, setSavingDate] = useState<string | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
+  const [localWorkOrders, setLocalWorkOrders] = useState<WorkOrder[]>(workOrders);
+
+  useEffect(() => {
+    setLocalWorkOrders(workOrders);
+  }, [workOrders]);
 
   const getDaysInRange = () => {
     const days: { date: Date; label: string }[] = [];
@@ -417,7 +427,7 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
 
   const getWorkOrdersForDay = (date: Date) => {
     // Calendar shows only OPEN and IN_PROGRESS works
-    return workOrders.filter(wo => {
+    return localWorkOrders.filter(wo => {
       if (wo.status === 'completed') return false;
       // Keep work visible if it's being edited (date picker open)
       if (editingDateId === wo.id) return true;
@@ -442,6 +452,10 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
       await workOrderService.update(woId, {
         plannedRemovalDate: new Date(newDate),
       });
+      // Update local state immediately so the row moves to the correct date
+      setLocalWorkOrders(prev => prev.map(wo => 
+        wo.id === woId ? { ...wo, plannedRemovalDate: new Date(newDate) } : wo
+      ));
       setEditingDateId(null);
       if (onRefresh) {
         setTimeout(() => onRefresh(), 100);
