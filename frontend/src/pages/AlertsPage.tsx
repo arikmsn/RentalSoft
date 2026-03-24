@@ -29,9 +29,14 @@ export function AlertsPage() {
     return () => window.removeEventListener('site-updated', refresh);
   }, []);
 
-  const filteredAlerts = alerts.filter((alert) => {
-    return filter === 'all' || alert.type === filter;
-  });
+  const filteredAlerts = alerts
+    .filter((alert) => {
+      return filter === 'all' || alert.type === filter;
+    })
+    .sort((a, b) => {
+      // Sort by daysRemaining ascending (most overdue/earliest first)
+      return a.daysRemaining - b.daysRemaining;
+    });
 
   const getAlertDotColor = (alert: Alert) => {
     if (alert.daysRemaining < 0) return { dot: 'bg-surface-800', border: 'border-surface-800', bg: 'bg-surface-50', isHollow: false };

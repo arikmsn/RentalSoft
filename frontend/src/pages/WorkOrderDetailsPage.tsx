@@ -71,6 +71,7 @@ export function WorkOrderDetailsPage() {
   
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showLocationPopup, setShowLocationPopup] = useState(false);
   const [equipmentToRemove, setEquipmentToRemove] = useState<string | null>(null);
@@ -324,6 +325,34 @@ export function WorkOrderDetailsPage() {
     setSelectedLocationId('');
   };
 
+  const handleCompleteConfirm = async () => {
+    if (!id) return;
+    setShowCompleteConfirm(false);
+    setSaving(true);
+    try {
+      await workOrderService.update(id, { status: 'completed' });
+      
+      for (const eq of scannedEquipment) {
+        try {
+          await workOrderService.removeEquipment(id, eq.id);
+          await equipmentService.update(eq.id, { status: 'available', currentLocationId: null });
+        } catch (eqErr) {
+          console.warn('Failed to release equipment:', eqErr);
+        }
+      }
+      
+      setSuccess(t('app.success'));
+      setTimeout(() => setSuccess(null), 3000);
+      fetchData();
+    } catch (err: any) {
+      console.error('Failed to complete work:', err);
+      setError(err?.response?.data?.message || t('errors.serverError'));
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!id) return;
     setDeleting(true);
@@ -393,34 +422,7 @@ export function WorkOrderDetailsPage() {
     
     // Show confirmation when completing a work
     if (newStatus === 'completed' && workOrder.status !== 'completed') {
-      const confirmed = window.confirm('האם העבודה הושלמה?');
-      if (!confirmed) return;
-      
-      setSaving(true);
-      try {
-        // Update work status to completed
-        await workOrderService.update(id, { status: 'completed' });
-        
-        // Release all equipment from this work
-        for (const eq of scannedEquipment) {
-          try {
-            await workOrderService.removeEquipment(id, eq.id);
-            await equipmentService.update(eq.id, { status: 'available', currentLocationId: null });
-          } catch (eqErr) {
-            console.warn('Failed to release equipment:', eqErr);
-          }
-        }
-        
-        setSuccess(t('app.success'));
-        setTimeout(() => setSuccess(null), 3000);
-        fetchData();
-      } catch (err: any) {
-        console.error('Failed to complete work:', err);
-        setError(err?.response?.data?.message || t('errors.serverError'));
-        setTimeout(() => setError(null), 3000);
-      } finally {
-        setSaving(false);
-      }
+      setShowCompleteConfirm(true);
       return;
     }
     
@@ -948,6 +950,30 @@ export function WorkOrderDetailsPage() {
                 className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200"
               >
                 אישור
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCompleteConfirm && (
+        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-float">
+            <h2 className="text-xl font-bold mb-4 text-surface-800">האם העבודה הושלמה?</h2>
+            <p className="text-surface-600 mb-6">בלחיצה על 'אישור' הסטטוס ישתנה ל'הושלם' וכל הציוד המשויך לעבודה יחזור למצב 'זמין'.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCompleteConfirm(false)}
+                className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={handleCompleteConfirm}
+                disabled={saving}
+                className="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 font-medium transition-all duration-200"
+              >
+                {saving ? t('app.loading') : 'אישור'}
               </button>
             </div>
           </div>

@@ -120,14 +120,14 @@ export function WorkOrdersListPage() {
       );
     })
     .sort((a, b) => {
-      // Sort by next visit date (plannedRemovalDate) descending - latest first
+      // Sort by next visit date (plannedRemovalDate) ascending - earliest first
       const dateA = a.plannedRemovalDate ? new Date(a.plannedRemovalDate).getTime() : 0;
       const dateB = b.plannedRemovalDate ? new Date(b.plannedRemovalDate).getTime() : 0;
       // Works without next visit date go to the end
       if (dateA === 0 && dateB === 0) return 0;
       if (dateA === 0) return 1;
       if (dateB === 0) return -1;
-      return dateB - dateA;
+      return dateA - dateB;
     });
 
   if (loading) {
@@ -225,11 +225,7 @@ export function WorkOrdersListPage() {
       </div>
 
       {viewMode === 'calendar' ? (
-        <WeeklyCalendar workOrders={filteredWorkOrders} t={t} onRefresh={() => {
-          workOrderService.getAll().then(data => {
-            setWorkOrders(data);
-          }).catch(console.error);
-        }} />
+        <WeeklyCalendar workOrders={filteredWorkOrders} t={t} />
       ) : (
         <>
           <div className="space-y-3">
@@ -399,13 +395,12 @@ export function WorkOrdersListPage() {
   );
 }
 
-function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[]; t: any; onRefresh?: () => void }) {
+function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) {
   const today = new Date();
   const [dateRange, setDateRange] = useState({ start: today, days: 6 });
   const [savingDate, setSavingDate] = useState<string | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [localWorkOrders, setLocalWorkOrders] = useState<WorkOrder[]>(workOrders);
-  const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
   useEffect(() => {
     setLocalWorkOrders(workOrders);
@@ -454,8 +449,10 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
       await workOrderService.update(woId, {
         plannedRemovalDate: new Date(newDate),
       });
-      // Mark that calendar needs refresh
-      setHasPendingChanges(true);
+      // Update local state immediately so the row moves to the correct date
+      setLocalWorkOrders(prev => prev.map(wo => 
+        wo.id === woId ? { ...wo, plannedRemovalDate: new Date(newDate) } : wo
+      ));
       setEditingDateId(null);
     } catch (err) {
       console.error('Failed to update date:', err);
@@ -465,27 +462,10 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
     }
   };
 
-  const handleRefreshCalendar = () => {
-    setHasPendingChanges(false);
-    if (onRefresh) {
-      onRefresh();
-    }
-  };
-
   return (
     <div className="bg-white rounded-2xl p-4 shadow-card">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-surface-800">{t('workOrders.weeklyCalendar')}</h2>
-          {hasPendingChanges && (
-            <button
-              onClick={handleRefreshCalendar}
-              className="px-2 py-1 bg-warning-100 text-warning-700 text-xs rounded-lg font-medium hover:bg-warning-200 transition-colors"
-            >
-              רענן
-            </button>
-          )}
-        </div>
+        <h2 className="text-lg font-semibold text-surface-800">{t('workOrders.weeklyCalendar')}</h2>
         <div className="flex gap-2">
           <button
             onClick={() => handleRangeChange(6)}
