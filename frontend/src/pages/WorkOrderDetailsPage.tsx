@@ -72,6 +72,10 @@ export function WorkOrderDetailsPage() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showLocationPopup, setShowLocationPopup] = useState(false);
+  const [equipmentToRemove, setEquipmentToRemove] = useState<string | null>(null);
+  const [selectedLocationId, setSelectedLocationId] = useState('');
+  const [equipmentLocations, setEquipmentLocations] = useState<{id: string; name: string}[]>([]);
   const [editFormData, setEditFormData] = useState({
     type: '',
     workTypeId: '',
@@ -80,6 +84,7 @@ export function WorkOrderDetailsPage() {
     technicianId: '',
     plannedDate: '',
     plannedRemovalDate: '',
+    isNextVisitPotentialRemoval: false,
   });
   const [sites, setSites] = useState<Site[]>([]);
   const [technicians, setTechnicians] = useState<{id: string; name: string; active: boolean}[]>([]);
@@ -287,16 +292,36 @@ export function WorkOrderDetailsPage() {
   };
 
   const handleRemoveEquipment = async (equipmentId: string) => {
-    // Try to remove from backend
+    // Load locations first
+    try {
+      const res = await api.get<{id: string; name: string}[]>('/settings/equipment-locations');
+      setEquipmentLocations(res.data);
+      setEquipmentToRemove(equipmentId);
+      setSelectedLocationId('');
+      setShowLocationPopup(true);
+    } catch (err) {
+      console.error('Failed to load equipment locations:', err);
+    }
+  };
+
+  const confirmRemoveEquipment = async () => {
+    if (!equipmentToRemove || !selectedLocationId) return;
+    
+    // Try to remove from backend and update location
     if (id) {
       try {
-        await workOrderService.removeEquipment(id, equipmentId);
+        await workOrderService.removeEquipment(id, equipmentToRemove);
+        // Update equipment location
+        await equipmentService.update(equipmentToRemove, { currentLocationId: selectedLocationId });
       } catch (apiErr) {
         console.warn('Failed to remove equipment from backend:', apiErr);
       }
     }
     // Remove from local state
-    setScannedEquipment(prev => prev.filter(eq => eq.id !== equipmentId));
+    setScannedEquipment(prev => prev.filter(eq => eq.id !== equipmentToRemove));
+    setShowLocationPopup(false);
+    setEquipmentToRemove(null);
+    setSelectedLocationId('');
   };
 
   const handleDelete = async () => {
@@ -324,6 +349,7 @@ export function WorkOrderDetailsPage() {
       technicianId: workOrder.technicianId,
       plannedDate: new Date(workOrder.plannedDate).toISOString().slice(0, 10),
       plannedRemovalDate: workOrder.plannedRemovalDate ? new Date(workOrder.plannedRemovalDate).toISOString().slice(0, 10) : '',
+      isNextVisitPotentialRemoval: (workOrder as any).isNextVisitPotentialRemoval || false,
     });
     Promise.all([
       siteService.getAll(),
@@ -350,6 +376,7 @@ export function WorkOrderDetailsPage() {
         technicianId: editFormData.technicianId,
         plannedDate: new Date(editFormData.plannedDate),
         plannedRemovalDate: editFormData.plannedRemovalDate ? new Date(editFormData.plannedRemovalDate) : undefined,
+        isNextVisitPotentialRemoval: editFormData.isNextVisitPotentialRemoval,
       });
       setShowEditForm(false);
       fetchData();
@@ -533,13 +560,22 @@ export function WorkOrderDetailsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.plannedRemoval')}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.nextVisit')}</label>
                 <input
                   type="date"
                   value={editFormData.plannedRemovalDate}
                   onChange={(e) => setEditFormData({ ...editFormData, plannedRemovalDate: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                 />
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={editFormData.isNextVisitPotentialRemoval}
+                    onChange={(e) => setEditFormData({ ...editFormData, isNextVisitPotentialRemoval: e.target.checked })}
+                    className="w-4 h-4 rounded text-primary-600"
+                  />
+                  <span className="text-sm text-gray-700">{t('equipment.isPotentialRemoval')}</span>
+                </label>
               </div>
               <div className="flex gap-3 pt-2">
                 <button
@@ -847,6 +883,40 @@ export function WorkOrderDetailsPage() {
           onCancel={() => setShowDeleteConfirm(false)}
           variant="danger"
         />
+      )}
+
+      {showLocationPopup && (
+        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-float">
+            <h2 className="text-xl font-bold mb-4 text-surface-800">{t('equipment.selectLocation')}</h2>
+            <p className="text-surface-600 mb-4">{t('workOrder.selectNewLocationForEquipment')}</p>
+            <select
+              value={selectedLocationId}
+              onChange={(e) => setSelectedLocationId(e.target.value)}
+              className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 mb-4"
+            >
+              <option value="">-- {t('app.select')} --</option>
+              {equipmentLocations.map((loc) => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </select>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowLocationPopup(false); setEquipmentToRemove(null); }}
+                className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
+              >
+                {t('app.cancel')}
+              </button>
+              <button
+                onClick={confirmRemoveEquipment}
+                disabled={!selectedLocationId}
+                className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200"
+              >
+                {t('app.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

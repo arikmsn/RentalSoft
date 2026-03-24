@@ -11,6 +11,7 @@
     "add": "Add",
     "search": "Search",
     "filter": "Filter",
+    "clearFilters": "Clear Filters",
     "actions": "Actions",
     "back": "Back",
     "next": "Next",
@@ -94,10 +95,9 @@
     "noNotes": "No notes",
     "basicInfo": "Basic Info",
     "conditionAndLocation": "Condition & Location",
-    "assignedWorkOrder": "Assigned Work Order"
-  },
-  "equipment": {
+    "assignedWorkOrder": "Assigned Work Order",
     "filters": {
+      "title": "Filters",
       "all": "All",
       "available": "Available",
       "atWorkorder": "At Work",
@@ -176,8 +176,8 @@
     "weekView": "Show entire week",
     "noWorksForDay": "No works for this day",
     "viewList": "List",
-    "viewCalendar": "Calendar",
-    "weeklyCalendar": "Weekly Calendar",
+    "viewCalendar": "Work Calendar",
+    "weeklyCalendar": "Work Calendar",
     "weeklyTotal": "Total"
   },
   "settings": {
@@ -192,7 +192,8 @@
     "locationInUse": "Location is in use",
     "duplicateLocationName": "Location name already exists",
     "selectLocation": "Select Location",
-    "confirmLocation": "Confirm"
+    "confirmLocation": "Confirm",
+    "selectNewLocationForEquipment": "Select new location for removed equipment:"
   },
   "map": {
     "title": "Sites Map",

@@ -20,12 +20,19 @@ interface Technician {
   isActive: boolean;
 }
 
-type TabType = 'workOrderTypes' | 'equipmentTypes' | 'technicians';
+interface EquipmentLocation {
+  id: string;
+  name: string;
+  isSystem: boolean;
+  isDefaultCustomer: boolean;
+}
+
+type TabType = 'workOrderTypes' | 'equipmentTypes' | 'technicians' | 'equipmentLocations';
 
 export function SettingsPage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>('workOrderTypes');
-  const [items, setItems] = useState<SettingsItem[] | Technician[]>([]);
+  const [items, setItems] = useState<(SettingsItem | Technician | EquipmentLocation)[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<SettingsItem | Technician | null>(null);
@@ -61,6 +68,9 @@ export function SettingsPage() {
         case 'technicians':
           url = '/settings/technicians';
           break;
+        case 'equipmentLocations':
+          url = '/settings/equipment-locations';
+          break;
       }
       const response = await api.get(url);
       setItems(response.data);
@@ -88,10 +98,13 @@ export function SettingsPage() {
         case 'technicians':
           url = '/settings/technicians';
           break;
+        case 'equipmentLocations':
+          url = '/settings/equipment-locations';
+          break;
       }
 
       // Append ID for edit (except technicians which already has it in the switch)
-      if (isEdit && activeTab !== 'technicians') {
+      if (isEdit && activeTab !== 'technicians' && activeTab !== 'equipmentLocations') {
         url += `/${editingItem.id}`;
       }
 
@@ -106,7 +119,9 @@ export function SettingsPage() {
         delete (payload as any).password;
       }
 
-      if (isEdit) {
+      if (isEdit && activeTab === 'equipmentLocations') {
+        await api.put(`${url}/${editingItem.id}`, payload);
+      } else if (isEdit) {
         await api.put(`${url}/${editingItem.id}`, payload);
       } else {
         await api.post(url, payload);
@@ -159,6 +174,9 @@ export function SettingsPage() {
         case 'technicians':
           url = `/settings/technicians/${itemToDelete.id}`;
           break;
+        case 'equipmentLocations':
+          url = `/settings/equipment-locations/${itemToDelete.id}`;
+          break;
       }
       await api.delete(url);
       fetchItems();
@@ -177,6 +195,7 @@ export function SettingsPage() {
     { key: 'workOrderTypes', label: t('settings.workOrderTypes') },
     { key: 'equipmentTypes', label: t('settings.equipmentTypes') },
     { key: 'technicians', label: t('settings.technicians') },
+    { key: 'equipmentLocations', label: t('settings.equipmentLocations') },
   ];
 
   return (
@@ -222,33 +241,45 @@ export function SettingsPage() {
           <div className="p-8 text-center text-surface-500">{t('errors.notFound')}</div>
         ) : (
           <div className="divide-y divide-surface-100">
-            {items.map((item) => (
+            {items.map((item) => {
+              const itemAny = item as any;
+              const isSystemLocation = activeTab === 'equipmentLocations' && itemAny.isSystem;
+              const isActive = activeTab === 'equipmentLocations' ? true : itemAny.isActive;
+              return (
               <div key={item.id} className="p-4 flex items-center justify-between hover:bg-surface-50">
                 <div className="flex items-center gap-3">
-                  <span className={`w-2 h-2 rounded-full ${item.isActive ? 'bg-success-500' : 'bg-surface-300'}`}></span>
+                  <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-success-500' : 'bg-surface-300'}`}></span>
                   <div>
                     <p className="font-medium text-surface-800">{item.name}</p>
-                    {(item as Technician).username && (
-                      <p className="text-sm text-surface-500">{(item as Technician).username}</p>
+                    {itemAny.username && (
+                      <p className="text-sm text-surface-500">{itemAny.username}</p>
+                    )}
+                    {isSystemLocation && (
+                      <span className="text-xs bg-surface-100 text-surface-500 px-2 py-0.5 rounded mt-1 inline-block">
+                        {t('settings.systemLocation')}
+                      </span>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleEdit(item)}
-                    className="p-2 text-surface-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+                    onClick={() => !isSystemLocation && handleEdit(itemAny)}
+                    disabled={isSystemLocation}
+                    className={`p-2 rounded-lg transition-colors ${isSystemLocation ? 'text-surface-300 cursor-not-allowed' : 'text-surface-600 hover:text-primary-600 hover:bg-primary-50'}`}
                   >
                     ✏️
                   </button>
                   <button
-                    onClick={() => handleDelete(item)}
-                    className="p-2 text-surface-600 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
+                    onClick={() => !isSystemLocation && handleDelete(itemAny)}
+                    disabled={isSystemLocation}
+                    className={`p-2 rounded-lg transition-colors ${isSystemLocation ? 'text-surface-300 cursor-not-allowed' : 'text-surface-600 hover:text-danger-600 hover:bg-danger-50'}`}
                   >
                     🗑️
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

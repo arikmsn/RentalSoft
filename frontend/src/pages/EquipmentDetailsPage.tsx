@@ -38,7 +38,6 @@ export function EquipmentDetailsPage() {
   const [savingNote, setSavingNote] = useState(false);
   
   const [formData, setFormData] = useState({
-    qrTag: '',
     type: '',
     conditionState: 'OK' as 'OK' | 'NOT_OK',
     purchaseDate: '',
@@ -57,7 +56,6 @@ export function EquipmentDetailsPage() {
       setEquipment(eqData);
       setLocations(locData);
       setFormData({
-        qrTag: eqData.qrTag,
         type: eqData.type,
         conditionState: eqData.conditionState || 'OK',
         purchaseDate: eqData.purchaseDate ? new Date(eqData.purchaseDate).toISOString().split('T')[0] : '',
@@ -83,7 +81,6 @@ export function EquipmentDetailsPage() {
     setSaving(true);
     try {
       await equipmentService.update(equipment.id, {
-        qrTag: formData.qrTag,
         type: formData.type,
         conditionState: formData.conditionState,
         purchaseDate: formData.purchaseDate || null,
@@ -157,99 +154,110 @@ export function EquipmentDetailsPage() {
         <h1 className="text-2xl font-bold text-surface-800">{t('equipment.details')}</h1>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="bg-white rounded-2xl p-6 shadow-card">
-          <h2 className="text-lg font-semibold mb-4 text-surface-800">{t('equipment.basicInfo')}</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.qrTag')}</label>
-              <input
-                type="text"
-                value={formData.qrTag}
-                onChange={(e) => setFormData({ ...formData, qrTag: e.target.value })}
-                className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.type')}</label>
-              <input
-                type="text"
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.status')}</label>
-              <span className={`inline-flex px-3 py-1.5 rounded-full text-sm font-medium ${statusColors[equipment.status]}`}>
-                {equipment.status === 'available' ? t('equipment.statuses.available') : t('equipment.statuses.assigned_to_work')}
-              </span>
-            </div>
+      {/* Basic Info */}
+      <div className="bg-white rounded-2xl p-6 shadow-card">
+        <h2 className="text-lg font-semibold mb-4 text-surface-800">{t('equipment.basicInfo')}</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <label className="block text-sm font-medium text-surface-500 mb-1">{t('equipment.qrTag')}</label>
+            <p className="text-surface-800 font-medium">{equipment.qrTag}</p>
           </div>
-        </div>
-
-        <div className="bg-white rounded-2xl p-6 shadow-card">
-          <h2 className="text-lg font-semibold mb-4 text-surface-800">{t('equipment.conditionAndLocation')}</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.condition')}</label>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, conditionState: 'OK' })}
-                  className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
-                    formData.conditionState === 'OK'
-                      ? 'border-success-500 bg-success-50 text-success-700'
-                      : 'border-surface-200 text-surface-600 hover:border-surface-300'
-                  }`}
-                >
-                  ✅ {t('equipment.conditionState.ok')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, conditionState: 'NOT_OK' })}
-                  className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
-                    formData.conditionState === 'NOT_OK'
-                      ? 'border-danger-500 bg-danger-50 text-danger-700'
-                      : 'border-surface-200 text-surface-600 hover:border-surface-300'
-                  }`}
-                >
-                  ⚠️ {t('equipment.conditionState.notOk')}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.location')}</label>
-              <select
-                value={formData.currentLocationId}
-                onChange={(e) => setFormData({ ...formData, currentLocationId: e.target.value })}
-                className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-              >
-                <option value="">-- {t('app.select')} --</option>
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>{loc.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.purchaseDate')}</label>
-              <input
-                type="date"
-                value={formData.purchaseDate}
-                onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
-                className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-surface-500 mb-1">{t('equipment.type')}</label>
+            <input
+              type="text"
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-surface-500 mb-1">{t('equipment.status')}</label>
+            <span className={`inline-flex px-3 py-1.5 rounded-full text-sm font-medium ${statusColors[equipment.status]}`}>
+              {equipment.status === 'available' ? t('equipment.statuses.available') : t('equipment.statuses.assigned_to_work')}
+            </span>
           </div>
         </div>
       </div>
 
+      {/* Assigned Work - Moved above Condition and Location */}
+      {equipment.activeWorkOrder && (
+        <div className="bg-white rounded-2xl p-6 shadow-card">
+          <h2 className="text-lg font-semibold mb-4 text-surface-800">{t('equipment.assignedWorkOrder')}</h2>
+          <div className="p-4 bg-primary-50 rounded-xl">
+            <button
+              onClick={() => navigate(`/workorders/${equipment.activeWorkOrder?.id}`)}
+              className="text-primary-700 font-medium hover:underline text-right block w-full"
+            >
+              {equipment.activeWorkOrder.site?.name}
+            </button>
+            {equipment.activeWorkOrder.site?.address && (
+              <p className="text-surface-600 text-sm mt-1">{equipment.activeWorkOrder.site.address}</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Condition and Location */}
+      <div className="bg-white rounded-2xl p-6 shadow-card">
+        <h2 className="text-lg font-semibold mb-4 text-surface-800">{t('equipment.conditionAndLocation')}</h2>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.condition')}</label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, conditionState: 'OK' })}
+                className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
+                  formData.conditionState === 'OK'
+                    ? 'border-success-500 bg-success-50 text-success-700'
+                    : 'border-surface-200 text-surface-600 hover:border-surface-300'
+                }`}
+              >
+                ✅ {t('equipment.conditionState.ok')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, conditionState: 'NOT_OK' })}
+                className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
+                  formData.conditionState === 'NOT_OK'
+                    ? 'border-danger-500 bg-danger-50 text-danger-700'
+                    : 'border-surface-200 text-surface-600 hover:border-surface-300'
+                }`}
+              >
+                ⚠️ {t('equipment.conditionState.notOk')}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.location')}</label>
+            <select
+              value={formData.currentLocationId}
+              onChange={(e) => setFormData({ ...formData, currentLocationId: e.target.value })}
+              className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+            >
+              <option value="">-- {t('app.select')} --</option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.purchaseDate')}</label>
+            <input
+              type="date"
+              value={formData.purchaseDate}
+              onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
+              className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Notes */}
       <div className="bg-white rounded-2xl p-6 shadow-card">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-surface-800">{t('equipment.notes')}</h2>
@@ -298,23 +306,6 @@ export function EquipmentDetailsPage() {
           </button>
         </div>
       </div>
-
-      {equipment.activeWorkOrder && (
-        <div className="bg-white rounded-2xl p-6 shadow-card">
-          <h2 className="text-lg font-semibold mb-4 text-surface-800">{t('equipment.assignedWorkOrder')}</h2>
-          <div className="flex items-center gap-3 p-4 bg-primary-50 rounded-xl">
-            <span className="text-primary-700 font-medium">{equipment.activeWorkOrder.site?.name}</span>
-            <span className="text-surface-500">•</span>
-            <span className="text-surface-600">{equipment.activeWorkOrder.type}</span>
-            <button
-              onClick={() => navigate(`/workorders/${equipment.activeWorkOrder?.id}`)}
-              className="mr-auto text-primary-600 hover:text-primary-700 font-medium"
-            >
-              {t('app.view')} →
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="flex justify-end gap-3">
         <button

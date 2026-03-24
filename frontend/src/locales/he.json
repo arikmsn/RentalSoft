@@ -11,6 +11,7 @@
     "add": "הוסף",
     "search": "חיפוש",
     "filter": "סינון",
+    "clearFilters": "נקה פילטרים",
     "actions": "פעולות",
     "back": "חזור",
     "next": "הבא",
@@ -82,6 +83,7 @@
       "wearout": "בלאי"
     },
     "filters": {
+      "title": "פילטרים",
       "all": "הכל",
       "available": "פנוי",
       "atWorkorder": "בעבודה",
@@ -176,8 +178,8 @@
     "weekView": "צפה בכל השבוע",
     "noWorksForDay": "אין עבודות ליום זה",
     "viewList": "רשימה",
-    "viewCalendar": "לוח שבועי",
-    "weeklyCalendar": "לוח שבועי",
+    "viewCalendar": "יומן עבודה",
+    "weeklyCalendar": "יומן עבודה",
     "weeklyTotal": "סה\"כ"
   },
   "settings": {
@@ -192,7 +194,8 @@
     "locationInUse": "המיקום בשימוש",
     "duplicateLocationName": "שם מיקום כבר קיים",
     "selectLocation": "בחר מיקום",
-    "confirmLocation": "אשר"
+    "confirmLocation": "אשר",
+    "selectNewLocationForEquipment": "בחר מיקום חדש עבור הציוד שהוסר:"
   },
   "map": {
     "title": "מפת אתרים",

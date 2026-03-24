@@ -347,26 +347,24 @@ export function WorkOrdersListPage() {
 }
 
 function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) {
-  const getStartOfWeek = (date: Date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
+  const today = new Date();
+  const [dateRange, setDateRange] = useState({ start: today, days: 6 });
+
+  const getDaysInRange = () => {
+    const days: { date: Date; label: string }[] = [];
+    for (let i = 0; i <= dateRange.days; i++) {
+      const d = new Date(dateRange.start);
+      d.setDate(dateRange.start.getDate() + i);
+      const isToday = d.toDateString() === today.toDateString();
+      days.push({
+        date: d,
+        label: isToday ? `${t('app.today')}` : d.toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric' }),
+      });
+    }
+    return days;
   };
 
-  const today = new Date();
-  const weekStart = getStartOfWeek(today);
-  const days: { date: Date; label: string }[] = [];
-  
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
-    const isToday = d.toDateString() === today.toDateString();
-    days.push({
-      date: d,
-      label: isToday ? `${t('app.today')} - ${d.toLocaleDateString('he-IL', { weekday: 'short' })}` : d.toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric' }),
-    });
-  }
+  const days = getDaysInRange();
 
   const getWorkOrdersForDay = (date: Date) => {
     return workOrders.filter(wo => {
@@ -376,38 +374,81 @@ function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) 
     });
   };
 
+  const handleRangeChange = (days: number) => {
+    setDateRange({ start: today, days });
+  };
+
   return (
     <div className="bg-white rounded-2xl p-4 shadow-card">
-      <h2 className="text-lg font-semibold mb-4 text-surface-800">{t('workOrders.weeklyCalendar')}</h2>
-      <div className="grid grid-cols-7 gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <h2 className="text-lg font-semibold text-surface-800">{t('workOrders.weeklyCalendar')}</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleRangeChange(6)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              dateRange.days === 6 ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
+            }`}
+          >
+            שבוע
+          </button>
+          <button
+            onClick={() => handleRangeChange(13)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              dateRange.days === 13 ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
+            }`}
+          >
+            שבועיים
+          </button>
+          <button
+            onClick={() => handleRangeChange(29)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              dateRange.days === 29 ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
+            }`}
+          >
+            חודש
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-4">
         {days.map((day, idx) => {
           const dayWorkOrders = getWorkOrdersForDay(day.date);
           return (
-            <div key={idx} className="min-h-[200px] bg-surface-50 rounded-xl p-3">
-              <div className="text-sm font-medium text-surface-700 mb-2 text-center">{day.label}</div>
+            <div key={idx} className="border-b border-surface-100 pb-4 last:border-0">
+              <div className="text-sm font-medium text-surface-700 mb-2 flex items-center gap-2">
+                <span className={day.date.toDateString() === today.toDateString() ? 'text-primary-600' : ''}>
+                  {day.label}
+                </span>
+                {dayWorkOrders.length > 0 && (
+                  <span className="text-xs bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">
+                    {dayWorkOrders.length}
+                  </span>
+                )}
+              </div>
               <div className="space-y-2">
                 {dayWorkOrders.map(wo => (
                   <Link
                     key={wo.id}
                     to={`/workorders/${wo.id}`}
-                    className={`block p-2 rounded-lg text-xs ${
-                      wo.status === 'completed' ? 'bg-success-100 text-success-700' :
-                      wo.status === 'in_progress' ? 'bg-warning-100 text-warning-700' :
-                      'bg-primary-100 text-primary-700'
+                    className={`block p-3 rounded-xl text-sm ${
+                      wo.status === 'completed' ? 'bg-success-50 border border-success-100' :
+                      wo.status === 'in_progress' ? 'bg-warning-50 border border-warning-100' :
+                      'bg-primary-50 border border-primary-100'
                     }`}
                   >
-                    <div className="font-medium truncate">{wo.workTypeName || wo.type}</div>
-                    <div className="truncate opacity-75">{wo.site?.name}</div>
+                    <div className="font-medium text-surface-800">{wo.workTypeName || wo.type}</div>
+                    <div className="text-surface-600 text-xs mt-1">{wo.site?.name}</div>
                   </Link>
                 ))}
                 {dayWorkOrders.length === 0 && (
-                  <div className="text-xs text-surface-400 text-center py-4">-</div>
+                  <div className="text-xs text-surface-400 py-2">-</div>
                 )}
               </div>
             </div>
           );
         })}
       </div>
+
       <div className="mt-4 pt-4 border-t border-surface-200 text-sm text-surface-500">
         {t('workOrders.weeklyTotal')}: {workOrders.length} {t('workOrders.title').toLowerCase()}
       </div>

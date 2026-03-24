@@ -401,6 +401,20 @@ async function main() {
       });
     }
     console.log('✅ Checklist items created');
+
+    // Equipment Locations - System defaults
+    const equipmentLocations = [
+      { name: 'לקוח', isSystem: true, isDefaultCustomer: true },
+      { name: 'מחסן', isSystem: true, isDefaultCustomer: false },
+    ];
+    for (const loc of equipmentLocations) {
+      await prisma.equipmentLocation.upsert({
+        where: { name: loc.name },
+        update: {},
+        create: loc,
+      });
+    }
+    console.log('✅ Equipment locations created');
   }
 
   console.log('🎉 Seeding completed!');

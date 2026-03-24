@@ -44,6 +44,7 @@ export function EquipmentListPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [showScanner, setShowScanner] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   const closeScanner = useCallback(() => {
     console.log('[QR] Closing scanner');
@@ -204,45 +205,87 @@ export function EquipmentListPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 placeholder:text-surface-400"
         />
-        <select
-          value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          className="px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 min-h-[48px]"
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={`px-4 py-3 border rounded-xl transition-all flex items-center gap-2 min-h-[48px] ${
+            showFilters ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-surface-200 bg-white text-surface-700 hover:bg-surface-50'
+          }`}
         >
-          <option value="all">{t('equipment.status')}: {t('equipment.filters.all')}</option>
-          <option value="available">{t('equipment.filters.available')}</option>
-          <option value="assigned_to_work">{t('equipment.filters.atWorkorder')}</option>
-        </select>
-        <select
-          value={filters.condition}
-          onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
-          className="px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 min-h-[48px]"
-        >
-          <option value="all">{t('equipment.condition')}: {t('equipment.filters.all')}</option>
-          <option value="OK">{t('equipment.conditionState.ok')}</option>
-          <option value="NOT_OK">{t('equipment.conditionState.notOk')}</option>
-        </select>
-        <select
-          value={filters.type}
-          onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-          className="px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 min-h-[48px]"
-        >
-          <option value="all">{t('equipment.type')}: {t('equipment.filters.all')}</option>
-          {equipmentTypes.map((type) => (
-            <option key={type.id} value={type.name}>{type.name}</option>
-          ))}
-        </select>
-        <select
-          value={filters.location}
-          onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-          className="px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 min-h-[48px]"
-        >
-          <option value="all">{t('equipment.location')}: {t('equipment.filters.all')}</option>
-          {locations.map((loc) => (
-            <option key={loc.id} value={loc.id}>{loc.name}</option>
-          ))}
-        </select>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+          </svg>
+          {t('equipment.filters.title')}
+          {(filters.status !== 'all' || filters.condition !== 'all' || filters.type !== 'all' || filters.location !== 'all') && (
+            <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
+          )}
+        </button>
       </div>
+
+      {/* Unified Filter Panel */}
+      {showFilters && (
+        <div className="bg-white rounded-2xl p-4 shadow-card border border-surface-100">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.status')}</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+              >
+                <option value="all">{t('equipment.filters.all')}</option>
+                <option value="available">{t('equipment.filters.available')}</option>
+                <option value="assigned_to_work">{t('equipment.filters.atWorkorder')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.condition')}</label>
+              <select
+                value={filters.condition}
+                onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
+                className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+              >
+                <option value="all">{t('equipment.filters.all')}</option>
+                <option value="OK">{t('equipment.conditionState.ok')}</option>
+                <option value="NOT_OK">{t('equipment.conditionState.notOk')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.type')}</label>
+              <select
+                value={filters.type}
+                onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+              >
+                <option value="all">{t('equipment.filters.all')}</option>
+                {equipmentTypes.map((type) => (
+                  <option key={type.id} value={type.name}>{type.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.location')}</label>
+              <select
+                value={filters.location}
+                onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+                className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+              >
+                <option value="all">{t('equipment.filters.all')}</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>{loc.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => setFilters({ status: 'all', location: 'all', condition: 'all', type: 'all' })}
+              className="px-4 py-2 text-surface-600 hover:text-surface-800 text-sm font-medium"
+            >
+              {t('app.clearFilters')}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredEquipment.map((eq) => (
