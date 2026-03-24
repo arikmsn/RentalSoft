@@ -432,10 +432,13 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
     setDateRange({ start: today, days });
   };
 
-  const handleDateChange = async (woId: string, newDate: string) => {
+  const handleDateBlur = async (woId: string, newDate: string) => {
+    if (!newDate) {
+      setEditingDateId(null);
+      return;
+    }
     setSavingDate(woId);
     try {
-      // Update plannedRemovalDate (next visit date)
       await workOrderService.update(woId, {
         plannedRemovalDate: new Date(newDate),
       });
@@ -528,10 +531,8 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
                         <label className="text-xs text-surface-500">{t('equipment.nextVisit')}:</label>
                         <input
                           type="date"
-                          value={wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : ''}
-                          onChange={(e) => handleDateChange(wo.id, e.target.value)}
-                          onFocus={() => setEditingDateId(wo.id)}
-                          onBlur={() => setEditingDateId(null)}
+                          defaultValue={wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : ''}
+                          onBlur={(e) => handleDateBlur(wo.id, e.target.value)}
                           disabled={savingDate === wo.id}
                           className="text-xs px-2 py-1 border border-surface-200 rounded focus:ring-1 focus:ring-primary-500 bg-white"
                         />
