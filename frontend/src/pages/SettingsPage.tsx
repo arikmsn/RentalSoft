@@ -299,16 +299,6 @@ export function SettingsPage() {
                       className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                     />
                   </div>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="isActive"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-                    />
-                    <label htmlFor="isActive" className="text-sm text-surface-700">{t('settings.active')}</label>
-                  </div>
                 </>
               ) : (
                 <>
@@ -322,29 +312,6 @@ export function SettingsPage() {
                       className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
                     />
                   </div>
-                  {activeTab === 'equipmentTypes' && (
-                    <div>
-                      <label className="block text-sm font-medium text-surface-700 mb-2">{t('settings.code')}</label>
-                      <input
-                        type="text"
-                        value={formData.code}
-                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                        className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-                      />
-                    </div>
-                  )}
-                  {activeTab !== 'equipmentLocations' && (
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        id="isActiveNonTech"
-                        checked={formData.isActive}
-                        onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                        className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-                      />
-                      <label htmlFor="isActiveNonTech" className="text-sm text-surface-700">{t('settings.active')}</label>
-                    </div>
-                  )}
                 </>
               )}
               <div className="flex gap-3 pt-3">

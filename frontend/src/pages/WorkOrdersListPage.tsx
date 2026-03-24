@@ -30,8 +30,9 @@ export function WorkOrdersListPage() {
   const [workTypes, setWorkTypes] = useState<{id: string; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'active' | 'completed' | 'all'>('active');
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>(searchParams.get('view') === 'calendar' ? 'calendar' : 'list');
+  const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
@@ -101,12 +102,28 @@ export function WorkOrdersListPage() {
     }
   };
 
-  const filteredWorkOrders = workOrders.filter((wo) => {
-    if (filter === 'all') return true;
-    if (filter === 'completed') return wo.status === 'completed';
-    if (filter === 'active') return wo.status === 'open' || wo.status === 'in_progress';
-    return true;
-  });
+  const filteredWorkOrders = workOrders
+    .filter((wo) => {
+      if (filter === 'all') return true;
+      if (filter === 'completed') return wo.status === 'completed';
+      if (filter === 'active') return wo.status === 'open' || wo.status === 'in_progress';
+      return true;
+    })
+    .filter((wo) => {
+      if (!search) return true;
+      const searchLower = search.toLowerCase();
+      return (
+        (wo.site?.name || '').toLowerCase().includes(searchLower) ||
+        (wo.site?.address || '').toLowerCase().includes(searchLower) ||
+        (wo.workTypeName || '').toLowerCase().includes(searchLower) ||
+        (wo.type || '').toLowerCase().includes(searchLower)
+      );
+    })
+    .sort((a, b) => {
+      const dateA = a.plannedDate ? new Date(a.plannedDate).getTime() : Infinity;
+      const dateB = b.plannedDate ? new Date(b.plannedDate).getTime() : Infinity;
+      return dateA - dateB;
+    });
 
   if (loading) {
     return (
@@ -132,31 +149,40 @@ export function WorkOrdersListPage() {
         )}
       </div>
 
-      <div className="flex gap-2 flex-wrap">
-        {([
-          { key: 'active' as const, label: t('workOrders.filters.active'), activeClass: 'bg-primary-600 text-white shadow-sm' },
-          { key: 'completed' as const, label: t('workOrders.statuses.completed'), activeClass: 'bg-success-600 text-white shadow-sm' },
-          { key: 'all' as const, label: t('equipment.filters.all'), activeClass: 'bg-surface-600 text-white shadow-sm' },
-        ]).map((btn) => (
-          <button
-            key={btn.key}
-            onClick={() => setFilter(btn.key)}
-            className={`px-4 py-2 rounded-xl transition-all font-medium text-sm ${
-              filter === btn.key
-                ? btn.activeClass
-                : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50'
-            }`}
-          >
-            {btn.label}
-          </button>
-        ))}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          type="text"
+          placeholder={t('app.search')}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 min-w-0 px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800 placeholder:text-surface-400"
+        />
+        <div className="flex gap-2 flex-wrap">
+          {([
+            { key: 'active' as const, label: t('workOrders.filters.active'), activeClass: 'bg-success-600 text-white shadow-sm' },
+            { key: 'completed' as const, label: t('workOrders.statuses.completed'), activeClass: 'bg-surface-600 text-white shadow-sm' },
+            { key: 'all' as const, label: t('equipment.filters.all'), activeClass: 'bg-primary-600 text-white shadow-sm' },
+          ]).map((btn) => (
+            <button
+              key={btn.key}
+              onClick={() => setFilter(btn.key)}
+              className={`px-4 py-2 rounded-xl transition-all font-medium text-sm ${
+                filter === btn.key
+                  ? btn.activeClass
+                  : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50'
+              }`}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* View mode toggle - mobile: top-left, desktop: right side */}
       <div className="block lg:hidden mb-3">
         <div className="flex gap-2 bg-white border border-surface-200 rounded-xl p-1 w-fit">
           <button
-            onClick={() => setViewMode('list')}
+            onClick={() => { setViewMode('list'); setSearchParams({ view: 'list' }); }}
             className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
               viewMode === 'list' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
             }`}
@@ -164,7 +190,7 @@ export function WorkOrdersListPage() {
             📋 {t('workOrders.viewList')}
           </button>
           <button
-            onClick={() => setViewMode('calendar')}
+            onClick={() => { setViewMode('calendar'); setSearchParams({ view: 'calendar' }); }}
             className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
               viewMode === 'calendar' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
             }`}
@@ -176,7 +202,7 @@ export function WorkOrdersListPage() {
 
       <div className="hidden lg:flex gap-2 bg-white border border-surface-200 rounded-xl p-1 ml-auto w-fit">
         <button
-          onClick={() => setViewMode('list')}
+          onClick={() => { setViewMode('list'); setSearchParams({ view: 'list' }); }}
           className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
             viewMode === 'list' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
           }`}
@@ -184,7 +210,7 @@ export function WorkOrdersListPage() {
           📋 {t('workOrders.viewList')}
         </button>
         <button
-          onClick={() => setViewMode('calendar')}
+          onClick={() => { setViewMode('calendar'); setSearchParams({ view: 'calendar' }); }}
           className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
             viewMode === 'calendar' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
           }`}
@@ -468,8 +494,9 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
                     }`}
                   >
                     <Link to={`/workorders/${wo.id}`} className="block">
-                      <div className="font-medium text-surface-800">{wo.workTypeName || wo.type}</div>
-                      <div className="text-surface-600 text-xs mt-1">{wo.site?.address}</div>
+                      <div className="font-medium text-surface-800">{wo.site?.name}</div>
+                      <div className="text-surface-600 text-xs">{wo.workTypeName || wo.type}</div>
+                      <div className="text-surface-500 text-xs mt-0.5">{wo.site?.address}</div>
                     </Link>
                     <div className="mt-2 pt-2 border-t border-surface-200 flex items-center gap-2">
                       <label className="text-xs text-surface-500">{t('equipment.nextVisit')}:</label>
@@ -478,7 +505,7 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
                         value={wo.plannedDate ? new Date(wo.plannedDate).toISOString().split('T')[0] : ''}
                         onChange={(e) => handleDateChange(wo.id, e.target.value)}
                         disabled={savingDate === wo.id}
-                        className="text-xs px-2 py-1 border border-surface-200 rounded focus:ring-1 focus:ring-primary-500"
+                        className="text-xs px-2 py-1 border border-surface-200 rounded focus:ring-1 focus:ring-primary-500 bg-white"
                       />
                     </div>
                   </div>
