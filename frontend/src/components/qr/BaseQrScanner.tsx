@@ -90,7 +90,7 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
       isMountedRef.current = false;
       
       // Safely stop the scanner without throwing
-      const stopScanner = () => {
+      const stopScanner = async () => {
         if (scannerRef.current) {
           const scanner = scannerRef.current;
           scannerRef.current = null;
@@ -99,17 +99,32 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
           if (isRunningRef.current) {
             isRunningRef.current = false;
             try {
-              // Clear any video element references first to prevent removeChild errors
+              await scanner.stop();
+              // Additional cleanup - stop all media tracks
               const videoElement = document.getElementById(`${regionId}`);
-              if (videoElement && videoElement.parentNode) {
-                // Let Html5Qrcode handle cleanup - don't manually remove elements
+              if (videoElement) {
+                const stream = (videoElement as any).srcObject;
+                if (stream) {
+                  stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+                  (videoElement as any).srcObject = null;
+                }
               }
-              scanner.stop().catch(() => {});
             } catch (err) {
               // Ignore all errors during cleanup
               console.warn('[QR] Cleanup error (ignored):', err);
             }
           }
+        }
+        
+        // Force stop any remaining camera tracks globally
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: false,
+            video: { facingMode: 'environment' }
+          });
+          stream.getTracks().forEach(track => track.stop());
+        } catch (e) {
+          console.warn('[QR] Could not stop camera:', e);
         }
       };
       

@@ -251,9 +251,6 @@ export function WorkOrdersListPage() {
                           <span className="w-2.5 h-2.5 rounded-full shrink-0 border-2 border-surface-400" />
                         ))}
                         {wo.site ? wo.site.name : ''}
-                        {(wo as any).isNextVisitPotentialRemoval && (
-                          <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-md font-bold">פ</span>
-                        )}
                       </h3>
                       <p className="text-sm text-surface-500 mt-1">
                         {wo.workTypeName || wo.type || t('workOrders.workType')}
@@ -262,7 +259,11 @@ export function WorkOrdersListPage() {
                       <p className="text-xs text-surface-400 mt-0.5">
                         {t('workOrders.plannedDate')}: <span className="font-medium">{formatDate(wo.plannedDate)}</span>
                         {wo.plannedRemovalDate && (
-                          <> | {t('equipment.nextVisit')}: <span className="font-medium">{formatDate(wo.plannedRemovalDate)}</span></>
+                          <> | {t('equipment.nextVisit')}: <span className="font-medium">{formatDate(wo.plannedRemovalDate)}</span>
+                            {(wo as any).isNextVisitPotentialRemoval && (
+                              <span className="mr-1 px-1 py-0.5 bg-orange-100 text-orange-700 text-xs rounded font-bold">פ</span>
+                            )}
+                          </>
                         )}
                       </p>
                     </div>
@@ -404,10 +405,16 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
   const [savingDate, setSavingDate] = useState<string | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [localWorkOrders, setLocalWorkOrders] = useState<WorkOrder[]>(workOrders);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setLocalWorkOrders(workOrders);
   }, [workOrders]);
+
+  // Force re-render when needed
+  const forceRefresh = () => {
+    setRefreshKey(k => k + 1);
+  };
 
   const getDaysInRange = () => {
     const days: { date: Date; label: string }[] = [];
@@ -457,6 +464,7 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
         wo.id === woId ? { ...wo, plannedRemovalDate: new Date(newDate) } : wo
       ));
       setEditingDateId(null);
+      forceRefresh();
       if (onRefresh) {
         setTimeout(() => onRefresh(), 100);
       }
@@ -469,7 +477,7 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-card">
+    <div key={refreshKey} className="bg-white rounded-2xl p-4 shadow-card">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <h2 className="text-lg font-semibold text-surface-800">{t('workOrders.weeklyCalendar')}</h2>
         <div className="flex gap-2">
@@ -528,9 +536,6 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
                     <Link to={`/workorders/${wo.id}`} className="block">
                       <div className="flex items-center gap-2">
                         <div className="font-medium text-surface-800">{wo.site?.name}</div>
-                        {(wo as any).isNextVisitPotentialRemoval && (
-                          <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-md font-bold">פ</span>
-                        )}
                       </div>
                       <div className="text-surface-600 text-xs">{wo.workTypeName || wo.type}</div>
                       <div className="text-surface-500 text-xs mt-0.5">{wo.site?.address}</div>
