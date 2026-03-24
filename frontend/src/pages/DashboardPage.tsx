@@ -98,6 +98,8 @@ export function DashboardPage() {
   }
 
   const statCards = [
+    { value: stats?.availableEquipment || 0, label: t('dashboard.availableEquipment'), color: 'text-primary-600', bg: 'bg-primary-50', icon: '📦', onClick: () => navigate('/equipment?filter=available') },
+    { value: stats?.sitesWithEquipment || 0, label: t('dashboard.sitesWithEquipment'), color: 'text-success-600', bg: 'bg-success-50', icon: '📍', onClick: () => navigate('/equipment?filter=at_customer') },
     { value: stats?.overdueRemovals || 0, label: t('dashboard.overdueRemovals'), color: 'text-surface-800', bg: 'bg-surface-100', icon: '⚫', onClick: () => navigate('/alerts?type=past_removal') },
     { value: stats?.upcomingRemovals || 0, label: t('dashboard.upcomingRemovals'), color: 'text-danger-600', bg: 'bg-danger-50', icon: '🔴', onClick: () => navigate('/workorders?view=calendar') },
   ];
@@ -113,7 +115,7 @@ export function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-md">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map((card, i) => (
           <div
             key={i}
@@ -186,24 +188,6 @@ export function DashboardPage() {
             })}
           </div>
         )}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <Link
-          to="/sites"
-          className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover border border-surface-100 transition-all duration-300 flex flex-col items-center gap-2.5 min-h-[88px] justify-center active:scale-[0.98]"
-        >
-          <span className="text-2xl">📍</span>
-          <span className="text-sm font-medium text-surface-700">{t('navigation.sites')}</span>
-        </Link>
-        <Link
-          to="/equipment"
-          className="bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover border border-surface-100 transition-all duration-300 flex flex-col items-center gap-2.5 min-h-[88px] justify-center active:scale-[0.98]"
-        >
-          <span className="text-2xl">📦</span>
-          <span className="text-sm font-medium text-surface-700">{t('navigation.equipment')}</span>
-        </Link>
       </div>
     </div>
   );
