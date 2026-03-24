@@ -405,16 +405,11 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
   const [savingDate, setSavingDate] = useState<string | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [localWorkOrders, setLocalWorkOrders] = useState<WorkOrder[]>(workOrders);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
 
   useEffect(() => {
     setLocalWorkOrders(workOrders);
   }, [workOrders]);
-
-  // Force re-render when needed
-  const forceRefresh = () => {
-    setRefreshKey(k => k + 1);
-  };
 
   const getDaysInRange = () => {
     const days: { date: Date; label: string }[] = [];
@@ -459,15 +454,9 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
       await workOrderService.update(woId, {
         plannedRemovalDate: new Date(newDate),
       });
-      // Update local state immediately so the row moves to the correct date
-      setLocalWorkOrders(prev => prev.map(wo => 
-        wo.id === woId ? { ...wo, plannedRemovalDate: new Date(newDate) } : wo
-      ));
+      // Mark that calendar needs refresh
+      setHasPendingChanges(true);
       setEditingDateId(null);
-      forceRefresh();
-      if (onRefresh) {
-        setTimeout(() => onRefresh(), 100);
-      }
     } catch (err) {
       console.error('Failed to update date:', err);
     } finally {
@@ -476,10 +465,27 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
     }
   };
 
+  const handleRefreshCalendar = () => {
+    setHasPendingChanges(false);
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
   return (
-    <div key={refreshKey} className="bg-white rounded-2xl p-4 shadow-card">
+    <div className="bg-white rounded-2xl p-4 shadow-card">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <h2 className="text-lg font-semibold text-surface-800">{t('workOrders.weeklyCalendar')}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-surface-800">{t('workOrders.weeklyCalendar')}</h2>
+          {hasPendingChanges && (
+            <button
+              onClick={handleRefreshCalendar}
+              className="px-2 py-1 bg-warning-100 text-warning-700 text-xs rounded-lg font-medium hover:bg-warning-200 transition-colors"
+            >
+              רענן
+            </button>
+          )}
+        </div>
         <div className="flex gap-2">
           <button
             onClick={() => handleRangeChange(6)}
