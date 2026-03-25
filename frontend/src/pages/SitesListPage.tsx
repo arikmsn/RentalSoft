@@ -51,7 +51,7 @@ export function SitesListPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
+  const [, setLocationError] = useState<string | null>(null);
 
   // Calculate distance between two coordinates (km)
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -463,20 +463,9 @@ export function SitesListPage() {
                   <span>1 ק"מ</span>
                   <span>30 ק"מ</span>
                 </div>
-              </div>
-            )}
-            {filters.nearMe && locationError && (
-              <p className="text-xs text-danger-600 mt-1">{locationError}</p>
-            )}
-            {filters.nearMe && !userLocation && !locationLoading && locationError && (
-              <button
-                onClick={requestUserLocation}
-                className="text-xs text-primary-600 underline mt-1"
-              >
-                לחץ כאן לאפשר מיקום
-              </button>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
 
           {/* Clear Filters */}
           {activeFilterCount > 0 && (

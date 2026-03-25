@@ -93,7 +93,7 @@ export function WorkOrdersListPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
+  const [, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -573,17 +573,6 @@ export function WorkOrdersListPage() {
                   <span>30 ק"מ</span>
                 </div>
               </div>
-            )}
-            {filters.nearMe && locationError && (
-              <p className="text-xs text-danger-600 mt-1">{locationError}</p>
-            )}
-            {filters.nearMe && !userLocation && !locationLoading && locationError && (
-              <button
-                onClick={requestUserLocation}
-                className="text-xs text-primary-600 underline mt-1"
-              >
-                לחץ כאן לאפשר מיקום
-              </button>
             )}
           </div>
 
