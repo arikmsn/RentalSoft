@@ -175,6 +175,13 @@ export function MapPage() {
     );
   };
 
+  // Apply near me when location is ready
+  useEffect(() => {
+    if (userLocation && filters.nearMe) {
+      setFilters(prev => ({ ...prev, userLat: userLocation.lat, userLng: userLocation.lng }));
+    }
+  }, [userLocation, filters.nearMe]);
+
   // Get unique cities from sites
   const cities = useMemo(() => {
     const citySet = new Set<string>();
@@ -582,14 +589,12 @@ export function MapPage() {
             <button
               onClick={() => {
                 if (filters.nearMe) {
-                  setFilters(prev => ({ ...prev, nearMe: false }));
+                  setFilters(prev => ({ ...prev, nearMe: false, userLat: undefined, userLng: undefined }));
                   setLocationError(null);
                 } else {
+                  setFilters(prev => ({ ...prev, nearMe: true }));
                   if (!userLocation) {
                     requestUserLocation(false);
-                  }
-                  if (userLocation) {
-                    setFilters(prev => ({ ...prev, nearMe: true, userLat: userLocation.lat, userLng: userLocation.lng }));
                   }
                 }
               }}

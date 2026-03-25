@@ -17,7 +17,7 @@ interface WorkOrderFilters {
   colors: ('black' | 'red' | 'orange' | 'green')[];
   nearMe: boolean;
   radiusKm: number;
-  timeRange: 'week' | '2weeks' | 'month' | 'all';
+  timeRange: 'week' | '2weeks' | 'month' | 'lastMonth' | 'all';
   userLat?: number;
   userLng?: number;
 }
@@ -28,7 +28,7 @@ const defaultFilters: WorkOrderFilters = {
   colors: [],
   nearMe: false,
   radiusKm: 10,
-  timeRange: 'all',
+  timeRange: 'week',
 };
 
 const emptyFilters: WorkOrderFilters = {
@@ -37,7 +37,7 @@ const emptyFilters: WorkOrderFilters = {
   colors: [],
   nearMe: false,
   radiusKm: 10,
-  timeRange: 'all',
+  timeRange: 'week',
 };
 
 const statusColors: Record<WorkOrderStatus, string> = {
@@ -181,14 +181,12 @@ export function WorkOrdersListPage() {
   // Toggle near me filter
   const toggleNearMe = () => {
     if (filters.nearMe) {
-      setFilters(prev => ({ ...prev, nearMe: false }));
+      setFilters(prev => ({ ...prev, nearMe: false, userLat: undefined, userLng: undefined }));
       setLocationError(null);
     } else {
+      setFilters(prev => ({ ...prev, nearMe: true }));
       if (!userLocation) {
         requestUserLocation();
-      }
-      if (userLocation) {
-        setFilters(prev => ({ ...prev, nearMe: true, userLat: userLocation!.lat, userLng: userLocation!.lng }));
       }
     }
   };
@@ -336,6 +334,13 @@ export function WorkOrdersListPage() {
         return diffDays >= 0 && diffDays <= 14;
       } else if (filters.timeRange === 'month') {
         return diffDays >= 0 && diffDays <= 30;
+      } else if (filters.timeRange === 'lastMonth') {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        const firstDayOfLastMonth = new Date(currentMonth === 0 ? currentYear - 1 : currentYear, currentMonth === 0 ? 11 : currentMonth - 1, 1);
+        const lastDayOfLastMonth = new Date(currentMonth === 0 ? currentYear - 1 : currentYear, currentMonth === 0 ? 12 : currentMonth, 0);
+        return targetDate >= firstDayOfLastMonth && targetDate <= lastDayOfLastMonth;
       }
       return true;
     })
@@ -509,10 +514,11 @@ export function WorkOrdersListPage() {
             <h3 className="text-sm font-medium text-surface-700 mb-2">טווח זמן</h3>
             <div className="flex flex-wrap gap-2">
               {[
-                { key: 'all' as const, label: 'הכל' },
                 { key: 'week' as const, label: 'שבוע' },
                 { key: '2weeks' as const, label: 'שבועיים' },
                 { key: 'month' as const, label: 'חודש' },
+                { key: 'lastMonth' as const, label: 'חודש קודם' },
+                { key: 'all' as const, label: 'הכל' },
               ].map((range) => (
                 <button
                   key={range.key}
@@ -832,8 +838,23 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
     }))
   );
   const today = new Date();
-  const daysMap: Record<string, number> = { 'week': 6, '2weeks': 13, 'month': 29, 'all': 29 };
-  const [dateRange, setDateRange] = useState({ start: today, days: daysMap[timeRange] || 6 });
+  const daysMap: Record<string, number> = { 'week': 6, '2weeks': 13, 'month': 29, 'lastMonth': 31, 'all': 29 };
+  
+  const getDateRangeForTimeRange = (range: string) => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    if (range === 'lastMonth') {
+      const firstDayOfLastMonth = new Date(currentMonth === 0 ? currentYear - 1 : currentYear, currentMonth === 0 ? 11 : currentMonth - 1, 1);
+      const lastDayOfLastMonth = new Date(currentMonth === 0 ? currentYear - 1 : currentYear, currentMonth === 0 ? 12 : currentMonth, 0);
+      const days = Math.ceil((lastDayOfLastMonth.getTime() - firstDayOfLastMonth.getTime()) / (1000 * 60 * 60 * 24));
+      return { start: firstDayOfLastMonth, days };
+    }
+    return { start: today, days: daysMap[range] || 6 };
+  };
+  
+  const [dateRange, setDateRange] = useState(getDateRangeForTimeRange(timeRange));
   const [savingDate, setSavingDate] = useState<string | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [localWorkOrders, setLocalWorkOrders] = useState<WorkOrder[]>(workOrders);
@@ -846,7 +867,7 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
 
   // Update date range when timeRange filter changes
   useEffect(() => {
-    setDateRange({ start: today, days: daysMap[timeRange] || 6 });
+    setDateRange(getDateRangeForTimeRange(timeRange));
   }, [timeRange]);
 
   // Debug: log when localWorkOrders changes

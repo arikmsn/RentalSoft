@@ -7,8 +7,8 @@ const router = Router();
 
 router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -67,7 +67,7 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
         .filter((d): d is Date => d !== null);
       if (removalDates.length === 0) continue;
       const earliest = new Date(Math.min(...removalDates.map((d) => d.getTime())));
-      const { statusColor } = computeWorkOrderStatus(earliest, new Date());
+      const { statusColor } = computeWorkOrderStatus(earliest, today);
       if (statusColor === 'black') overdueRemovals++;
       else if (statusColor === 'red') upcomingRemovals++;
     }
@@ -93,6 +93,7 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
   try {
     const { type } = req.query;
     const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     const sites = await prisma.site.findMany({
       include: {
@@ -116,7 +117,7 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
             .map(wo => ({
               wo,
               days: wo.plannedRemovalDate
-                ? Math.ceil((new Date(wo.plannedRemovalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                ? Math.ceil((new Date(wo.plannedRemovalDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
                 : Infinity,
             }))
             .sort((a, b) => a.days - b.days);

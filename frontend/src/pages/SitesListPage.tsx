@@ -98,17 +98,22 @@ export function SitesListPage() {
   // Toggle near me filter
   const toggleNearMe = () => {
     if (filters.nearMe) {
-      setFilters(prev => ({ ...prev, nearMe: false }));
+      setFilters(prev => ({ ...prev, nearMe: false, userLat: undefined, userLng: undefined }));
       setLocationError(null);
     } else {
+      setFilters(prev => ({ ...prev, nearMe: true }));
       if (!userLocation) {
         requestUserLocation();
       }
-      if (userLocation) {
-        setFilters(prev => ({ ...prev, nearMe: true, userLat: userLocation.lat, userLng: userLocation.lng }));
-      }
     }
   };
+
+  // Apply near me when location is ready
+  useEffect(() => {
+    if (userLocation && filters.nearMe) {
+      setFilters(prev => ({ ...prev, userLat: userLocation.lat, userLng: userLocation.lng }));
+    }
+  }, [userLocation, filters.nearMe]);
 
   // Get unique cities from sites
   const cities = useMemo(() => {
