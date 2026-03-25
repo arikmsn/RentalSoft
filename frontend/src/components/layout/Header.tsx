@@ -33,6 +33,11 @@ export function Header({ onMenuToggle }: HeaderProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Close user menu on route change
+  useEffect(() => {
+    setShowUserMenu(false);
+  }, [location.pathname]);
+
   const handleLanguageChange = (lng: string) => {
     changeLanguage(lng);
     setShowLangMenu(false);
@@ -150,7 +155,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
               </div>
             </button>
             {showUserMenu && (
-              <div className="absolute end-0 mt-1 bg-white border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+              <div className="absolute end-0 mt-1 bg-white border rounded-lg shadow-lg py-1 min-w-[140px] z-[60]">
                 <div className="px-4 py-2 border-b sm:hidden">
                   <p className="font-medium">{user?.name}</p>
                   <p className="text-xs text-gray-500">{t(`roles.${user?.role}`)}</p>

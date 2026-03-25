@@ -43,7 +43,7 @@
     "admin": "מנהל מערכת"
   },
   "navigation": {
-    "dashboard": "לוח בקרה",
+    "dashboard": "ראשי",
     "equipment": "ציוד",
     "sites": "אתרים",
     "workOrders": "עבודות",
@@ -205,7 +205,7 @@
     "viewSite": "צפה באתר"
   },
   "dashboard": {
-    "title": "לוח בקרה",
+    "title": "ראשי",
     "alerts": "התראות",
     "todaysTasks": "משימות היום",
     "weeklyTasks": "משימות השבוע",

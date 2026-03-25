@@ -32,10 +32,12 @@ export function EquipmentDetailsPage() {
   
   const [equipment, setEquipment] = useState<any>(null);
   const [locations, setLocations] = useState<SettingsEquipmentLocation[]>([]);
+  const [equipmentTypes, setEquipmentTypes] = useState<{id: string; name: string}[]>([]);
   const [notes, setNotes] = useState<EquipmentNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  const [showNotOkConfirm, setShowNotOkConfirm] = useState(false);
   
   const [formData, setFormData] = useState({
     type: '',
@@ -52,9 +54,11 @@ export function EquipmentDetailsPage() {
     Promise.all([
       equipmentService.getById(id),
       api.get<SettingsEquipmentLocation[]>('/settings/equipment-locations').then(res => res.data),
-    ]).then(([eqData, locData]) => {
+      api.get<{id: string; name: string}[]>('/settings/equipment-types').then(res => res.data),
+    ]).then(([eqData, locData, typesData]) => {
       setEquipment(eqData);
       setLocations(locData);
+      setEquipmentTypes(typesData || []);
       setFormData({
         type: eqData.type,
         conditionState: eqData.conditionState || 'OK',
@@ -164,12 +168,16 @@ export function EquipmentDetailsPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-surface-500 mb-1">{t('equipment.type')}</label>
-            <input
-              type="text"
+            <select
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-            />
+            >
+              <option value="">-- {t('app.select')} --</option>
+              {equipmentTypes.map((type) => (
+                <option key={type.id} value={type.name}>{type.name}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-surface-500 mb-1">{t('equipment.location')}</label>
@@ -238,7 +246,13 @@ export function EquipmentDetailsPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, conditionState: 'NOT_OK' })}
+                onClick={() => {
+                  if (equipment.activeWorkOrder) {
+                    setShowNotOkConfirm(true);
+                  } else {
+                    setFormData({ ...formData, conditionState: 'NOT_OK' });
+                  }
+                }}
                 className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
                   formData.conditionState === 'NOT_OK'
                     ? 'border-danger-500 bg-danger-50 text-danger-700'
@@ -327,6 +341,44 @@ export function EquipmentDetailsPage() {
           {saving ? t('app.loading') : t('app.save')}
         </button>
       </div>
+
+      {/* NOT_OK Confirmation Modal */}
+      {showNotOkConfirm && (
+        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-float">
+            <h2 className="text-xl font-bold mb-4 text-surface-800">העברת ציוד למצב לא תקין</h2>
+            <p className="text-surface-600 mb-6">בטוח שברצונך להעביר את הציוד למצב 'לא תקין'? במידה ורלוונטי, הציוד יוסר מהעבודה המשויכת לו ויוחזר למצב 'זמין'.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowNotOkConfirm(false);
+                }}
+                className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={async () => {
+                  setShowNotOkConfirm(false);
+                  setFormData({ ...formData, conditionState: 'NOT_OK' });
+                  // Unassign from work if needed
+                  if (equipment.activeWorkOrder) {
+                    try {
+                      await api.post(`/workorders/${equipment.activeWorkOrder.id}/remove-equipment`, { equipmentId: equipment.id });
+                      await equipmentService.update(equipment.id, { status: 'available' });
+                    } catch (err) {
+                      console.error('Failed to unassign equipment:', err);
+                    }
+                  }
+                }}
+                className="flex-1 px-4 py-3 bg-danger-600 text-white rounded-xl hover:bg-danger-700 font-medium transition-all duration-200"
+              >
+                אישור
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

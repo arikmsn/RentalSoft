@@ -59,7 +59,7 @@ export function WorkOrderDetailsPage() {
   const loadAvailableEquipment = useCallback(async () => {
     setLoadingEquipment(true);
     try {
-      const equipment = await equipmentService.getAll({ available: true });
+      const equipment = await equipmentService.getAll({ available: true, conditionState: 'OK' });
       const attachedIds = scannedEquipment.map(eq => eq.id);
       setAvailableEquipment(equipment.filter(eq => !attachedIds.includes(eq.id)));
     } catch (err) {

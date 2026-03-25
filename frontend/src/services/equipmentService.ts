@@ -7,6 +7,7 @@ export interface EquipmentFilters {
   type?: string;
   search?: string;
   available?: boolean;
+  conditionState?: 'OK' | 'NOT_OK';
 }
 
 export interface CreateEquipmentRequest {
@@ -37,6 +38,7 @@ export const equipmentService = {
     if (filters?.type) params.append('type', filters.type);
     if (filters?.search) params.append('search', filters.search);
     if (filters?.available) params.append('available', 'true');
+    if (filters?.conditionState) params.append('conditionState', filters.conditionState);
     
     const response = await api.get<Equipment[]>(`/equipment?${params.toString()}`);
     return response.data;
