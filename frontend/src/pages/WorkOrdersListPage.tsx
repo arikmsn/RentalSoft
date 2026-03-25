@@ -268,7 +268,11 @@ export function WorkOrdersListPage() {
       </div>
 
       {viewMode === 'calendar' ? (
-        <WeeklyCalendar workOrders={filteredWorkOrders} t={t} />
+        <WeeklyCalendar workOrders={filteredWorkOrders} t={t} onRefresh={() => {
+          workOrderService.getAll().then(data => {
+            setWorkOrders(data);
+          }).catch(console.error);
+        }} />
       ) : (
         <>
           <div className="space-y-3">
@@ -458,16 +462,13 @@ export function WorkOrdersListPage() {
   );
 }
 
-function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) {
+function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[]; t: any; onRefresh?: () => void }) {
   const today = new Date();
   const [dateRange, setDateRange] = useState({ start: today, days: 6 });
   const [savingDate, setSavingDate] = useState<string | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [localWorkOrders, setLocalWorkOrders] = useState<WorkOrder[]>(workOrders);
-
-  useEffect(() => {
-    setLocalWorkOrders(workOrders);
-  }, [workOrders]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const getDaysInRange = () => {
     const days: { date: Date; label: string }[] = [];
@@ -512,11 +513,20 @@ function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) 
       await workOrderService.update(woId, {
         plannedRemovalDate: new Date(newDate),
       });
-      // Update local state immediately so the row moves to the correct date
-      setLocalWorkOrders(prev => prev.map(wo => 
-        wo.id === woId ? { ...wo, plannedRemovalDate: new Date(newDate) } : wo
-      ));
+      // Update local state with a NEW array reference to trigger re-render
+      setLocalWorkOrders(prev => {
+        const updated = prev.map(wo => 
+          wo.id === woId ? { ...wo, plannedRemovalDate: new Date(newDate) } : wo
+        );
+        return updated;
+      });
+      // Force refresh to ensure list re-renders
+      setRefreshKey(k => k + 1);
       setEditingDateId(null);
+      // Notify parent to refresh
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (err) {
       console.error('Failed to update date:', err);
     } finally {
@@ -526,7 +536,7 @@ function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) 
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-card">
+    <div key={refreshKey} className="bg-white rounded-2xl p-4 shadow-card">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <h2 className="text-lg font-semibold text-surface-800">{t('workOrders.weeklyCalendar')}</h2>
         <div className="flex gap-2">
