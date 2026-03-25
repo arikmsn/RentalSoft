@@ -11,62 +11,51 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
   const [status, setStatus] = useState('Initializing...');
   const qrRef = useRef<Html5Qrcode | null>(null);
   const isRunningRef = useRef(false);
-  const isMountedRef = useRef(true);
-  const isCleanupRef = useRef(false);
   const regionId = 'qr-reader-target';
 
   const stopScanner = useCallback(async () => {
-    console.log('[QR] stopScanner called');
-    const scanner = qrRef.current;
-    if (!scanner) {
-      console.log('[QR] No scanner instance to stop');
+    console.log('[QR] stopScanner called, isRunning:', isRunningRef.current);
+    
+    if (!qrRef.current) {
+      console.log('[QR] No scanner instance');
       return;
     }
 
+    const scanner = qrRef.current;
+    
     try {
       if (isRunningRef.current) {
-        console.log('[QR] Stopping scanner...');
+        console.log('[QR] Calling stop()');
         isRunningRef.current = false;
         await scanner.stop();
-        console.log('[QR] Scanner stopped');
-      }
-      
-      // Clear the scanner to release video element
-      if (!isCleanupRef.current) {
-        isCleanupRef.current = true;
-        try {
-          await scanner.clear();
-          console.log('[QR] Scanner cleared');
-        } catch (e) {
-          console.warn('[QR] Error clearing scanner:', e);
-        }
+        console.log('[QR] stop() completed');
       }
     } catch (err) {
-      console.warn('[QR] Error stopping scanner:', err);
-    } finally {
-      qrRef.current = null;
+      console.warn('[QR] Error stopping:', err);
     }
+
+    try {
+      console.log('[QR] Calling clear()');
+      await scanner.clear();
+      console.log('[QR] clear() completed');
+    } catch (err) {
+      console.warn('[QR] Error clearing:', err);
+    }
+    
+    qrRef.current = null;
   }, []);
 
   const handleScan = useCallback((decodedText: string) => {
-    console.log('[QR] BaseQrScanner found:', decodedText);
-    if (isMountedRef.current && !isCleanupRef.current) {
-      onScan(decodedText);
-    }
+    console.log('[QR] Scanned:', decodedText);
+    onScan(decodedText);
   }, [onScan]);
 
   useEffect(() => {
-    console.log('[QR] BaseQrScanner useEffect running');
-    isMountedRef.current = true;
-    isCleanupRef.current = false;
-    isRunningRef.current = false;
-    
     let mounted = true;
+    let scannerInstance: Html5Qrcode | null = null;
     
     const initScanner = async () => {
       try {
-        if (!mounted) return;
-        
         setStatus('Creating scanner...');
         
         const element = document.getElementById(regionId);
@@ -75,15 +64,17 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
           return;
         }
         
-        qrRef.current = new Html5Qrcode(regionId, {
+        scannerInstance = new Html5Qrcode(regionId, {
           formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
           verbose: false,
         });
+        
+        qrRef.current = scannerInstance;
 
         setStatus('Requesting camera...');
         console.log('[QR] Starting scanner...');
 
-        await qrRef.current.start(
+        await scannerInstance.start(
           { facingMode: 'environment' },
           {
             fps: 10,
@@ -91,7 +82,7 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
             aspectRatio: 1.0,
           },
           (decodedText) => {
-            if (mounted && !isCleanupRef.current) {
+            if (mounted) {
               handleScan(decodedText);
             }
           },
@@ -105,6 +96,8 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
         if (mounted) {
           setStatus('Ready - point at QR code');
         }
+        
+        console.log('[QR] Scanner started successfully');
       } catch (err) {
         console.error('[QR] Start failed:', err);
         isRunningRef.current = false;
@@ -118,19 +111,39 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
 
     // Cleanup function
     return () => {
-      console.log('[QR] BaseQrScanner cleanup starting');
+      console.log('[QR] Cleanup starting');
       mounted = false;
-      isMountedRef.current = false;
-      isCleanupRef.current = true;
-      stopScanner();
-      console.log('[QR] BaseQrScanner cleanup done');
+      
+      const cleanup = async () => {
+        if (scannerInstance && isRunningRef.current) {
+          try {
+            isRunningRef.current = false;
+            await scannerInstance.stop();
+          } catch (e) {
+            console.warn('[QR] Stop error in cleanup:', e);
+          }
+        }
+        
+        if (scannerInstance) {
+          try {
+            await scannerInstance.clear();
+          } catch (e) {
+            console.warn('[QR] Clear error in cleanup:', e);
+          }
+          scannerInstance = null;
+          qrRef.current = null;
+        }
+        console.log('[QR] Cleanup done');
+      };
+      
+      cleanup();
     };
-  }, [handleScan, stopScanner]);
+  }, [handleScan]);
 
   // Handle app going to background
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.hidden) {
+      if (document.hidden && isRunningRef.current) {
         console.log('[QR] App hidden, stopping scanner');
         stopScanner();
       }
@@ -153,10 +166,4 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
       />
     </div>
   );
-};
-
-// Export stopScanner for external use if needed
-export const stopQrScanner = async () => {
-  // This can be used by parent components to stop the scanner
-  console.log('[QR] External stop requested');
 };

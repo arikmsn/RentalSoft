@@ -41,18 +41,18 @@ interface SiteWithStatus {
 
 const statusColors: Record<string, string> = {
   black: '#1f2937',
-  red: '#ef4444',
-  orange: '#f97316',
-  green: '#10b981',
+  red: '#dc2626',
+  orange: '#ea580c',
+  green: '#16a34a',
 };
 
 const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green' | null, selected?: boolean, hasEquipment?: boolean, hasPotentialRemoval?: boolean) => {
   const color = status ? statusColors[status] : '#9ca3af';
   const size = selected ? 32 : 24;
-  const borderWidth = selected ? 4 : 3;
+  const borderWidth = selected ? 4 : 4;
   const isHollow = !hasEquipment;
   const innerIcon = hasPotentialRemoval ? 'פ' : '';
-  const borderColor = isHollow ? color : (status === 'green' ? '#166534' : (status === 'orange' ? '#c2410c' : (status === 'red' ? '#b91c1c' : (status === 'black' ? '#000000' : 'white'))));
+  const borderColor = isHollow ? color : (status === 'green' ? '#15803d' : (status === 'orange' ? '#c2410c' : (status === 'red' ? '#b91c1c' : (status === 'black' ? '#000000' : 'white'))));
   return L.divIcon({
     className: 'custom-marker',
     html: `<div style="
@@ -61,7 +61,7 @@ const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green' | null, sel
       height: ${size}px;
       border-radius: 50%;
       border: ${borderWidth} solid ${borderColor};
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
       ${selected ? 'z-index: 1000;' : ''}
       display: flex;
       align-items: center;

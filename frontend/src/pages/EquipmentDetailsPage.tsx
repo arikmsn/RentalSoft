@@ -249,11 +249,7 @@ export function EquipmentDetailsPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (equipment.activeWorkOrder) {
-                    setShowNotOkConfirm(true);
-                  } else {
-                    setFormData({ ...formData, conditionState: 'NOT_OK' });
-                  }
+                  setShowNotOkConfirm(true);
                 }}
                 className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
                   formData.conditionState === 'NOT_OK'
@@ -371,7 +367,7 @@ export function EquipmentDetailsPage() {
                   try {
                     // Unassign from work if needed
                     if (equipment.activeWorkOrder) {
-                      await api.post(`/workorders/${equipment.activeWorkOrder.id}/remove-equipment`, { equipmentId: equipment.id });
+                      await api.delete(`/workorders/${equipment.activeWorkOrder.id}/equipment/${equipment.id}`);
                     }
                     
                     // Update equipment to NOT_OK and clear location
