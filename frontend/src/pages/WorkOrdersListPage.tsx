@@ -530,7 +530,7 @@ export function WorkOrdersListPage() {
 
           {/* Near Me Filter */}
           <div>
-            <h3 className="text-sm font-medium text-surface-700 mb-2">קרוב אלי</h3>
+            <h3 className="text-sm font-medium text-surface-700 mb-2">מיקום</h3>
             <button
               onClick={toggleNearMe}
               disabled={locationLoading}
@@ -544,7 +544,7 @@ export function WorkOrdersListPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              {locationLoading ? 'מאתר...' : 'קרוב אלי'}
+              {locationLoading ? 'מאתר...' : 'מיקום'}
             </button>
             {filters.nearMe && (
               <div className="mt-3 px-3 py-2 bg-surface-50 rounded-lg">
@@ -633,7 +633,7 @@ export function WorkOrdersListPage() {
       </div>
 
       {viewMode === 'calendar' ? (
-        <WeeklyCalendar workOrders={filteredWorkOrders} t={t} onRefresh={() => {
+        <WeeklyCalendar workOrders={filteredWorkOrders} timeRange={filters.timeRange} t={t} onRefresh={() => {
           workOrderService.getAll().then(data => {
             setWorkOrders(data);
           }).catch(console.error);
@@ -827,8 +827,8 @@ export function WorkOrdersListPage() {
   );
 }
 
-function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[]; t: any; onRefresh?: () => void }) {
-  console.log('[Calendar] WeeklyCalendar rendered, received workOrders count:', workOrders.length);
+function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: WorkOrder[]; timeRange: string; t: any; onRefresh?: () => void }) {
+  console.log('[Calendar] WeeklyCalendar rendered, received workOrders count:', workOrders.length, 'timeRange:', timeRange);
   console.log('[Calendar] First 3 workOrders dates:', 
     workOrders.slice(0, 3).map(wo => ({ 
       id: wo.id, 
@@ -836,7 +836,8 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
     }))
   );
   const today = new Date();
-  const [dateRange, setDateRange] = useState({ start: today, days: 6 });
+  const daysMap: Record<string, number> = { 'week': 6, '2weeks': 13, 'month': 29, 'all': 29 };
+  const [dateRange] = useState({ start: today, days: daysMap[timeRange] || 6 });
   const [savingDate, setSavingDate] = useState<string | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [localWorkOrders, setLocalWorkOrders] = useState<WorkOrder[]>(workOrders);
@@ -881,10 +882,6 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
       return woDate.toDateString() === date.toDateString();
     });
     return filtered;
-  };
-
-  const handleRangeChange = (days: number) => {
-    setDateRange({ start: today, days });
   };
 
   const handleDateBlur = async (woId: string, newDate: string) => {
@@ -933,32 +930,6 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
     <div key={refreshKey} className="bg-white rounded-2xl p-4 shadow-card">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <h2 className="text-lg font-semibold text-surface-800">{t('workOrders.weeklyCalendar')}</h2>
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleRangeChange(6)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              dateRange.days === 6 ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
-            }`}
-          >
-            שבוע
-          </button>
-          <button
-            onClick={() => handleRangeChange(13)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              dateRange.days === 13 ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
-            }`}
-          >
-            שבועיים
-          </button>
-          <button
-            onClick={() => handleRangeChange(29)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              dateRange.days === 29 ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
-            }`}
-          >
-            חודש
-          </button>
-        </div>
       </div>
 
       <div className="space-y-4">
@@ -996,9 +967,8 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
                             <div className="font-semibold text-surface-800 text-base">{wo.site?.name}</div>
                             <div className="text-surface-600 text-sm mt-1">
                               {wo.workTypeName || wo.type}
-                              {wo.site ? `, ${wo.site.city}` : ''}
                             </div>
-                            <div className="text-surface-500 text-xs mt-0.5">{wo.site?.address}</div>
+                            <div className="text-surface-500 text-xs mt-0.5">{wo.site?.address}{wo.site?.city ? `, ${wo.site.city}` : ''}</div>
                           </div>
                         </div>
                         <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[wo.status]}`}>
