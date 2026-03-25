@@ -191,7 +191,7 @@ export function MapPage() {
       const lng = Number(site.longitude);
       
       const primaryWo = site.workOrders && site.workOrders.length > 0 ? site.workOrders[0] : null;
-      const woTitle = site.name + (primaryWo ? ` - ${primaryWo.workTypeName || primaryWo.type}` : '');
+      const workType = primaryWo ? (primaryWo.workTypeName || primaryWo.type) : null;
       const woDetailUrl = primaryWo ? `/workorders/${primaryWo.id}` : `/sites/${site.id}`;
 
       const fullAddress = site.address;
@@ -240,8 +240,9 @@ export function MapPage() {
         .setLatLng([lat, lng])
         .setContent(`
           <div style="text-align:right; min-width:200px; padding:4px; font-family:Inter,system-ui,sans-serif;">
-            <div style="font-weight:600; font-size:14px; color:#1e293b;">${woTitle}</div>
-            <div style="font-size:12px; color:#64748b; margin-top:4px; line-height:1.4;">${fullAddress}</div>
+            <div style="font-weight:700; font-size:15px; color:#1e293b;">${site.name}</div>
+            <div style="font-size:12px; color:#475569; margin-top:2px; line-height:1.4;">${fullAddress}</div>
+            ${workType ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">${workType}</div>` : ''}
             <div style="margin-top:8px; font-size:11px; line-height:1.6;">
               ${installationDate ? `<div><span style="color:#64748b; font-weight:500;">תאריך התקנה:</span> <span style="color:#1e293b; font-weight:600;">${installationDate}</span></div>` : ''}
               ${removalDate ? `<div><span style="color:#64748b; font-weight:500;">מתפנה בתאריך:</span> <span style="color:#1e293b; font-weight:600;">${removalDate}</span></div>` : ''}

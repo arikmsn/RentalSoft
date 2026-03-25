@@ -513,11 +513,7 @@ function WeeklyCalendar({ workOrders, t }: { workOrders: WorkOrder[]; t: any }) 
                 {dayWorkOrders.map(wo => (
                   <div
                     key={wo.id}
-                    className={`block p-3 rounded-xl text-sm ${
-                      wo.status === 'completed' ? 'bg-success-50 border border-success-100' :
-                      wo.status === 'in_progress' ? 'bg-warning-50 border border-warning-100' :
-                      'bg-primary-50 border border-primary-100'
-                    }`}
+                    className="block p-3 rounded-xl text-sm bg-surface-50 border border-surface-100"
                   >
                     <Link to={`/workorders/${wo.id}`} className="block">
                       <div className="flex items-center gap-2">
