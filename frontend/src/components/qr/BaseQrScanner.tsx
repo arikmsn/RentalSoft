@@ -16,6 +16,24 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
   const stopScanner = useCallback(async () => {
     console.log('[QR] stopScanner called, isRunning:', isRunningRef.current);
     
+    // Fallback: directly stop any camera tracks we can find
+    try {
+      const videoEl = document.getElementById(regionId);
+      if (videoEl) {
+        const stream = (videoEl as any).srcObject;
+        if (stream && stream instanceof MediaStream) {
+          console.log('[QR] Directly stopping MediaStream tracks');
+          stream.getTracks().forEach((track: MediaStreamTrack) => {
+            console.log('[QR] Stopping track:', track.kind);
+            track.stop();
+          });
+          (videoEl as any).srcObject = null;
+        }
+      }
+    } catch (e) {
+      console.warn('[QR] Error stopping tracks directly:', e);
+    }
+    
     if (!qrRef.current) {
       console.log('[QR] No scanner instance');
       return;
@@ -25,21 +43,21 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
     
     try {
       if (isRunningRef.current) {
-        console.log('[QR] Calling stop()');
+        console.log('[QR] Calling scanner.stop()');
         isRunningRef.current = false;
         await scanner.stop();
-        console.log('[QR] stop() completed');
+        console.log('[QR] scanner.stop() completed');
       }
     } catch (err) {
-      console.warn('[QR] Error stopping:', err);
+      console.warn('[QR] Error stopping scanner:', err);
     }
 
     try {
-      console.log('[QR] Calling clear()');
+      console.log('[QR] Calling scanner.clear()');
       await scanner.clear();
-      console.log('[QR] clear() completed');
+      console.log('[QR] scanner.clear() completed');
     } catch (err) {
-      console.warn('[QR] Error clearing:', err);
+      console.warn('[QR] Error clearing scanner:', err);
     }
     
     qrRef.current = null;
@@ -50,6 +68,7 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
     onScan(decodedText);
   }, [onScan]);
 
+  // First useEffect: Start scanner on mount
   useEffect(() => {
     let mounted = true;
     let scannerInstance: Html5Qrcode | null = null;
@@ -157,14 +176,22 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
 
   // Extra safety timeout - force stop after 30 seconds
   useEffect(() => {
+    console.log('[QR] Setting up 30-second safety timeout');
+    
     const timeoutId = setTimeout(() => {
+      console.log('[QR] TIMEOUT FIRED! isRunningRef.current:', isRunningRef.current);
       if (isRunningRef.current) {
-        console.log('[QR] Safety timeout reached, forcing stop');
+        console.log('[QR] Calling stopScanner due to timeout');
         stopScanner();
+      } else {
+        console.log('[QR] Timeout fired but scanner not running, skipping');
       }
     }, 30000);
 
+    console.log('[QR] Timeout scheduled, will fire in 30 seconds');
+    
     return () => {
+      console.log('[QR] Clearing timeout');
       clearTimeout(timeoutId);
     };
   }, [stopScanner]);
