@@ -99,9 +99,9 @@ export function DashboardPage() {
 
   const statCards = [
     { value: stats?.availableEquipment || 0, label: t('dashboard.availableEquipment'), color: 'text-primary-600', bg: 'bg-primary-50', icon: '📦', onClick: () => navigate('/equipment?filter=available') },
-    { value: stats?.sitesWithEquipment || 0, label: t('dashboard.sitesWithEquipment'), color: 'text-success-600', bg: 'bg-success-50', icon: '📍', onClick: () => navigate('/equipment?filter=at_customer') },
+    { value: stats?.sitesWithEquipment || 0, label: t('dashboard.sitesWithEquipment'), color: 'text-success-600', bg: 'bg-success-50', icon: '📍', onClick: () => navigate('/workorders?view=list') },
     { value: stats?.overdueRemovals || 0, label: t('dashboard.overdueRemovals'), color: 'text-surface-800', bg: 'bg-surface-100', icon: '⚫', onClick: () => navigate('/alerts?type=past_removal') },
-    { value: stats?.upcomingRemovals || 0, label: t('dashboard.upcomingRemovals'), color: 'text-danger-600', bg: 'bg-danger-50', icon: '🔴', onClick: () => navigate('/workorders?view=calendar') },
+    { value: stats?.upcomingRemovals || 0, label: t('dashboard.upcomingRemovals'), color: 'text-danger-600', bg: 'bg-danger-50', icon: '🔴', onClick: () => navigate('/map') },
   ];
 
   return (
