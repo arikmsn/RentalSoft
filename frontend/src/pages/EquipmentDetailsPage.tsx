@@ -40,6 +40,7 @@ export function EquipmentDetailsPage() {
   const [saving, setSaving] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const [showNotOkConfirm, setShowNotOkConfirm] = useState(false);
+  const [showOkConfirm, setShowOkConfirm] = useState(false);
   
   const [formData, setFormData] = useState({
     type: '',
@@ -237,7 +238,13 @@ export function EquipmentDetailsPage() {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, conditionState: 'OK' })}
+                onClick={() => {
+                  if (formData.conditionState === 'NOT_OK') {
+                    setShowOkConfirm(true);
+                  } else {
+                    setFormData({ ...formData, conditionState: 'OK' });
+                  }
+                }}
                 className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
                   formData.conditionState === 'OK'
                     ? 'border-success-500 bg-success-50 text-success-700'
@@ -410,6 +417,71 @@ export function EquipmentDetailsPage() {
                   }
                 }}
                 className="flex-1 px-4 py-3 bg-danger-600 text-white rounded-xl hover:bg-danger-700 font-medium transition-all duration-200"
+              >
+                אישור
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OK Confirmation Modal */}
+      {showOkConfirm && (
+        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-float">
+            <h2 className="text-xl font-bold mb-4 text-surface-800">העברת ציוד למצב 'תקין'</h2>
+            <p className="text-surface-600 mb-6">האם להעביר את הציוד למצב תקין?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowOkConfirm(false);
+                }}
+                className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={async () => {
+                  setShowOkConfirm(false);
+                  setSaving(true);
+                  try {
+                    // Update equipment to OK
+                    await equipmentService.update(equipment.id, { 
+                      conditionState: 'OK',
+                    });
+                    
+                    // Add system note
+                    const now = new Date();
+                    const dateStr = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                    const userName = user?.name || 'מערכת';
+                    try {
+                      await api.post(`/equipment/${equipment.id}/notes`, {
+                        text: `הוחזר למצב 'תקין' על ידי ${userName} בתאריך ${dateStr}`,
+                      });
+                    } catch (noteErr) {
+                      console.warn('Failed to add system note:', noteErr);
+                    }
+                    
+                    // Refresh equipment data
+                    const updated = await equipmentService.getById(equipment.id);
+                    setEquipment(updated);
+                    setFormData({
+                      ...formData,
+                      conditionState: 'OK',
+                    });
+                    
+                    // Refresh notes
+                    const notesData = await api.get<EquipmentNote[]>(`/equipment/${equipment.id}/notes`).then(res => res.data);
+                    setNotes(notesData || []);
+                    
+                  } catch (err) {
+                    console.error('Failed to update equipment:', err);
+                    alert('Failed to update equipment');
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                className="flex-1 px-4 py-3 bg-success-600 text-white rounded-xl hover:bg-success-700 font-medium transition-all duration-200"
               >
                 אישור
               </button>

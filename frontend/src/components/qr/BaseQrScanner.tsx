@@ -155,6 +155,20 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
     };
   }, [stopScanner]);
 
+  // Extra safety timeout - force stop after 30 seconds
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (isRunningRef.current) {
+        console.log('[QR] Safety timeout reached, forcing stop');
+        stopScanner();
+      }
+    }, 30000);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [stopScanner]);
+
   return (
     <div className="w-full">
       <div className="text-center mb-2">
