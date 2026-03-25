@@ -145,6 +145,8 @@ export function WorkOrdersListPage() {
     }
   };
 
+  // DEBUG: Log filteredWorkOrders
+  console.log('[Page] filteredWorkOrders count:', workOrders.length);
   const filteredWorkOrders = workOrders
     .filter((wo) => {
       if (filter === 'all') return true;
@@ -463,12 +465,30 @@ export function WorkOrdersListPage() {
 }
 
 function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[]; t: any; onRefresh?: () => void }) {
+  console.log('[Calendar] WeeklyCalendar rendered, received workOrders count:', workOrders.length);
+  console.log('[Calendar] First 3 workOrders dates:', 
+    workOrders.slice(0, 3).map(wo => ({ 
+      id: wo.id, 
+      plannedRemovalDate: wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : 'null' 
+    }))
+  );
   const today = new Date();
   const [dateRange, setDateRange] = useState({ start: today, days: 6 });
   const [savingDate, setSavingDate] = useState<string | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [localWorkOrders, setLocalWorkOrders] = useState<WorkOrder[]>(workOrders);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Debug: log when localWorkOrders changes
+  useEffect(() => {
+    console.log('[Calendar] localWorkOrders updated, count:', localWorkOrders.length);
+    console.log('[Calendar] localWorkOrders sample:', 
+      localWorkOrders.slice(0, 5).map(wo => ({ 
+        id: wo.id, 
+        plannedRemovalDate: wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : 'null' 
+      }))
+    );
+  }, [localWorkOrders]);
 
   const getDaysInRange = () => {
     const days: { date: Date; label: string }[] = [];
@@ -488,7 +508,7 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
 
   const getWorkOrdersForDay = (date: Date) => {
     // Calendar shows only OPEN and IN_PROGRESS works
-    return localWorkOrders.filter(wo => {
+    const filtered = localWorkOrders.filter(wo => {
       if (wo.status === 'completed') return false;
       // Keep work visible if it's being edited (date picker open)
       if (editingDateId === wo.id) return true;
@@ -497,6 +517,7 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
       const woDate = new Date(wo.plannedRemovalDate);
       return woDate.toDateString() === date.toDateString();
     });
+    return filtered;
   };
 
   const handleRangeChange = (days: number) => {
@@ -508,23 +529,33 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
       setEditingDateId(null);
       return;
     }
+    const newDateObj = new Date(newDate);
+    console.log('[Calendar] handleDateBlur: woId=', woId, 'newDate=', newDateObj.toISOString());
     setSavingDate(woId);
     try {
       await workOrderService.update(woId, {
-        plannedRemovalDate: new Date(newDate),
+        plannedRemovalDate: newDateObj,
       });
+      console.log('[Calendar] API update succeeded, updating local state');
       // Update local state with a NEW array reference to trigger re-render
       setLocalWorkOrders(prev => {
         const updated = prev.map(wo => 
-          wo.id === woId ? { ...wo, plannedRemovalDate: new Date(newDate) } : wo
+          wo.id === woId ? { ...wo, plannedRemovalDate: newDateObj } : wo
+        );
+        console.log('[Calendar] Updated localWorkOrders, first 5 items:', 
+          updated.slice(0, 5).map(wo => ({ id: wo.id, plannedRemovalDate: wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString() : null }))
         );
         return updated;
       });
       // Force refresh to ensure list re-renders
-      setRefreshKey(k => k + 1);
+      setRefreshKey(k => {
+        console.log('[Calendar] Incrementing refreshKey from', k, 'to', k + 1);
+        return k + 1;
+      });
       setEditingDateId(null);
       // Notify parent to refresh
       if (onRefresh) {
+        console.log('[Calendar] Calling onRefresh callback');
         onRefresh();
       }
     } catch (err) {
