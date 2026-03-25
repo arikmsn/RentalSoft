@@ -5,6 +5,7 @@ import { equipmentService } from '../services/equipmentService';
 import { api } from '../services/api';
 import { formatDate } from '../utils/date';
 import { useAuthStore } from '../stores/authStore';
+import { CustomDatePicker } from '../components/CustomDatePicker';
 
 interface SettingsEquipmentLocation {
   id: string;
@@ -271,11 +272,9 @@ export function EquipmentDetailsPage() {
 
           <div>
             <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.purchaseDate')}</label>
-            <input
-              type="date"
+            <CustomDatePicker
               value={formData.purchaseDate}
-              onChange={(e) => setFormData({ ...formData, purchaseDate: e.target.value })}
-              className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+              onDateSelect={(date) => setFormData({ ...formData, purchaseDate: date })}
             />
           </div>
         </div>

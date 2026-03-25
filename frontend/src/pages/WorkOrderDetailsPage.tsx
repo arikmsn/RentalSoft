@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
 import { BaseQrScanner } from '../components/qr/BaseQrScanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { CustomDatePicker } from '../components/CustomDatePicker';
 import { offlineApi } from '../services/offlineApi';
 import { workOrderService } from '../services/workOrderService';
 import { siteService } from '../services/siteService';
@@ -588,20 +589,16 @@ export function WorkOrderDetailsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.plannedDate')}</label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={editFormData.plannedDate ? editFormData.plannedDate.slice(0, 10) : ''}
-                  onChange={(e) => setEditFormData({ ...editFormData, plannedDate: e.target.value ? new Date(e.target.value).toISOString() : '' })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  onDateSelect={(date) => setEditFormData({ ...editFormData, plannedDate: date ? new Date(date).toISOString() : '' })}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.nextVisit')}</label>
-                <input
-                  type="date"
+                <CustomDatePicker
                   value={editFormData.plannedRemovalDate}
-                  onChange={(e) => setEditFormData({ ...editFormData, plannedRemovalDate: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  onDateSelect={(date) => setEditFormData({ ...editFormData, plannedRemovalDate: date })}
                 />
                 <label className="flex items-center gap-2 mt-2 cursor-pointer">
                   <input
