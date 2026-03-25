@@ -639,8 +639,11 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
                         <label className="text-xs text-surface-500">{t('equipment.nextVisit')}:</label>
                         <input
                           type="date"
-                          defaultValue={wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : ''}
-                          onBlur={(e) => handleDateBlur(wo.id, e.target.value)}
+                          value={wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : ''}
+                          onChange={(e) => {
+                            // Save immediately when date changes (including from date picker popup)
+                            handleDateBlur(wo.id, e.target.value);
+                          }}
                           disabled={savingDate === wo.id}
                           className="text-xs px-2 py-1 border border-surface-200 rounded focus:ring-1 focus:ring-primary-500 bg-white"
                         />
