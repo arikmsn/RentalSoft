@@ -591,14 +591,30 @@ export function WorkOrderDetailsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrders.plannedDate')}</label>
                 <CustomDatePicker
                   value={editFormData.plannedDate ? editFormData.plannedDate.slice(0, 10) : ''}
-                  onDateSelect={(date) => setEditFormData({ ...editFormData, plannedDate: date ? new Date(date).toISOString() : '' })}
+                  onDateSelect={(date) => {
+                    if (date) {
+                      const [year, month, day] = date.split('-').map(Number);
+                      const d = new Date(year, month - 1, day, 12, 0, 0);
+                      setEditFormData({ ...editFormData, plannedDate: d.toISOString() });
+                    } else {
+                      setEditFormData({ ...editFormData, plannedDate: '' });
+                    }
+                  }}
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('equipment.nextVisit')}</label>
                 <CustomDatePicker
-                  value={editFormData.plannedRemovalDate}
-                  onDateSelect={(date) => setEditFormData({ ...editFormData, plannedRemovalDate: date })}
+                  value={editFormData.plannedRemovalDate ? editFormData.plannedRemovalDate.slice(0, 10) : ''}
+                  onDateSelect={(date) => {
+                    if (date) {
+                      const [year, month, day] = date.split('-').map(Number);
+                      const d = new Date(year, month - 1, day, 12, 0, 0);
+                      setEditFormData({ ...editFormData, plannedRemovalDate: d.toISOString() });
+                    } else {
+                      setEditFormData({ ...editFormData, plannedRemovalDate: '' });
+                    }
+                  }}
                 />
                 <label className="flex items-center gap-2 mt-2 cursor-pointer">
                   <input
