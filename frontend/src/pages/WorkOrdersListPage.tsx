@@ -843,6 +843,11 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
   const [localWorkOrders, setLocalWorkOrders] = useState<WorkOrder[]>(workOrders);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Sync with parent filtered work orders when they change
+  useEffect(() => {
+    setLocalWorkOrders(workOrders);
+  }, [workOrders]);
+
   // Debug: log when localWorkOrders changes
   useEffect(() => {
     console.log('[Calendar] localWorkOrders updated, count:', localWorkOrders.length);
