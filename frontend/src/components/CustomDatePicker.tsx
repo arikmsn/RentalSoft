@@ -30,17 +30,23 @@ export function CustomDatePicker({ value, onDateSelect, disabled, className = ''
     setViewDate(new Date(currentYear, currentMonth + 1, 1));
   };
 
+  useEffect(() => {
+    if (isOpen && value) {
+      const [year, month, day] = value.split('-').map(Number);
+      setViewDate(new Date(year, month - 1, day));
+    }
+  }, [isOpen, value]);
+
   const handleDayClick = (day: number) => {
-    const newDate = new Date(currentYear, currentMonth, day);
-    const dateStr = newDate.toISOString().split('T')[0];
+    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     onDateSelect(dateStr);
     setIsOpen(false);
   };
 
   const isSelected = (day: number) => {
     if (!value) return false;
-    const d = new Date(value);
-    return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    const [year, month, d] = value.split('-').map(Number);
+    return d === day && month === currentMonth + 1 && year === currentYear;
   };
 
   const isToday = (day: number) => {
@@ -61,7 +67,11 @@ export function CustomDatePicker({ value, onDateSelect, disabled, className = ''
     };
   }, [isOpen]);
 
-  const displayValue = value ? new Date(value).toLocaleDateString('he-IL') : '';
+  const displayValue = value ? (() => {
+    const [year, month, day] = value.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
+    return d.toLocaleDateString('he-IL');
+  })() : '';
 
   return (
     <div className={`relative ${className}`} ref={containerRef}>
