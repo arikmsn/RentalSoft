@@ -997,7 +997,7 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
                           <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded font-bold">פירוק</span>
                         )}
                         <label className="text-sm text-surface-600 font-medium">{t('equipment.nextVisit')}:</label>
-                        <DatePickerInput
+                        <CustomDatePicker
                           value={wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : ''}
                           onDateSelect={(date) => handleDateBlur(wo.id, date)}
                           disabled={savingDate === wo.id}
@@ -1023,40 +1023,117 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
   );
 }
 
-function DatePickerInput({ value, onDateSelect, disabled }: { value: string; onDateSelect: (date: string) => void; disabled?: boolean }) {
-  const [localValue, setLocalValue] = useState(value);
-  const inputRef = useRef<HTMLInputElement>(null);
+function CustomDatePicker({ value, onDateSelect, disabled }: { value: string; onDateSelect: (date: string) => void; disabled?: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [viewDate, setViewDate] = useState(() => value ? new Date(value) : new Date());
 
-  useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
+  const currentMonth = viewDate.getMonth();
+  const currentYear = viewDate.getFullYear();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+  const monthName = viewDate.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' });
+
+  const today = new Date();
+
+  const handlePrevMonth = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setViewDate(new Date(currentYear, currentMonth - 1, 1));
+  };
+
+  const handleNextMonth = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setViewDate(new Date(currentYear, currentMonth + 1, 1));
+  };
+
+  const handleDayClick = (day: number) => {
+    const newDate = new Date(currentYear, currentMonth, day);
+    const dateStr = newDate.toISOString().split('T')[0];
+    onDateSelect(dateStr);
+    setIsOpen(false);
+  };
+
+  const isSelected = (day: number) => {
+    if (!value) return false;
+    const d = new Date(value);
+    return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  };
+
+  const isToday = (day: number) => {
+    return today.getDate() === day && today.getMonth() === currentMonth && today.getFullYear() === currentYear;
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
-        setLocalValue(value);
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [value]);
+  }, [isOpen]);
+
+  const displayValue = value ? new Date(value).toLocaleDateString('he-IL') : '';
 
   return (
-    <input
-      ref={inputRef}
-      type="date"
-      value={localValue}
-      onChange={(e) => {
-        setLocalValue(e.target.value);
-        onDateSelect(e.target.value);
-      }}
-      onBlur={() => {
-        setLocalValue(value);
-      }}
-      disabled={disabled}
-      className="text-sm px-3 py-2 border border-surface-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white min-h-[44px]"
-    />
+    <div className="relative" ref={containerRef}>
+      <input
+        type="text"
+        readOnly
+        value={displayValue}
+        onClick={(e) => { e.stopPropagation(); if (!disabled) setIsOpen(!isOpen); }}
+        placeholder="בחר תאריך"
+        disabled={disabled}
+        className="text-sm px-3 py-2 border border-surface-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white min-h-[44px] w-32 cursor-pointer"
+      />
+      {isOpen && (
+        <div className="absolute top-full mt-1 bg-white border border-surface-200 rounded-lg shadow-lg p-2 z-50 w-64">
+          <div className="flex items-center justify-between mb-2">
+            <button type="button" onClick={handlePrevMonth} className="p-1.5 hover:bg-surface-100 rounded text-surface-600">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <span className="text-sm font-medium text-surface-800">{monthName}</span>
+            <button type="button" onClick={handleNextMonth} className="p-1.5 hover:bg-surface-100 rounded text-surface-600">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+          <div className="grid grid-cols-7 gap-0.5">
+            {['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'].map((d, i) => (
+              <div key={i} className="h-7 w-7 flex items-center justify-center text-xs text-surface-400 font-medium">
+                {d}
+              </div>
+            ))}
+            {Array.from({ length: firstDayOfMonth }, (_, i) => (
+              <div key={`empty-${i}`} className="h-7 w-7" />
+            ))}
+            {Array.from({ length: daysInMonth }, (_, i) => {
+              const day = i + 1;
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleDayClick(day); }}
+                  className={`h-7 w-7 text-xs rounded-full transition-colors ${
+                    isSelected(day) ? 'bg-primary-600 text-white' :
+                    isToday(day) ? 'bg-primary-100 text-primary-700 font-bold' :
+                    'hover:bg-surface-100 text-surface-700'
+                  }`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
