@@ -837,7 +837,7 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
   );
   const today = new Date();
   const daysMap: Record<string, number> = { 'week': 6, '2weeks': 13, 'month': 29, 'all': 29 };
-  const [dateRange] = useState({ start: today, days: daysMap[timeRange] || 6 });
+  const [dateRange, setDateRange] = useState({ start: today, days: daysMap[timeRange] || 6 });
   const [savingDate, setSavingDate] = useState<string | null>(null);
   const [editingDateId, setEditingDateId] = useState<string | null>(null);
   const [localWorkOrders, setLocalWorkOrders] = useState<WorkOrder[]>(workOrders);
@@ -847,6 +847,11 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
   useEffect(() => {
     setLocalWorkOrders(workOrders);
   }, [workOrders]);
+
+  // Update date range when timeRange filter changes
+  useEffect(() => {
+    setDateRange({ start: today, days: daysMap[timeRange] || 6 });
+  }, [timeRange]);
 
   // Debug: log when localWorkOrders changes
   useEffect(() => {
@@ -995,7 +1000,7 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
                         <input
                           type="date"
                           value={wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : ''}
-                          onChange={(e) => {
+                          onBlur={(e) => {
                             handleDateBlur(wo.id, e.target.value);
                           }}
                           disabled={savingDate === wo.id}
