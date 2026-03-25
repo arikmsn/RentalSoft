@@ -459,10 +459,10 @@ export function SitesListPage() {
                 </div>
               </div>
             )}
-            {locationError && (
+            {filters.nearMe && locationError && (
               <p className="text-xs text-danger-600 mt-1">{locationError}</p>
             )}
-            {filters.nearMe && !userLocation && !locationLoading && (
+            {filters.nearMe && !userLocation && !locationLoading && locationError && (
               <button
                 onClick={requestUserLocation}
                 className="text-xs text-primary-600 underline mt-1"
