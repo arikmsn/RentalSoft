@@ -913,10 +913,6 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
 
   return (
     <div key={refreshKey} className="bg-white rounded-2xl p-4 shadow-card">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <h2 className="text-lg font-semibold text-surface-800">{t('workOrders.weeklyCalendar')}</h2>
-      </div>
-
       <div className="space-y-4">
         {days.map((day, idx) => {
           const dayWorkOrders = getWorkOrdersForDay(day.date);

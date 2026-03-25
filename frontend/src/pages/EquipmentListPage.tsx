@@ -225,31 +225,55 @@ export function EquipmentListPage() {
       {/* Unified Filter Panel */}
       {showFilters && (
         <div className="bg-white rounded-2xl p-4 shadow-card border border-surface-100">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.status')}</label>
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-              >
-                <option value="all">{t('equipment.filters.all')}</option>
-                <option value="available">{t('equipment.filters.available')}</option>
-                <option value="assigned_to_work">{t('equipment.filters.atWorkorder')}</option>
-              </select>
+          {/* Status Filter */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.status')}</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: 'all', label: t('equipment.filters.all') },
+                { key: 'available', label: t('equipment.filters.available') },
+                { key: 'assigned_to_work', label: t('equipment.filters.atWorkorder') },
+              ].map((option) => (
+                <button
+                  key={option.key}
+                  onClick={() => setFilters({ ...filters, status: option.key })}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    filters.status === option.key
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.condition')}</label>
-              <select
-                value={filters.condition}
-                onChange={(e) => setFilters({ ...filters, condition: e.target.value })}
-                className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
-              >
-                <option value="all">{t('equipment.filters.all')}</option>
-                <option value="OK">{t('equipment.conditionState.ok')}</option>
-                <option value="NOT_OK">{t('equipment.conditionState.notOk')}</option>
-              </select>
+          </div>
+
+          {/* Condition Filter */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.condition')}</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: 'all', label: t('equipment.filters.all') },
+                { key: 'OK', label: t('equipment.conditionState.ok') },
+                { key: 'NOT_OK', label: t('equipment.conditionState.notOk') },
+              ].map((option) => (
+                <button
+                  key={option.key}
+                  onClick={() => setFilters({ ...filters, condition: option.key })}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    filters.condition === option.key
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.type')}</label>
               <select
