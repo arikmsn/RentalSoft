@@ -184,6 +184,7 @@ export function WorkOrdersListPage() {
       setFilters(prev => ({ ...prev, nearMe: false, userLat: undefined, userLng: undefined }));
       setLocationError(null);
     } else {
+      setLocationError(null);
       setFilters(prev => ({ ...prev, nearMe: true }));
       if (!userLocation) {
         requestUserLocation();
