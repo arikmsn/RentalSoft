@@ -85,8 +85,8 @@
     "filters": {
       "title": "פילטרים",
       "all": "הכל",
-      "available": "פנוי",
-      "atWorkorder": "בעבודה",
+      "available": "זמין",
+      "atWorkorder": "משויך לעבודה",
       "atCustomer": "אצל לקוח",
       "inWarehouse": "במחסן",
       "inRepair": "בתיקון",

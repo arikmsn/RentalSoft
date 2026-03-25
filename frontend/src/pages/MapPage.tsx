@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import { siteService } from '../services/siteService';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -75,6 +75,22 @@ const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green' | null, sel
   });
 };
 
+function MapEventHandler({ onBoundsChange }: { onBoundsChange: (bounds: L.LatLngBounds) => void }) {
+  useMapEvents({
+    moveend: (e) => {
+      if (e.target) {
+        onBoundsChange(e.target.getBounds());
+      }
+    },
+    zoomend: (e) => {
+      if (e.target) {
+        onBoundsChange(e.target.getBounds());
+      }
+    },
+  });
+  return null;
+}
+
 export function MapPage() {
   const { t } = useTranslation();
   const [sites, setSites] = useState<SiteWithStatus[]>([]);
@@ -82,9 +98,14 @@ export function MapPage() {
   const [showSiteList, setShowSiteList] = useState(false); // Start with map visible on mobile
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const hasInitializedBounds = useRef(false);
+
+  const handleBoundsChange = useCallback((bounds: L.LatLngBounds) => {
+    setMapBounds(bounds);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -133,6 +154,15 @@ export function MapPage() {
       );
     })
     .sort((a, b) => a.city.localeCompare(b.city, 'he'));
+
+  const viewportFilteredSites = mapBounds
+    ? filteredSites.filter(site => {
+        if (!site.latitude || !site.longitude) return false;
+        const lat = Number(site.latitude);
+        const lng = Number(site.longitude);
+        return mapBounds.contains([lat, lng]);
+      })
+    : filteredSites;
 
   const handleSiteClick = (site: SiteWithStatus) => {
     console.log('[Map] handleSiteClick:', site.id, site.name);
@@ -275,7 +305,7 @@ export function MapPage() {
           onClick={() => setShowSiteList(!showSiteList)}
           className="lg:hidden px-4 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-medium min-h-[44px] shadow-sm hover:shadow-md transition-all"
         >
-          {showSiteList ? t('map.title') : `📋 ${filteredSites.length}`}
+          {showSiteList ? t('map.title') : `📋 ${showSiteList && mapBounds ? viewportFilteredSites.length : filteredSites.length}`}
         </button>
       </div>
 
@@ -302,6 +332,7 @@ export function MapPage() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            <MapEventHandler onBoundsChange={handleBoundsChange} />
             {/* Site Markers */}
             {filteredSites.map((site) => {
               const rawLat = site.latitude;
@@ -397,9 +428,14 @@ export function MapPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="w-full px-4 py-3 mb-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm bg-white text-surface-800 placeholder:text-surface-400"
             />
-            <h2 className="font-semibold mb-3 text-surface-800">{t('sites.title')} ({filteredSites.length})</h2>
+            <h2 className="font-semibold mb-3 text-surface-800">
+              {t('sites.title')} ({showSiteList && mapBounds ? viewportFilteredSites.length : filteredSites.length})
+              {showSiteList && mapBounds && viewportFilteredSites.length !== filteredSites.length && (
+                <span className="text-xs text-surface-500 mr-2">(מסונן לפי המפה)</span>
+              )}
+            </h2>
             <div className="space-y-2">
-              {filteredSites.map((site) => (
+              {(showSiteList && mapBounds ? viewportFilteredSites : filteredSites).map((site) => (
                 <div
                   key={site.id}
                   onClick={() => handleSiteClick(site)}

@@ -110,8 +110,8 @@ export function MainLayout() {
         </div>
       )}
 
-      {/* Main content - with left margin on large screens */}
-      <main className="lg:ms-64 p-4 sm:p-5 pb-24 sm:pb-5 min-h-[calc(100vh-64px)]">
+      {/* Main content - with left margin on large screens, top padding for fixed header on mobile */}
+      <main className="lg:ms-64 p-4 sm:p-5 pb-24 sm:pb-5 pt-16 lg:pt-5 min-h-screen">
         <div className="animate-fade-in">
           <Outlet />
         </div>

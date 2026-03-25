@@ -305,7 +305,7 @@ export function SitesListPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.phone1')}</label>
-            <input type="tel" value={data.contact1Phone} onChange={(e) => setData({ ...data, contact1Phone: e.target.value })} className={inputClasses} />
+            <input type="tel" autoComplete="tel" value={data.contact1Phone} onChange={(e) => setData({ ...data, contact1Phone: e.target.value })} className={inputClasses} />
           </div>
 
           {/* Highlight (edit only) */}
