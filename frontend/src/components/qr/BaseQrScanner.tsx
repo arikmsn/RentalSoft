@@ -13,26 +13,66 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
   const isRunningRef = useRef(false);
   const regionId = 'qr-reader-target';
 
-  const stopScanner = useCallback(async () => {
-    console.log('[QR] stopScanner called, isRunning:', isRunningRef.current);
+  // Helper function to force stop all camera tracks
+  const forceStopAllCameraTracks = useCallback(() => {
+    console.log('[QR] forceStopAllCameraTracks called');
     
-    // Fallback: directly stop any camera tracks we can find
-    try {
-      const videoEl = document.getElementById(regionId);
-      if (videoEl) {
-        const stream = (videoEl as any).srcObject;
+    // Method 1: Try to find video element by region ID
+    const regionEl = document.getElementById(regionId);
+    if (regionEl) {
+      const videos = regionEl.querySelectorAll('video');
+      videos.forEach((video) => {
+        const stream = (video as any).srcObject;
         if (stream && stream instanceof MediaStream) {
-          console.log('[QR] Directly stopping MediaStream tracks');
+          console.log('[QR] Found video in region, stopping tracks');
           stream.getTracks().forEach((track: MediaStreamTrack) => {
             console.log('[QR] Stopping track:', track.kind);
             track.stop();
           });
-          (videoEl as any).srcObject = null;
+          (video as any).srcObject = null;
         }
-      }
-    } catch (e) {
-      console.warn('[QR] Error stopping tracks directly:', e);
+      });
     }
+
+    // Method 2: Query all video elements on page with active streams
+    const allVideos = document.querySelectorAll('video');
+    allVideos.forEach((video) => {
+      try {
+        const stream = (video as any).srcObject;
+        if (stream && stream instanceof MediaStream && stream.getTracks().length > 0) {
+          console.log('[QR] Found active video element, stopping tracks');
+          stream.getTracks().forEach((track: MediaStreamTrack) => {
+            console.log('[QR] Stopping track:', track.kind);
+            track.stop();
+          });
+          (video as any).srcObject = null;
+        }
+      } catch (e) {
+        console.warn('[QR] Error checking video element:', e);
+      }
+    });
+
+    // Method 3: Use getUserMedia to get any existing stream and stop it
+    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      .then((stream) => {
+        console.log('[QR] Found active getUserMedia stream, stopping tracks');
+        stream.getTracks().forEach((track) => {
+          console.log('[QR] Stopping track:', track.kind);
+          track.stop();
+        });
+      })
+      .catch(() => {
+        // No active stream found, that's fine
+      });
+    
+    console.log('[QR] forceStopAllCameraTracks completed');
+  }, []);
+
+  const stopScanner = useCallback(async () => {
+    console.log('[QR] stopScanner called, isRunning:', isRunningRef.current);
+    
+    // First: Force stop all camera tracks directly (before html5-qrcode cleanup)
+    forceStopAllCameraTracks();
     
     if (!qrRef.current) {
       console.log('[QR] No scanner instance');
@@ -41,6 +81,7 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
 
     const scanner = qrRef.current;
     
+    // Try to stop html5-qrcode scanner
     try {
       if (isRunningRef.current) {
         console.log('[QR] Calling scanner.stop()');
@@ -48,20 +89,26 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
         await scanner.stop();
         console.log('[QR] scanner.stop() completed');
       }
-    } catch (err) {
-      console.warn('[QR] Error stopping scanner:', err);
+    } catch (err: any) {
+      console.warn('[QR] Error stopping scanner:', err?.message || err);
+      // Even if stop fails, continue with cleanup
     }
 
+    // Try to clear html5-qrcode
     try {
       console.log('[QR] Calling scanner.clear()');
       await scanner.clear();
       console.log('[QR] scanner.clear() completed');
-    } catch (err) {
-      console.warn('[QR] Error clearing scanner:', err);
+    } catch (err: any) {
+      console.warn('[QR] Error clearing scanner:', err?.message || err);
+      // If clear fails because scan is ongoing, that's ok - we already stopped tracks
     }
     
     qrRef.current = null;
-  }, []);
+    
+    // Final: Force stop all camera tracks again as safety net
+    forceStopAllCameraTracks();
+  }, [forceStopAllCameraTracks]);
 
   const handleScan = useCallback((decodedText: string) => {
     console.log('[QR] Scanned:', decodedText);
@@ -134,6 +181,9 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
       mounted = false;
       
       const cleanup = async () => {
+        // First: Force stop all camera tracks
+        forceStopAllCameraTracks();
+        
         if (scannerInstance && isRunningRef.current) {
           try {
             isRunningRef.current = false;
@@ -152,12 +202,15 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
           scannerInstance = null;
           qrRef.current = null;
         }
+        
+        // Final: Force stop all camera tracks as safety net
+        forceStopAllCameraTracks();
         console.log('[QR] Cleanup done');
       };
       
       cleanup();
     };
-  }, [handleScan]);
+  }, [handleScan, forceStopAllCameraTracks]);
 
   // Handle app going to background
   useEffect(() => {
