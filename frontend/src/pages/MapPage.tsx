@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import { siteService } from '../services/siteService';
+import { computeWorkOrderStatus } from '../utils/date';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -194,11 +195,8 @@ export function MapPage() {
   // Calculate status color for a site (based on work orders)
   const getSiteStatusColor = (site: SiteWithStatus): 'black' | 'red' | 'orange' | 'green' => {
     if (!site.earliestRemovalDate) return 'green';
-    const days = Math.ceil((new Date(site.earliestRemovalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (days < 0) return 'black';
-    if (days <= 3) return 'red';
-    if (days <= 7) return 'orange';
-    return 'green';
+    const { statusColor } = computeWorkOrderStatus(site.earliestRemovalDate);
+    return statusColor;
   };
 
   // Count active filters

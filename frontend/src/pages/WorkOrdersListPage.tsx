@@ -7,7 +7,7 @@ import { workOrderService } from '../services/workOrderService';
 import { siteService } from '../services/siteService';
 import { api } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
-import { formatDate } from '../utils/date';
+import { formatDate, computeWorkOrderStatus } from '../utils/date';
 import { SiteForm, emptySiteForm } from '../components/SiteForm';
 import { CustomDatePicker } from '../components/CustomDatePicker';
 import type { SiteFormData } from '../components/SiteForm';
@@ -55,12 +55,8 @@ const statusDotColors: Record<string, string> = {
 };
 
 function getStatusColor(wo: WorkOrder): 'black' | 'red' | 'orange' | 'green' {
-  if (!wo.plannedRemovalDate) return 'green';
-  const days = Math.ceil((new Date(wo.plannedRemovalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  if (days < 0) return 'black';
-  if (days <= 3) return 'red';
-  if (days <= 7) return 'orange';
-  return 'green';
+  const { statusColor } = computeWorkOrderStatus(wo.plannedRemovalDate);
+  return statusColor;
 }
 
 export function WorkOrdersListPage() {
