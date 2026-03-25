@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Multiselect } from '../components/Multiselect';
 import type { Site } from '../types';
 import { siteService } from '../services/siteService';
 import { useAuthStore } from '../stores/authStore';
@@ -382,31 +383,13 @@ export function SitesListPage() {
 
           {/* Cities Filter */}
           {cities.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-surface-700 mb-2">ערים</h3>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                {cities.slice(0, 20).map((city) => (
-                  <button
-                    key={city}
-                    onClick={() => {
-                      setFilters(prev => ({
-                        ...prev,
-                        cities: prev.cities.includes(city)
-                          ? prev.cities.filter(c => c !== city)
-                          : [...prev.cities, city]
-                      }));
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                      filters.cities.includes(city)
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
-                    }`}
-                  >
-                    {city}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <Multiselect
+              label="ערים"
+              options={cities}
+              selected={filters.cities}
+              onChange={(selected) => setFilters(prev => ({ ...prev, cities: selected }))}
+              placeholder="בחר ערים..."
+            />
           )}
 
           {/* Favorites Filter */}

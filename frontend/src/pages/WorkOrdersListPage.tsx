@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
+import { Multiselect } from '../components/Multiselect';
 import type { WorkOrder, WorkOrderStatus, Site } from '../types';
 import { workOrderService } from '../services/workOrderService';
 import { siteService } from '../services/siteService';
@@ -483,31 +484,13 @@ export function WorkOrdersListPage() {
 
           {/* Cities Filter */}
           {cities.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-surface-700 mb-2">ערים</h3>
-              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                {cities.slice(0, 20).map((city) => (
-                  <button
-                    key={city}
-                    onClick={() => {
-                      setFilters(prev => ({
-                        ...prev,
-                        cities: prev.cities.includes(city)
-                          ? prev.cities.filter(c => c !== city)
-                          : [...prev.cities, city]
-                      }));
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                      filters.cities.includes(city)
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
-                    }`}
-                  >
-                    {city}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <Multiselect
+              label="ערים"
+              options={cities}
+              selected={filters.cities}
+              onChange={(selected) => setFilters(prev => ({ ...prev, cities: selected }))}
+              placeholder="בחר ערים..."
+            />
           )}
 
           {/* Time Range Filter */}
@@ -589,44 +572,29 @@ export function WorkOrdersListPage() {
       )}
 
       {/* View mode toggle - mobile: top-left, desktop: right side */}
-      <div className="block lg:hidden mb-3">
-        <div className="flex gap-2 bg-white border border-surface-200 rounded-xl p-1 w-fit">
+      <div className="flex justify-center mb-4">
+        <div className="inline-flex bg-surface-100 p-1 rounded-full">
           <button
             onClick={() => { setViewMode('list'); setSearchParams({ view: 'list' }); }}
-            className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
-              viewMode === 'list' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
+            className={`px-6 py-2 rounded-full transition-all text-sm font-semibold ${
+              viewMode === 'list' 
+                ? 'bg-primary-600 text-white shadow-md' 
+                : 'text-surface-600 hover:text-surface-800'
             }`}
           >
             📋 {t('workOrders.viewList')}
           </button>
           <button
             onClick={() => { setViewMode('calendar'); setSearchParams({ view: 'calendar' }); }}
-            className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
-              viewMode === 'calendar' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
+            className={`px-6 py-2 rounded-full transition-all text-sm font-semibold ${
+              viewMode === 'calendar' 
+                ? 'bg-primary-600 text-white shadow-md' 
+                : 'text-surface-600 hover:text-surface-800'
             }`}
           >
             📅 {t('workOrders.viewCalendar')}
           </button>
         </div>
-      </div>
-
-      <div className="hidden lg:flex gap-2 bg-white border border-surface-200 rounded-xl p-1 ml-auto w-fit">
-        <button
-          onClick={() => { setViewMode('list'); setSearchParams({ view: 'list' }); }}
-          className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
-            viewMode === 'list' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
-          }`}
-        >
-          📋 {t('workOrders.viewList')}
-        </button>
-        <button
-          onClick={() => { setViewMode('calendar'); setSearchParams({ view: 'calendar' }); }}
-          className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium ${
-            viewMode === 'calendar' ? 'bg-primary-100 text-primary-700' : 'text-surface-600 hover:bg-surface-50'
-          }`}
-        >
-          📅 {t('workOrders.viewCalendar')}
-        </button>
       </div>
 
       {viewMode === 'calendar' ? (
