@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { equipmentService } from '../services/equipmentService';
 import { api } from '../services/api';
 import { formatDate } from '../utils/date';
+import { useAuthStore } from '../stores/authStore';
 
 interface SettingsEquipmentLocation {
   id: string;
@@ -29,6 +30,7 @@ export function EquipmentDetailsPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   
   const [equipment, setEquipment] = useState<any>(null);
   const [locations, setLocations] = useState<SettingsEquipmentLocation[]>([]);
@@ -346,8 +348,13 @@ export function EquipmentDetailsPage() {
       {showNotOkConfirm && (
         <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-float">
-            <h2 className="text-xl font-bold mb-4 text-surface-800">העברת ציוד למצב לא תקין</h2>
-            <p className="text-surface-600 mb-6">בטוח שברצונך להעביר את הציוד למצב 'לא תקין'? במידה ורלוונטי, הציוד יוסר מהעבודה המשויכת לו ויוחזר למצב 'זמין'.</p>
+            <h2 className="text-xl font-bold mb-4 text-surface-800">העברת ציוד למצב 'לא תקין'</h2>
+            <p className="text-surface-600 mb-6">
+              {equipment.activeWorkOrder 
+                ? "בטוח שברצונך להעביר את הציוד למצב 'לא תקין'? הציוד יוסר מהעבודה המשויכת לו."
+                : "בטוח שברצונך להעביר את הציוד למצב 'לא תקין'?"
+              }
+            </p>
             <div className="flex gap-3">
               <button
                 onClick={() => {
@@ -360,15 +367,50 @@ export function EquipmentDetailsPage() {
               <button
                 onClick={async () => {
                   setShowNotOkConfirm(false);
-                  setFormData({ ...formData, conditionState: 'NOT_OK' });
-                  // Unassign from work if needed
-                  if (equipment.activeWorkOrder) {
-                    try {
+                  setSaving(true);
+                  try {
+                    // Unassign from work if needed
+                    if (equipment.activeWorkOrder) {
                       await api.post(`/workorders/${equipment.activeWorkOrder.id}/remove-equipment`, { equipmentId: equipment.id });
-                      await equipmentService.update(equipment.id, { status: 'available' });
-                    } catch (err) {
-                      console.error('Failed to unassign equipment:', err);
                     }
+                    
+                    // Update equipment to NOT_OK and clear location
+                    await equipmentService.update(equipment.id, { 
+                      conditionState: 'NOT_OK',
+                      currentLocationId: null,
+                      status: equipment.activeWorkOrder ? 'available' : undefined,
+                    });
+                    
+                    // Add system note
+                    const now = new Date();
+                    const dateStr = `${now.getDate().toString().padStart(2, '0')}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                    const userName = user?.name || 'מערכת';
+                    try {
+                      await api.post(`/equipment/${equipment.id}/notes`, {
+                        text: `הועבר למצב 'לא תקין' על ידי ${userName} בתאריך ${dateStr}`,
+                      });
+                    } catch (noteErr) {
+                      console.warn('Failed to add system note:', noteErr);
+                    }
+                    
+                    // Refresh equipment data
+                    const updated = await equipmentService.getById(equipment.id);
+                    setEquipment(updated);
+                    setFormData({
+                      ...formData,
+                      conditionState: 'NOT_OK',
+                      currentLocationId: '',
+                    });
+                    
+                    // Refresh notes
+                    const notesData = await api.get<EquipmentNote[]>(`/equipment/${equipment.id}/notes`).then(res => res.data);
+                    setNotes(notesData || []);
+                    
+                  } catch (err) {
+                    console.error('Failed to update equipment:', err);
+                    alert('Failed to update equipment');
+                  } finally {
+                    setSaving(false);
                   }
                 }}
                 className="flex-1 px-4 py-3 bg-danger-600 text-white rounded-xl hover:bg-danger-700 font-medium transition-all duration-200"

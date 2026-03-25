@@ -9,11 +9,44 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
   console.log('[QR] BaseQrScanner rendered');
   
   const [status, setStatus] = useState('Initializing...');
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const qrRef = useRef<Html5Qrcode | null>(null);
   const isRunningRef = useRef(false);
   const isMountedRef = useRef(true);
   const isCleanupRef = useRef(false);
   const regionId = 'qr-reader-target';
+
+  const stopScanner = useCallback(async () => {
+    console.log('[QR] stopScanner called');
+    const scanner = qrRef.current;
+    if (!scanner) {
+      console.log('[QR] No scanner instance to stop');
+      return;
+    }
+
+    try {
+      if (isRunningRef.current) {
+        console.log('[QR] Stopping scanner...');
+        isRunningRef.current = false;
+        await scanner.stop();
+        console.log('[QR] Scanner stopped');
+      }
+      
+      // Clear the scanner to release video element
+      if (!isCleanupRef.current) {
+        isCleanupRef.current = true;
+        try {
+          await scanner.clear();
+          console.log('[QR] Scanner cleared');
+        } catch (e) {
+          console.warn('[QR] Error clearing scanner:', e);
+        }
+      }
+    } catch (err) {
+      console.warn('[QR] Error stopping scanner:', err);
+    } finally {
+      qrRef.current = null;
+    }
+  }, []);
 
   const handleScan = useCallback((decodedText: string) => {
     console.log('[QR] BaseQrScanner found:', decodedText);
@@ -42,7 +75,7 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
           return;
         }
         
-        scannerRef.current = new Html5Qrcode(regionId, {
+        qrRef.current = new Html5Qrcode(regionId, {
           formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
           verbose: false,
         });
@@ -50,7 +83,7 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
         setStatus('Requesting camera...');
         console.log('[QR] Starting scanner...');
 
-        await scannerRef.current.start(
+        await qrRef.current.start(
           { facingMode: 'environment' },
           {
             fps: 10,
@@ -83,55 +116,31 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
 
     initScanner();
 
+    // Cleanup function
     return () => {
       console.log('[QR] BaseQrScanner cleanup starting');
       mounted = false;
-      isCleanupRef.current = true;
       isMountedRef.current = false;
-      
-      // Safely stop the scanner without throwing
-      const stopScanner = async () => {
-        if (scannerRef.current) {
-          const scanner = scannerRef.current;
-          scannerRef.current = null;
-          
-          // Only try to stop if we actually started
-          if (isRunningRef.current) {
-            isRunningRef.current = false;
-            try {
-              await scanner.stop();
-              // Additional cleanup - stop all media tracks
-              const videoElement = document.getElementById(`${regionId}`);
-              if (videoElement) {
-                const stream = (videoElement as any).srcObject;
-                if (stream) {
-                  stream.getTracks().forEach((track: MediaStreamTrack) => track.stop());
-                  (videoElement as any).srcObject = null;
-                }
-              }
-            } catch (err) {
-              // Ignore all errors during cleanup
-              console.warn('[QR] Cleanup error (ignored):', err);
-            }
-          }
-        }
-        
-        // Force stop any remaining camera tracks globally
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            audio: false,
-            video: { facingMode: 'environment' }
-          });
-          stream.getTracks().forEach(track => track.stop());
-        } catch (e) {
-          console.warn('[QR] Could not stop camera:', e);
-        }
-      };
-      
+      isCleanupRef.current = true;
       stopScanner();
       console.log('[QR] BaseQrScanner cleanup done');
     };
-  }, [handleScan]);
+  }, [handleScan, stopScanner]);
+
+  // Handle app going to background
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('[QR] App hidden, stopping scanner');
+        stopScanner();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [stopScanner]);
 
   return (
     <div className="w-full">
@@ -144,4 +153,10 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
       />
     </div>
   );
+};
+
+// Export stopScanner for external use if needed
+export const stopQrScanner = async () => {
+  // This can be used by parent components to stop the scanner
+  console.log('[QR] External stop requested');
 };
