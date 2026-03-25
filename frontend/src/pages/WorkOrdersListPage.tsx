@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { WorkOrder, WorkOrderStatus, Site } from '../types';
@@ -1026,7 +1026,7 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
 function CalendarDatePicker({ value, onDateSelect, disabled }: { value: string; onDateSelect: (date: string) => void; disabled?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [viewDate, setViewDate] = useState(() => value ? new Date(value) : new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(value ? new Date(value) : null);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   const today = new Date();
   const currentMonth = viewDate.getMonth();
@@ -1053,87 +1053,102 @@ function CalendarDatePicker({ value, onDateSelect, disabled }: { value: string; 
     const newDate = new Date(currentYear, currentMonth, day);
     const dateStr = newDate.toISOString().split('T')[0];
     onDateSelect(dateStr);
-    setSelectedDate(newDate);
     setIsOpen(false);
   };
 
+  const handleOpen = () => {
+    if (!disabled) {
+      setViewDate(value ? new Date(value) : new Date());
+      setIsOpen(true);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
   const isSelected = (day: number) => {
-    return selectedDate && 
-      selectedDate.getDate() === day && 
-      selectedDate.getMonth() === currentMonth && 
-      selectedDate.getFullYear() === currentYear;
+    if (!value) return false;
+    const d = new Date(value);
+    return d.getDate() === day && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
   };
 
   const isToday = (day: number) => {
-    return today.getDate() === day && 
-      today.getMonth() === currentMonth && 
-      today.getFullYear() === currentYear;
+    return today.getDate() === day && today.getMonth() === currentMonth && today.getFullYear() === currentYear;
   };
 
-  const days = [];
-  for (let i = 0; i < firstDayOfMonth; i++) {
-    days.push(<div key={`empty-${i}`} className="h-8 w-8" />);
-  }
-  for (let day = 1; day <= daysInMonth; day++) {
-    days.push(
-      <button
-        key={day}
-        type="button"
-        onClick={() => handleDayClick(day)}
-        className={`h-8 w-8 text-sm rounded-full transition-colors ${
-          isSelected(day) 
-            ? 'bg-primary-600 text-white' 
-            : isToday(day)
-              ? 'bg-primary-100 text-primary-700 font-bold'
-              : 'hover:bg-surface-100 text-surface-700'
-        }`}
-      >
-        {day}
-      </button>
-    );
-  }
-
   return (
-    <div className="relative">
+    <div className="relative" ref={popupRef}>
       <input
         type="text"
         readOnly
         value={value ? new Date(value).toLocaleDateString('he-IL') : ''}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={handleOpen}
         placeholder="בחר תאריך"
         disabled={disabled}
         className="text-sm px-3 py-2 border border-surface-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white min-h-[44px] w-32 cursor-pointer"
       />
       {isOpen && (
-        <div className="absolute top-full mt-1 bg-white border border-surface-200 rounded-lg shadow-lg p-3 z-50">
-          <div className="flex items-center justify-between mb-3">
+        <div className="absolute top-full mt-1 bg-white border border-surface-200 rounded-lg shadow-lg p-2 sm:p-3 z-50 w-64 sm:w-72">
+          <div className="flex items-center justify-between mb-2">
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="p-1 hover:bg-surface-100 rounded"
+              className="p-1.5 hover:bg-surface-100 rounded text-surface-600"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <span className="text-sm font-medium">{monthName}</span>
+            <span className="text-sm font-medium text-surface-800">{monthName}</span>
             <button
               type="button"
               onClick={handleNextMonth}
-              className="p-1 hover:bg-surface-100 rounded"
+              className="p-1.5 hover:bg-surface-100 rounded text-surface-600"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
           </div>
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
             {['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'].map((d, i) => (
-              <div key={i} className="h-8 w-8 flex items-center justify-center text-xs text-surface-400 font-medium">
+              <div key={i} className="h-7 sm:h-8 w-7 sm:w-8 flex items-center justify-center text-xs text-surface-400 font-medium">
                 {d}
               </div>
             ))}
-            {days}
+            {Array.from({ length: firstDayOfMonth }, (_, i) => (
+              <div key={`empty-${i}`} className="h-7 sm:h-8 w-7 sm:w-8" />
+            ))}
+            {Array.from({ length: daysInMonth }, (_, i) => {
+              const day = i + 1;
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => handleDayClick(day)}
+                  className={`h-7 w-7 sm:h-8 sm:w-8 text-xs sm:text-sm rounded-full transition-colors ${
+                    isSelected(day) 
+                      ? 'bg-primary-600 text-white' 
+                      : isToday(day)
+                        ? 'bg-primary-100 text-primary-700 font-bold'
+                        : 'hover:bg-surface-100 text-surface-700'
+                  }`}
+                >
+                  {day}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
