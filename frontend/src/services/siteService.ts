@@ -22,6 +22,7 @@ export interface CreateSiteRequest {
   contact2Phone?: string;
   rating?: number;
   isHighlighted?: boolean;
+  isFavorite?: boolean;
   latitude?: number;
   longitude?: number;
 }

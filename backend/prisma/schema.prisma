@@ -124,6 +124,7 @@ model Site {
   contact2Phone  String?
   rating         Int?
   isHighlighted  Boolean  @default(false)
+  isFavorite     Boolean  @default(false)
   isActive       Boolean  @default(true)
   latitude       Float?
   longitude      Float?

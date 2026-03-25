@@ -583,6 +583,7 @@ export function MapPage() {
               onClick={() => {
                 if (filters.nearMe) {
                   setFilters(prev => ({ ...prev, nearMe: false }));
+                  setLocationError(null);
                 } else {
                   if (!userLocation) {
                     requestUserLocation(false);

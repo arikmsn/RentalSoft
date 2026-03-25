@@ -59,6 +59,7 @@ export interface Site {
   contact2Phone?: string;
   rating?: number;
   isHighlighted: boolean;
+  isFavorite?: boolean;
   isActive: boolean;
   latitude?: number;
   longitude?: number;

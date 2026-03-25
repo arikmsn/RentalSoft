@@ -16,6 +16,7 @@ interface WorkOrderFilters {
   colors: ('black' | 'red' | 'orange' | 'green')[];
   nearMe: boolean;
   radiusKm: number;
+  timeRange: 'week' | '2weeks' | 'month' | 'all';
   userLat?: number;
   userLng?: number;
 }
@@ -26,6 +27,7 @@ const defaultFilters: WorkOrderFilters = {
   colors: [],
   nearMe: false,
   radiusKm: 10,
+  timeRange: 'all',
 };
 
 const emptyFilters: WorkOrderFilters = {
@@ -34,6 +36,7 @@ const emptyFilters: WorkOrderFilters = {
   colors: [],
   nearMe: false,
   radiusKm: 10,
+  timeRange: 'all',
 };
 
 const statusColors: Record<WorkOrderStatus, string> = {
@@ -178,6 +181,7 @@ export function WorkOrdersListPage() {
   const toggleNearMe = () => {
     if (filters.nearMe) {
       setFilters(prev => ({ ...prev, nearMe: false }));
+      setLocationError(null);
     } else {
       if (!userLocation) {
         requestUserLocation();
@@ -314,6 +318,26 @@ export function WorkOrdersListPage() {
         (wo.type || '').toLowerCase().includes(searchLower)
       );
     })
+    .filter((wo) => {
+      // Time range filter
+      if (filters.timeRange === 'all') return true;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const targetDate = wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate) : (wo.plannedDate ? new Date(wo.plannedDate) : null);
+      if (!targetDate) return true;
+      targetDate.setHours(0, 0, 0, 0);
+      
+      const diffDays = Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (filters.timeRange === 'week') {
+        return diffDays >= 0 && diffDays <= 7;
+      } else if (filters.timeRange === '2weeks') {
+        return diffDays >= 0 && diffDays <= 14;
+      } else if (filters.timeRange === 'month') {
+        return diffDays >= 0 && diffDays <= 30;
+      }
+      return true;
+    })
     .sort((a, b) => {
       // Sort by next visit date (plannedRemovalDate) ascending - earliest first
       const dateA = a.plannedRemovalDate ? new Date(a.plannedRemovalDate).getTime() : 0;
@@ -330,7 +354,8 @@ export function WorkOrdersListPage() {
     filters.status.length + 
     filters.cities.length + 
     filters.colors.length + 
-    (filters.nearMe ? 1 : 0);
+    (filters.nearMe ? 1 : 0) +
+    (filters.timeRange !== 'all' ? 1 : 0);
 
   if (loading) {
     return (
@@ -477,6 +502,31 @@ export function WorkOrdersListPage() {
               </div>
             </div>
           )}
+
+          {/* Time Range Filter */}
+          <div>
+            <h3 className="text-sm font-medium text-surface-700 mb-2">טווח זמן</h3>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: 'all' as const, label: 'הכל' },
+                { key: 'week' as const, label: 'שבוע' },
+                { key: '2weeks' as const, label: 'שבועיים' },
+                { key: 'month' as const, label: 'חודש' },
+              ].map((range) => (
+                <button
+                  key={range.key}
+                  onClick={() => setFilters(prev => ({ ...prev, timeRange: range.key }))}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    filters.timeRange === range.key
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                  }`}
+                >
+                  {range.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Near Me Filter */}
           <div>
