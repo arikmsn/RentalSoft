@@ -347,7 +347,7 @@ export function WorkOrdersListPage() {
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-row gap-3">
         <input
           type="text"
           placeholder={t('app.search')}
@@ -357,10 +357,10 @@ export function WorkOrdersListPage() {
         />
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`px-4 py-3 rounded-xl transition-all font-medium text-sm flex items-center gap-2 ${
+          className={`px-4 py-3 border rounded-xl transition-all flex items-center gap-2 shrink-0 min-h-[48px] ${
             showFilters || activeFilterCount > 0
-              ? 'bg-primary-600 text-white shadow-sm'
-              : 'bg-white text-surface-600 border border-surface-200 hover:bg-surface-50'
+              ? 'border-primary-500 bg-primary-50 text-primary-700'
+              : 'border-surface-200 bg-white text-surface-700 hover:bg-surface-50'
           }`}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -368,9 +368,7 @@ export function WorkOrdersListPage() {
           </svg>
           סינון
           {activeFilterCount > 0 && (
-            <span className="bg-white text-primary-600 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-              {activeFilterCount}
-            </span>
+            <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
           )}
         </button>
       </div>

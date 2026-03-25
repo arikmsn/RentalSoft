@@ -97,8 +97,8 @@
     "progress": {
       "green": "יש זמן",
       "yellow": "בינוני",
-      "orange": "קרוב לפירוק",
-      "red": "באיחור"
+      "orange": "מתקרב",
+      "red": "בימים הקרובים"
     },
     "types": {
       "largeMachine": "מכונה גדולה",

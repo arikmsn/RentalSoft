@@ -1,10 +1,26 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import { siteService } from '../services/siteService';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+
+interface MapFilters {
+  status: ('open' | 'in_progress' | 'completed')[];
+  cities: string[];
+  colors: ('black' | 'red' | 'orange' | 'green')[];
+  nearMe: boolean;
+  userLat?: number;
+  userLng?: number;
+}
+
+const emptyFilters: MapFilters = {
+  status: [],
+  cities: [],
+  colors: [],
+  nearMe: false,
+};
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -96,13 +112,92 @@ export function MapPage() {
   const { t } = useTranslation();
   const [sites, setSites] = useState<SiteWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSiteList, setShowSiteList] = useState(false); // Start with map visible on mobile
+  const [showSiteList, setShowSiteList] = useState(false);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const hasInitializedBounds = useRef(false);
+
+  // Filters state
+  const [filters, setFilters] = useState<MapFilters>(emptyFilters);
+  const [showFilters, setShowFilters] = useState(false);
+  const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Calculate distance between two coordinates (km)
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // Request user location
+  const requestUserLocation = (centerMap = true) => {
+    if (!navigator.geolocation) {
+      setLocationError('הדפדפן אינו תומך במיקום');
+      return;
+    }
+    setLocationLoading(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        setUserLocation(newLocation);
+        setLocationLoading(false);
+        if (centerMap && mapRef.current) {
+          mapRef.current.panTo([newLocation.lat, newLocation.lng], { animate: true, duration: 0.5 });
+        }
+      },
+      (error) => {
+        let errorMsg = 'שגיאה בקבלת מיקום';
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMsg = 'הרשאת מיקום נדחתה';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMsg = 'המיקום אינו זמין';
+        }
+        setLocationError(errorMsg);
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Get unique cities from sites
+  const cities = useMemo(() => {
+    const citySet = new Set<string>();
+    sites.forEach(site => {
+      if (site.city) citySet.add(site.city);
+    });
+    return Array.from(citySet).sort();
+  }, [sites]);
+
+  // Calculate status color for a site (based on work orders)
+  const getSiteStatusColor = (site: SiteWithStatus): 'black' | 'red' | 'orange' | 'green' => {
+    if (!site.earliestRemovalDate) return 'green';
+    const days = Math.ceil((new Date(site.earliestRemovalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (days < 0) return 'black';
+    if (days <= 3) return 'red';
+    if (days <= 7) return 'orange';
+    return 'green';
+  };
+
+  // Count active filters
+  const activeFilterCount = 
+    filters.status.length + 
+    filters.cities.length + 
+    filters.colors.length + 
+    (filters.nearMe ? 1 : 0);
 
   const handleBoundsChange = useCallback((bounds: L.LatLngBounds) => {
     setMapBounds(bounds);
@@ -153,6 +248,42 @@ export function MapPage() {
         site.city.toLowerCase().includes(searchLower) ||
         site.address.toLowerCase().includes(searchLower)
       );
+    })
+    .filter(site => {
+      // Status filter
+      if (filters.status.length > 0) {
+        const siteHasOpenWo = site.workOrders?.some(wo => wo.status === 'open');
+        const siteHasInProgressWo = site.workOrders?.some(wo => wo.status === 'in_progress');
+        const siteHasCompletedWo = site.workOrders?.some(wo => wo.status === 'completed');
+        
+        if (filters.status.includes('open') && !siteHasOpenWo) return false;
+        if (filters.status.includes('in_progress') && !siteHasInProgressWo) return false;
+        if (filters.status.includes('completed') && !siteHasCompletedWo) return false;
+      }
+      return true;
+    })
+    .filter(site => {
+      // City filter
+      if (filters.cities.length > 0) {
+        if (!filters.cities.includes(site.city)) return false;
+      }
+      return true;
+    })
+    .filter(site => {
+      // Color filter
+      if (filters.colors.length > 0) {
+        const siteColor = getSiteStatusColor(site);
+        if (!filters.colors.includes(siteColor)) return false;
+      }
+      return true;
+    })
+    .filter(site => {
+      // Near me filter (10km radius)
+      if (filters.nearMe && userLocation && site.latitude && site.longitude) {
+        const distance = calculateDistance(userLocation.lat, userLocation.lng, Number(site.latitude), Number(site.longitude));
+        if (distance > 10) return false;
+      }
+      return true;
     })
     .sort((a, b) => a.city.localeCompare(b.city, 'he'));
 
@@ -210,7 +341,7 @@ export function MapPage() {
         black: '#1f2937', red: '#ef4444', orange: '#f97316', green: '#22c55e',
       };
       const statusLabelMap: Record<string, string> = {
-        black: 'עבר תאריך', red: 'הגיע הזמן', orange: 'קרוב לפירוק', green: 'יש זמן',
+        black: 'עבר תאריך', red: 'בימים הקרובים', orange: 'מתקרב', green: 'יש זמן',
       };
       const statusEmojiMap: Record<string, string> = {
         black: '⚫', red: '🔴', orange: '🟠', green: '🟢',
@@ -303,13 +434,199 @@ export function MapPage() {
       {/* Header */}
       <div className="flex items-center justify-between p-3 sm:p-4 shrink-0 bg-white border-b border-surface-200">
         <h1 className="text-lg sm:text-xl font-bold text-surface-800">{t('map.title')}</h1>
-        <button
-          onClick={() => setShowSiteList(!showSiteList)}
-          className="lg:hidden px-4 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-medium min-h-[44px] shadow-sm hover:shadow-md transition-all"
-        >
-          {showSiteList ? t('map.title') : `📋 ${showSiteList && mapBounds ? viewportFilteredSites.length : filteredSites.length}`}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => requestUserLocation(true)}
+            disabled={locationLoading}
+            className="p-2.5 bg-white border border-surface-200 rounded-xl text-sm font-medium min-h-[44px] shadow-sm hover:shadow-md transition-all flex items-center justify-center"
+            title="המיקום שלי"
+          >
+            {locationLoading ? (
+              <svg className="w-5 h-5 animate-spin text-primary-600" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-4 py-2.5 border rounded-xl transition-all flex items-center gap-2 min-h-[44px] ${
+              showFilters || activeFilterCount > 0
+                ? 'border-primary-500 bg-primary-50 text-primary-700'
+                : 'border-surface-200 bg-white text-surface-700 hover:bg-surface-50'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <span className="hidden sm:inline">סינון</span>
+            {activeFilterCount > 0 && (
+              <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
+            )}
+          </button>
+          <button
+            onClick={() => setShowSiteList(!showSiteList)}
+            className="lg:hidden px-4 py-2.5 bg-white border border-surface-200 rounded-xl text-sm font-medium min-h-[44px] shadow-sm hover:shadow-md transition-all"
+          >
+            {showSiteList ? t('map.title') : `📋 ${showSiteList && mapBounds ? viewportFilteredSites.length : filteredSites.length}`}
+          </button>
+        </div>
       </div>
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <div className="bg-white p-4 border-b border-surface-200 space-y-4">
+          {/* Status Filter */}
+          <div>
+            <h3 className="text-sm font-medium text-surface-700 mb-2">סטטוס</h3>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: 'open' as const, label: 'פתוח' },
+                { key: 'in_progress' as const, label: 'בביצוע' },
+                { key: 'completed' as const, label: 'הושלם' },
+              ].map((status) => (
+                <button
+                  key={status.key}
+                  onClick={() => {
+                    setFilters(prev => ({
+                      ...prev,
+                      status: prev.status.includes(status.key)
+                        ? prev.status.filter(s => s !== status.key)
+                        : [...prev.status, status.key]
+                    }));
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    filters.status.includes(status.key)
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                  }`}
+                >
+                  {status.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Color Filter */}
+          <div>
+            <h3 className="text-sm font-medium text-surface-700 mb-2">צבע (דחיפות)</h3>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: 'black' as const, label: 'שחור', color: 'bg-surface-800' },
+                { key: 'red' as const, label: 'אדום', color: 'bg-danger-500' },
+                { key: 'orange' as const, label: 'כתום', color: 'bg-warning-500' },
+                { key: 'green' as const, label: 'ירוק', color: 'bg-success-500' },
+              ].map((color) => (
+                <button
+                  key={color.key}
+                  onClick={() => {
+                    setFilters(prev => ({
+                      ...prev,
+                      colors: prev.colors.includes(color.key)
+                        ? prev.colors.filter(c => c !== color.key)
+                        : [...prev.colors, color.key]
+                    }));
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                    filters.colors.includes(color.key)
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                  }`}
+                >
+                  <span className={`w-3 h-3 rounded-full ${color.color}`}></span>
+                  {color.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Cities Filter */}
+          {cities.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-surface-700 mb-2">ערים</h3>
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                {cities.slice(0, 20).map((city) => (
+                  <button
+                    key={city}
+                    onClick={() => {
+                      setFilters(prev => ({
+                        ...prev,
+                        cities: prev.cities.includes(city)
+                          ? prev.cities.filter(c => c !== city)
+                          : [...prev.cities, city]
+                      }));
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      filters.cities.includes(city)
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                    }`}
+                  >
+                    {city}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Near Me Filter */}
+          <div>
+            <h3 className="text-sm font-medium text-surface-700 mb-2">קרוב אלי</h3>
+            <button
+              onClick={() => {
+                if (filters.nearMe) {
+                  setFilters(prev => ({ ...prev, nearMe: false }));
+                } else {
+                  if (!userLocation) {
+                    requestUserLocation(false);
+                  }
+                  if (userLocation) {
+                    setFilters(prev => ({ ...prev, nearMe: true, userLat: userLocation.lat, userLng: userLocation.lng }));
+                  }
+                }
+              }}
+              disabled={locationLoading}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                filters.nearMe
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+              }`}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {locationLoading ? 'מאתר...' : 'קרוב אלי (עד 10 ק"מ)'}
+            </button>
+            {locationError && (
+              <p className="text-xs text-danger-600 mt-1">{locationError}</p>
+            )}
+            {filters.nearMe && !userLocation && !locationLoading && (
+              <button
+                onClick={() => requestUserLocation(false)}
+                className="text-xs text-primary-600 underline mt-1"
+              >
+                לחץ כאן לאפשר מיקום
+              </button>
+            )}
+          </div>
+
+          {/* Clear Filters */}
+          {activeFilterCount > 0 && (
+            <button
+              onClick={() => setFilters(emptyFilters)}
+              className="text-sm text-danger-600 hover:text-danger-700"
+            >
+              נקה פילטרים
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Content - flex row on desktop, column on mobile */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
@@ -335,6 +652,29 @@ export function MapPage() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <MapEventHandler onBoundsChange={handleBoundsChange} />
+            {/* User Location Marker */}
+            {userLocation && (
+              <Marker
+                position={[userLocation.lat, userLocation.lng]}
+                icon={L.divIcon({
+                  className: 'user-location-marker',
+                  html: `<div style="
+                    background-color: #3b82f6;
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    border: 4px solid white;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  "></div>`,
+                  iconSize: [20, 20],
+                  iconAnchor: [10, 10],
+                  popupAnchor: [0, -10],
+                })}
+              />
+            )}
             {/* Site Markers */}
             {filteredSites.map((site) => {
               const rawLat = site.latitude;
@@ -393,8 +733,8 @@ export function MapPage() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white"
                           style={{ backgroundColor: statusColors[site.overallStatus] }}
                         >
-                          {site.overallStatus === 'black' ? '⚫' : site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
-                          {site.overallStatus === 'black' ? 'עבר תאריך' : site.overallStatus === 'red' ? 'הגיע הזמן' : site.overallStatus === 'orange' ? 'קרוב לפירוק' : 'יש זמן'}
+                            {site.overallStatus === 'black' ? '⚫' : site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
+                            {site.overallStatus === 'black' ? 'עבר תאריך' : site.overallStatus === 'red' ? 'בימים הקרובים' : site.overallStatus === 'orange' ? 'מתקרב' : 'יש זמן'}
                         </span>
                       </div>
                     )}
@@ -462,7 +802,7 @@ export function MapPage() {
                             style={{ backgroundColor: statusColors[site.overallStatus] }}
                           >
                             {site.overallStatus === 'black' ? '⚫' : site.overallStatus === 'red' ? '🔴' : site.overallStatus === 'orange' ? '🟠' : '🟢'}
-                            {site.overallStatus === 'black' ? 'עבר' : site.overallStatus === 'red' ? 'הגיע הזמן' : site.overallStatus === 'orange' ? 'קרוב' : 'יש זמן'}
+                            {site.overallStatus === 'black' ? 'עבר' : site.overallStatus === 'red' ? 'בימים הקרובים' : site.overallStatus === 'orange' ? 'מתקרב' : 'יש זמן'}
                           </span>
                         </div>
                       )}
@@ -503,11 +843,11 @@ export function MapPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-warning-500"></span>
-            <span className="text-xs text-surface-600">{t('equipment.progress.orange')}</span>
+            <span className="text-xs text-surface-600">מתקרב</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-danger-500"></span>
-            <span className="text-xs text-surface-600">{t('equipment.progress.red')}</span>
+            <span className="text-xs text-surface-600">בימים הקרובים</span>
           </div>
         </div>
       </div>
