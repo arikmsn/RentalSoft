@@ -7,7 +7,7 @@ const router = Router();
 
 router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
-    const { type, status, technicianId, siteId, plannedDate } = req.query;
+    const { type, status, technicianId, siteId, plannedDate, nearLat, nearLng, radiusKm } = req.query;
 
     const where: any = {};
     if (type) where.type = type;
@@ -35,8 +35,22 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
       orderBy: { plannedDate: 'asc' },
     });
 
+    // Filter by proximity if nearLat, nearLng, and radiusKm are provided
+    let filteredWorkOrders = workOrders;
+    if (nearLat && nearLng && radiusKm) {
+      const lat = parseFloat(String(nearLat));
+      const lng = parseFloat(String(nearLng));
+      const radius = parseFloat(String(radiusKm));
+      
+      filteredWorkOrders = workOrders.filter(wo => {
+        if (!wo.site?.latitude || !wo.site?.longitude) return false;
+        const distance = calculateDistance(lat, lng, wo.site.latitude, wo.site.longitude);
+        return distance <= radius;
+      });
+    }
+
     const now = new Date();
-    const workOrdersWithCount = workOrders.map(wo => {
+    const workOrdersWithCount = filteredWorkOrders.map(wo => {
       const { statusColor, daysUntilRemoval } = computeWorkOrderStatus(
         wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate) : null,
         now
@@ -57,6 +71,18 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// Haversine formula to calculate distance between two coordinates in km
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
 
 router.get('/my-tasks/:technicianId', authenticate, async (req: AuthRequest, res) => {
   try {
