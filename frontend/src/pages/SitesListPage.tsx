@@ -214,7 +214,6 @@ export function SitesListPage() {
       contact1Name: site.contact1Name || '',
       contact1Phone: site.contact1Phone || '',
       rating: site.rating || 3,
-      isHighlighted: site.isHighlighted,
       latitude: site.latitude,
       longitude: site.longitude,
     });
@@ -499,9 +498,6 @@ export function SitesListPage() {
                   <span className="px-2 py-0.5 bg-surface-200 text-surface-600 text-xs rounded-full font-medium">לא פעיל</span>
                 )}
               </div>
-              {site.isHighlighted && (
-                <span className="px-2.5 py-1 bg-warning-100 text-warning-700 text-xs rounded-full font-medium">⭐</span>
-              )}
               {canEdit && (
                 <button
                   onClick={(e) => {
@@ -581,7 +577,6 @@ export function SitesListPage() {
           saving={saving}
           title={t('app.edit')}
           showRating={true}
-          showHighlight={true}
         />
       )}
 

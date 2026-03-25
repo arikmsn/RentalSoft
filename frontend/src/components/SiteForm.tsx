@@ -11,7 +11,6 @@ export interface SiteFormData {
   contact1Name: string;
   contact1Phone: string;
   rating: number;
-  isHighlighted: boolean;
   latitude?: number;
   longitude?: number;
 }
@@ -26,7 +25,6 @@ export const emptySiteForm: SiteFormData = {
   contact1Name: '',
   contact1Phone: '',
   rating: 3,
-  isHighlighted: false,
 };
 
 interface SiteFormProps {
@@ -37,7 +35,6 @@ interface SiteFormProps {
   saving: boolean;
   title: string;
   showRating?: boolean;
-  showHighlight?: boolean;
   inline?: boolean;
 }
 
@@ -49,7 +46,6 @@ export function SiteForm({
   saving,
   title,
   showRating = true,
-  showHighlight = false,
   inline = false,
 }: SiteFormProps) {
   const { t } = useTranslation();
@@ -130,19 +126,6 @@ export function SiteForm({
         <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.phone1')}</label>
         <input type="tel" autoComplete="tel" value={data.contact1Phone} onChange={(e) => setData({ ...data, contact1Phone: e.target.value })} className={inputClasses} />
       </div>
-
-      {showHighlight && (
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            id="siteIsHighlighted"
-            checked={data.isHighlighted}
-            onChange={(e) => setData({ ...data, isHighlighted: e.target.checked })}
-            className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-          />
-          <label htmlFor="siteIsHighlighted" className="text-sm text-surface-700">{t('sites.highlight')}</label>
-        </div>
-      )}
 
       <div className={`flex gap-3 ${inline ? 'pt-2' : 'pt-3'}`}>
         <button type="button" onClick={onCancel} className={buttonClasses}>
