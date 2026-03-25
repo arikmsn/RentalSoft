@@ -9,73 +9,88 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
   console.log('[QR] BaseQrScanner rendered');
   
   const [status, setStatus] = useState('Initializing...');
+  const [scannerError, setScannerError] = useState<string | null>(null);
   const qrRef = useRef<Html5Qrcode | null>(null);
   const isRunningRef = useRef(false);
+  const hasTriedRef = useRef(false);
   const regionId = 'qr-reader-target';
 
-  // Helper function to force stop all camera tracks
-  const forceStopAllCameraTracks = useCallback(() => {
-    console.log('[QR] forceStopAllCameraTracks called');
-    
-    // Method 1: Try to find video element by region ID
-    const regionEl = document.getElementById(regionId);
-    if (regionEl) {
-      const videos = regionEl.querySelectorAll('video');
-      videos.forEach((video) => {
-        const stream = (video as any).srcObject;
-        if (stream && stream instanceof MediaStream) {
-          console.log('[QR] Found video in region, stopping tracks');
-          stream.getTracks().forEach((track: MediaStreamTrack) => {
-            console.log('[QR] Stopping track:', track.kind);
-            track.stop();
-          });
-          (video as any).srcObject = null;
-        }
-      });
-    }
-
-    // Method 2: Query all video elements on page with active streams
-    const allVideos = document.querySelectorAll('video');
-    allVideos.forEach((video) => {
-      try {
-        const stream = (video as any).srcObject;
-        if (stream && stream instanceof MediaStream && stream.getTracks().length > 0) {
-          console.log('[QR] Found active video element, stopping tracks');
-          stream.getTracks().forEach((track: MediaStreamTrack) => {
-            console.log('[QR] Stopping track:', track.kind);
-            track.stop();
-          });
-          (video as any).srcObject = null;
-        }
-      } catch (e) {
-        console.warn('[QR] Error checking video element:', e);
+  // Helper to force stop camera tracks in scanner region only
+  const forceStopCameraTracksInRegion = useCallback(() => {
+    try {
+      const regionEl = document.getElementById(regionId);
+      if (!regionEl) {
+        console.log('[QR] forceStopCameraTracksInRegion: region not found');
+        return;
       }
-    });
 
-    // Method 3: Use getUserMedia to get any existing stream and stop it
-    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-      .then((stream) => {
-        console.log('[QR] Found active getUserMedia stream, stopping tracks');
-        stream.getTracks().forEach((track) => {
-          console.log('[QR] Stopping track:', track.kind);
-          track.stop();
-        });
-      })
-      .catch(() => {
-        // No active stream found, that's fine
+      const videos = regionEl.querySelectorAll('video');
+      if (videos.length === 0) {
+        console.log('[QR] forceStopCameraTracksInRegion: no videos found');
+        return;
+      }
+
+      console.log('[QR] forceStopCameraTracksInRegion: found', videos.length, 'videos');
+      videos.forEach((video) => {
+        try {
+          const stream = (video as any).srcObject;
+          if (stream instanceof MediaStream) {
+            const trackCount = stream.getTracks().length;
+            console.log('[QR] forceStopCameraTracksInRegion: stopping', trackCount, 'tracks');
+            stream.getTracks().forEach((track: MediaStreamTrack) => {
+              track.stop();
+            });
+            (video as any).srcObject = null;
+          }
+        } catch (e) {
+          console.warn('[QR] forceStopCameraTracksInRegion: error stopping video:', e);
+        }
       });
-    
-    console.log('[QR] forceStopAllCameraTracks completed');
+    } catch (e) {
+      console.warn('[QR] forceStopCameraTracksInRegion:', e);
+    }
   }, []);
+
+  // Clean up any existing scanner instance
+  const cleanupExistingScanner = useCallback(async () => {
+    console.log('[QR] cleanupExistingScanner called');
+    
+    // Force stop tracks in region first
+    forceStopCameraTracksInRegion();
+    
+    if (qrRef.current) {
+      try {
+        if (isRunningRef.current) {
+          console.log('[QR] cleanupExistingScanner: calling stop()');
+          await qrRef.current.stop();
+          console.log('[QR] cleanupExistingScanner: stop() done');
+        }
+      } catch (e: any) {
+        console.warn('[QR] cleanupExistingScanner: stop error (ignored):', e?.message || e);
+      }
+      
+      try {
+        console.log('[QR] cleanupExistingScanner: calling clear()');
+        await qrRef.current.clear();
+        console.log('[QR] cleanupExistingScanner: clear() done');
+      } catch (e: any) {
+        console.warn('[QR] cleanupExistingScanner: clear error (ignored):', e?.message || e);
+      }
+      
+      qrRef.current = null;
+      isRunningRef.current = false;
+    }
+    
+    // Final force stop as safety
+    forceStopCameraTracksInRegion();
+    console.log('[QR] cleanupExistingScanner done');
+  }, [forceStopCameraTracksInRegion]);
 
   const stopScanner = useCallback(async () => {
     console.log('[QR] stopScanner called, isRunning:', isRunningRef.current);
     
-    // First: Force stop all camera tracks directly (before html5-qrcode cleanup)
-    forceStopAllCameraTracks();
-    
     if (!qrRef.current) {
-      console.log('[QR] No scanner instance');
+      console.log('[QR] stopScanner: no scanner instance');
       return;
     }
 
@@ -84,133 +99,138 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
     // Try to stop html5-qrcode scanner
     try {
       if (isRunningRef.current) {
-        console.log('[QR] Calling scanner.stop()');
+        console.log('[QR] stopScanner: calling scanner.stop()');
         isRunningRef.current = false;
         await scanner.stop();
-        console.log('[QR] scanner.stop() completed');
+        console.log('[QR] stopScanner: scanner.stop() completed');
       }
     } catch (err: any) {
-      console.warn('[QR] Error stopping scanner:', err?.message || err);
-      // Even if stop fails, continue with cleanup
+      console.warn('[QR] stopScanner: error stopping scanner:', err?.message || err);
     }
 
-    // Try to clear html5-qrcode
+    // Try to clear
     try {
-      console.log('[QR] Calling scanner.clear()');
+      console.log('[QR] stopScanner: calling scanner.clear()');
       await scanner.clear();
-      console.log('[QR] scanner.clear() completed');
+      console.log('[QR] stopScanner: scanner.clear() completed');
     } catch (err: any) {
-      console.warn('[QR] Error clearing scanner:', err?.message || err);
-      // If clear fails because scan is ongoing, that's ok - we already stopped tracks
+      console.warn('[QR] stopScanner: error clearing scanner:', err?.message || err);
     }
     
     qrRef.current = null;
     
-    // Final: Force stop all camera tracks again as safety net
-    forceStopAllCameraTracks();
-  }, [forceStopAllCameraTracks]);
+    // Force stop tracks in region
+    forceStopCameraTracksInRegion();
+  }, [forceStopCameraTracksInRegion]);
 
   const handleScan = useCallback((decodedText: string) => {
     console.log('[QR] Scanned:', decodedText);
     onScan(decodedText);
   }, [onScan]);
 
-  // First useEffect: Start scanner on mount
+  const initScanner = useCallback(async () => {
+    // If already tried and failed, don't retry automatically
+    if (hasTriedRef.current && scannerError) {
+      console.log('[QR] initScanner: already tried and failed, not retrying');
+      return;
+    }
+    
+    hasTriedRef.current = true;
+    setScannerError(null);
+    
+    try {
+      setStatus('Creating scanner...');
+      console.log('[QR] initScanner: creating scanner');
+      
+      // Clean up any existing instance first
+      await cleanupExistingScanner();
+      
+      const element = document.getElementById(regionId);
+      if (!element) {
+        console.warn('[QR] initScanner: Scanner element not found');
+        setStatus('Error: Element not found');
+        return;
+      }
+      
+      // Create fresh instance
+      const scannerInstance = new Html5Qrcode(regionId, {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        verbose: false,
+      });
+      
+      qrRef.current = scannerInstance;
+
+      setStatus('Requesting camera...');
+      console.log('[QR] initScanner: Starting scanner...');
+
+      await scannerInstance.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        },
+        (decodedText) => {
+          handleScan(decodedText);
+        },
+        () => {
+          // QR parse error - ignore
+        }
+      );
+
+      isRunningRef.current = true;
+      setStatus('Ready - point at QR code');
+      console.log('[QR] initScanner: Scanner started successfully');
+      
+    } catch (err: any) {
+      console.error('[QR] initScanner: Start failed:', err);
+      isRunningRef.current = false;
+      
+      // Handle specific errors
+      const errorMsg = err?.message || String(err);
+      const isNotReadableError = errorMsg.includes('NotReadableError') || 
+                                  errorMsg.includes('Could not start video source') ||
+                                  errorMsg.includes('not readable');
+      const isPermissionDenied = errorMsg.includes('Permission denied') || 
+                                  errorMsg.includes('NotAllowedError') ||
+                                  errorMsg.includes('PermissionDeniedError');
+      
+      if (isNotReadableError) {
+        console.log('[QR] initScanner: NotReadableError caught');
+        setScannerError('camera_busy');
+        setStatus('Camera in use');
+      } else if (isPermissionDenied) {
+        console.log('[QR] initScanner: Permission denied');
+        setScannerError('permission_denied');
+        setStatus('Permission denied');
+      } else {
+        setScannerError('unknown');
+        setStatus('Error: ' + errorMsg.substring(0, 50));
+      }
+    }
+  }, [cleanupExistingScanner, handleScan, scannerError]);
+
+  const handleRetry = useCallback(() => {
+    console.log('[QR] Retry requested');
+    hasTriedRef.current = false;
+    initScanner();
+  }, [initScanner]);
+
+  // First useEffect: Initialize scanner on mount
   useEffect(() => {
     let mounted = true;
-    let scannerInstance: Html5Qrcode | null = null;
     
-    const initScanner = async () => {
-      try {
-        setStatus('Creating scanner...');
-        
-        const element = document.getElementById(regionId);
-        if (!element) {
-          console.warn('[QR] Scanner element not found');
-          return;
-        }
-        
-        scannerInstance = new Html5Qrcode(regionId, {
-          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-          verbose: false,
-        });
-        
-        qrRef.current = scannerInstance;
+    if (mounted) {
+      initScanner();
+    }
 
-        setStatus('Requesting camera...');
-        console.log('[QR] Starting scanner...');
-
-        await scannerInstance.start(
-          { facingMode: 'environment' },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-          },
-          (decodedText) => {
-            if (mounted) {
-              handleScan(decodedText);
-            }
-          },
-          () => {
-            // QR parse error - ignore
-          }
-        );
-
-        isRunningRef.current = true;
-        
-        if (mounted) {
-          setStatus('Ready - point at QR code');
-        }
-        
-        console.log('[QR] Scanner started successfully');
-      } catch (err) {
-        console.error('[QR] Start failed:', err);
-        isRunningRef.current = false;
-        if (mounted) {
-          setStatus('Error: ' + String(err));
-        }
-      }
-    };
-
-    initScanner();
-
-    // Cleanup function
+    // Cleanup on unmount
     return () => {
-      console.log('[QR] Cleanup starting');
+      console.log('[QR] useEffect cleanup: unmounting');
       mounted = false;
-      
-      const cleanup = async () => {
-        // First: Force stop all camera tracks
-        forceStopAllCameraTracks();
-        
-        if (scannerInstance && isRunningRef.current) {
-          try {
-            isRunningRef.current = false;
-            await scannerInstance.stop();
-          } catch (e) {
-            console.warn('[QR] Stop error in cleanup:', e);
-          }
-        }
-        
-        if (scannerInstance) {
-          try {
-            await scannerInstance.clear();
-          } catch (e) {
-            console.warn('[QR] Clear error in cleanup:', e);
-          }
-          scannerInstance = null;
-          qrRef.current = null;
-        }
-        
-        // Final: Force stop all camera tracks as safety net
-        forceStopAllCameraTracks();
-        console.log('[QR] Cleanup done');
-      };
-      
-      cleanup();
+      stopScanner();
     };
-  }, [handleScan, forceStopAllCameraTracks]);
+  }, []);
 
   // Handle app going to background
   useEffect(() => {
@@ -248,6 +268,54 @@ export const BaseQrScanner: React.FC<BaseQrScannerProps> = ({ onScan }) => {
       clearTimeout(timeoutId);
     };
   }, [stopScanner]);
+
+  // Render error state
+  if (scannerError) {
+    return (
+      <div className="w-full">
+        <div className="text-center mb-2">
+          <p className="text-white text-sm">{status}</p>
+        </div>
+        <div className="w-full max-w-sm mx-auto min-h-[300px] bg-gray-900 rounded-lg overflow-hidden flex flex-col items-center justify-center p-4">
+          <div className="text-center">
+            <div className="text-4xl mb-4">📷</div>
+            {scannerError === 'camera_busy' && (
+              <>
+                <h3 className="text-lg font-bold text-white mb-2">לא ניתן להפעיל את המצלמה</h3>
+                <p className="text-gray-400 text-sm mb-4">
+                  נראה שהמצלמה בשימוש באפליקציה אחרת, או שהדפדפן חסם את הגישה.
+                  נסה לסגור אפליקציות נוספות שמשתמשות במצלמה, לסגור ולפתוח שוב את הדפדפן,
+                  או לעדכן הרשאות מצלמה בהגדרות המכשיר.
+                </p>
+              </>
+            )}
+            {scannerError === 'permission_denied' && (
+              <>
+                <h3 className="text-lg font-bold text-white mb-2">אין הרשאת מצלמה</h3>
+                <p className="text-gray-400 text-sm mb-4">
+                  אנא אפשר גישה למצלמה בהגדרות הדפדפן
+                </p>
+              </>
+            )}
+            {scannerError === 'unknown' && (
+              <>
+                <h3 className="text-lg font-bold text-white mb-2">שגיאה בהפעלת המצלמה</h3>
+                <p className="text-gray-400 text-sm mb-4">
+                  אירעה שגיאה. אנא נסה שוב.
+                </p>
+              </>
+            )}
+            <button
+              onClick={handleRetry}
+              className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-medium transition-all"
+            >
+              נסה שוב
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
