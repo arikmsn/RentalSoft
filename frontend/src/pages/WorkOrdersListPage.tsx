@@ -1000,7 +1000,7 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
                         <input
                           type="date"
                           value={wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : ''}
-                          onBlur={(e) => {
+                          onChange={(e) => {
                             handleDateBlur(wo.id, e.target.value);
                           }}
                           disabled={savingDate === wo.id}
