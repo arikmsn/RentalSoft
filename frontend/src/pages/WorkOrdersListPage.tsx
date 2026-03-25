@@ -7,6 +7,8 @@ import { siteService } from '../services/siteService';
 import { api } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { formatDate } from '../utils/date';
+import { SiteForm, emptySiteForm } from '../components/SiteForm';
+import type { SiteFormData } from '../components/SiteForm';
 
 const statusColors: Record<WorkOrderStatus, string> = {
   open: 'bg-primary-100 text-primary-700',
@@ -45,7 +47,7 @@ export function WorkOrdersListPage() {
     isNextVisitPotentialRemoval: false,
   });
   const [isCreatingInlineSite, setIsCreatingInlineSite] = useState(false);
-  const [inlineSiteData, setInlineSiteData] = useState({ name: '', address: '', city: '', contact1Name: '', contact1Phone: '' });
+  const [inlineSiteData, setInlineSiteData] = useState<SiteFormData>({ ...emptySiteForm });
   const [savingInlineSite, setSavingInlineSite] = useState(false);
 
   useEffect(() => {
@@ -80,7 +82,8 @@ export function WorkOrdersListPage() {
     }).catch(err => console.error('Failed to fetch work types:', err));
   }, []);
 
-  const handleCreateInlineSite = async () => {
+  const handleCreateInlineSite = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!inlineSiteData.name.trim() || !inlineSiteData.address.trim() || !inlineSiteData.city.trim()) {
       return;
     }
@@ -89,14 +92,19 @@ export function WorkOrdersListPage() {
       const newSite = await siteService.create({
         name: inlineSiteData.name,
         address: inlineSiteData.address,
+        streetName: inlineSiteData.streetName,
         city: inlineSiteData.city,
+        houseNumber: inlineSiteData.houseNumber,
+        floor: inlineSiteData.floor || undefined,
         contact1Name: inlineSiteData.contact1Name || undefined,
         contact1Phone: inlineSiteData.contact1Phone || undefined,
+        latitude: inlineSiteData.latitude,
+        longitude: inlineSiteData.longitude,
       });
       setSites(prev => [...prev, newSite as Site]);
       setFormData(prev => ({ ...prev, siteId: (newSite as Site).id }));
       setIsCreatingInlineSite(false);
-      setInlineSiteData({ name: '', address: '', city: '', contact1Name: '', contact1Phone: '' });
+      setInlineSiteData({ ...emptySiteForm });
     } catch (err) {
       console.error('Failed to create site:', err);
       alert('Failed to create site');
@@ -107,7 +115,7 @@ export function WorkOrdersListPage() {
 
   const handleCancelInlineSite = () => {
     setIsCreatingInlineSite(false);
-    setInlineSiteData({ name: '', address: '', city: '', contact1Name: '', contact1Phone: '' });
+    setInlineSiteData({ ...emptySiteForm });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,7 +134,7 @@ export function WorkOrdersListPage() {
       setShowForm(false);
       setFormData({ type: '', workTypeId: '', siteId: '', technicianId: '', plannedDate: '', plannedRemovalDate: '', isNextVisitPotentialRemoval: false });
       setIsCreatingInlineSite(false);
-      setInlineSiteData({ name: '', address: '', city: '', contact1Name: '', contact1Phone: '' });
+      setInlineSiteData({ ...emptySiteForm });
       const data = await workOrderService.getAll();
       setWorkOrders(data);
     } catch (err: any) {
@@ -353,60 +361,16 @@ export function WorkOrdersListPage() {
               <div>
                 <label className="block text-sm font-medium text-surface-700 mb-2">{t('workOrders.site')}</label>
                 {isCreatingInlineSite ? (
-                  <div className="p-4 bg-surface-50 rounded-xl border border-surface-200 space-y-3">
-                    <input
-                      type="text"
-                      placeholder="שם האתר"
-                      value={inlineSiteData.name}
-                      onChange={(e) => setInlineSiteData({ ...inlineSiteData, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-surface-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-                    />
-                    <input
-                      type="text"
-                      placeholder="כתובת"
-                      value={inlineSiteData.address}
-                      onChange={(e) => setInlineSiteData({ ...inlineSiteData, address: e.target.value })}
-                      className="w-full px-3 py-2 border border-surface-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-                    />
-                    <input
-                      type="text"
-                      placeholder="עיר"
-                      value={inlineSiteData.city}
-                      onChange={(e) => setInlineSiteData({ ...inlineSiteData, city: e.target.value })}
-                      className="w-full px-3 py-2 border border-surface-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-                    />
-                    <input
-                      type="text"
-                      placeholder="שם איש קשר (אופציונלי)"
-                      value={inlineSiteData.contact1Name}
-                      onChange={(e) => setInlineSiteData({ ...inlineSiteData, contact1Name: e.target.value })}
-                      className="w-full px-3 py-2 border border-surface-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-                    />
-                    <input
-                      type="tel"
-                      placeholder="טלפון (אופציונלי)"
-                      value={inlineSiteData.contact1Phone}
-                      onChange={(e) => setInlineSiteData({ ...inlineSiteData, contact1Phone: e.target.value })}
-                      className="w-full px-3 py-2 border border-surface-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none text-sm"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleCancelInlineSite}
-                        className="flex-1 px-3 py-2 border border-surface-200 rounded-lg text-sm hover:bg-surface-100"
-                      >
-                        ביטול
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCreateInlineSite}
-                        disabled={savingInlineSite || !inlineSiteData.name.trim() || !inlineSiteData.address.trim() || !inlineSiteData.city.trim()}
-                        className="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:opacity-50"
-                      >
-                        {savingInlineSite ? 'שומר...' : 'שמור אתר'}
-                      </button>
-                    </div>
-                  </div>
+                  <SiteForm
+                    data={inlineSiteData}
+                    setData={setInlineSiteData}
+                    onSubmit={handleCreateInlineSite}
+                    onCancel={handleCancelInlineSite}
+                    saving={savingInlineSite}
+                    title={t('sites.addNew')}
+                    showRating={false}
+                    inline={true}
+                  />
                 ) : (
                   <select
                     required
@@ -473,7 +437,7 @@ export function WorkOrdersListPage() {
               <div className="flex gap-3 pt-3">
                 <button
                   type="button"
-                  onClick={() => { setShowForm(false); setIsCreatingInlineSite(false); setInlineSiteData({ name: '', address: '', city: '', contact1Name: '', contact1Phone: '' }); }}
+                  onClick={() => { setShowForm(false); setIsCreatingInlineSite(false); setInlineSiteData({ ...emptySiteForm }); }}
                   className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
                 >
                   {t('app.cancel')}

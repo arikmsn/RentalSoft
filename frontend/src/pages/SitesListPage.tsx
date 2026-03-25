@@ -4,35 +4,8 @@ import type { Site } from '../types';
 import { siteService } from '../services/siteService';
 import { useAuthStore } from '../stores/authStore';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { AddressAutocomplete } from '../components/AddressAutocomplete';
-
-interface SiteFormData {
-  name: string;
-  address: string;
-  streetName: string;
-  city: string;
-  houseNumber: string;
-  floor: string;
-  contact1Name: string;
-  contact1Phone: string;
-  rating: number;
-  isHighlighted: boolean;
-  latitude?: number;
-  longitude?: number;
-}
-
-const emptyForm: SiteFormData = {
-  name: '',
-  address: '',
-  streetName: '',
-  city: '',
-  houseNumber: '',
-  floor: '',
-  contact1Name: '',
-  contact1Phone: '',
-  rating: 3,
-  isHighlighted: false,
-};
+import { SiteForm, emptySiteForm } from '../components/SiteForm';
+import type { SiteFormData } from '../components/SiteForm';
 
 type ActiveFilter = 'active' | 'inactive' | 'all';
 
@@ -53,11 +26,10 @@ export function SitesListPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [siteToDelete, setSiteToDelete] = useState<Site | null>(null);
   const [siteToDeactivate, setSiteToDeactivate] = useState<Site | null>(null);
-  const [formData, setFormData] = useState<SiteFormData>({ ...emptyForm });
-  const [editFormData, setEditFormData] = useState<SiteFormData>({ ...emptyForm });
+  const [formData, setFormData] = useState<SiteFormData>({ ...emptySiteForm });
+  const [editFormData, setEditFormData] = useState<SiteFormData>({ ...emptySiteForm });
 
   const canEdit = user?.role === 'manager' || user?.role === 'admin';
-  const canDelete = user?.role === 'manager' || user?.role === 'admin';
 
   const fetchSites = async (searchTerm?: string, filter?: ActiveFilter) => {
     try {
@@ -91,7 +63,7 @@ export function SitesListPage() {
       console.log('[SiteCreate] Submitting:', { address: payload.address, city: payload.city, houseNumber: payload.houseNumber, lat: payload.latitude, lng: payload.longitude });
       await siteService.create(payload);
       setShowForm(false);
-      setFormData({ ...emptyForm });
+      setFormData({ ...emptySiteForm });
       fetchSites();
     } catch (err: any) {
       console.error('Failed to create site:', err);
@@ -154,12 +126,6 @@ export function SitesListPage() {
     }
   };
 
-  const handleDeleteClick = (site: Site) => {
-    setShowEditForm(false);
-    setSiteToDelete(site);
-    setShowDeleteConfirm(true);
-  };
-
   const confirmDelete = async () => {
     if (!siteToDelete) return;
     try {
@@ -211,130 +177,6 @@ export function SitesListPage() {
       </div>
     );
   }
-
-  const inputClasses = "w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800";
-
-  const renderSiteForm = (
-    data: SiteFormData,
-    setData: React.Dispatch<React.SetStateAction<SiteFormData>>,
-    onSubmit: (e: React.FormEvent) => void,
-    onCancel: () => void,
-    title: string,
-    isEdit: boolean = false,
-  ) => (
-    <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold text-surface-800">{title}</h2>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-surface-500">{t('sites.rating')}:</span>
-              <select
-                value={data.rating}
-                onChange={(e) => setData({ ...data, rating: Number(e.target.value) })}
-                className="px-2 py-1 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
-              >
-                {[1, 2, 3, 4, 5].map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
-            </div>
-            {isEdit && canDelete && editingSite && (
-              <button
-                type="button"
-                onClick={() => handleDeleteClick(editingSite)}
-                className="text-danger-600 hover:text-danger-700 p-2 rounded-lg hover:bg-danger-50 transition-colors"
-                title={t('app.delete')}
-              >
-                🗑️
-              </button>
-            )}
-          </div>
-        </div>
-        <form onSubmit={onSubmit} className="space-y-4">
-          {/* Site name */}
-          <div>
-            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.name')}</label>
-            <input type="text" required value={data.name} onChange={(e) => setData({ ...data, name: e.target.value })} className={inputClasses} />
-          </div>
-
-          {/* Address (autocomplete) */}
-          <div>
-            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.address')}</label>
-            <AddressAutocomplete
-              value={data.address}
-              onChange={(val) => setData((prev) => ({ ...prev, address: val }))}
-              onSelect={(sel) => {
-                setData((prev) => {
-                  const streetName = sel.address.split(',')[0].trim();
-                  const composite = sel.houseNumber
-                    ? `${streetName} ${sel.houseNumber}, ${sel.city}`
-                    : sel.address;
-                  return {
-                    ...prev,
-                    address: composite,
-                    streetName,
-                    city: sel.city || prev.city,
-                    houseNumber: sel.houseNumber || prev.houseNumber,
-                    latitude: sel.latitude,
-                    longitude: sel.longitude,
-                  };
-                });
-              }}
-              required
-              className={inputClasses}
-            />
-            {data.latitude && data.longitude && (
-              <p className="text-xs text-success-600 mt-1">&#x2713; {data.latitude.toFixed(4)}, {data.longitude.toFixed(4)}</p>
-            )}
-          </div>
-
-          {/* Floor */}
-          <div>
-            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.floor')}</label>
-            <input
-              type="text"
-              value={data.floor}
-              onChange={(e) => setData({ ...data, floor: e.target.value })}
-              className={inputClasses}
-            />
-          </div>
-
-          {/* Contact */}
-          <div>
-            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.contact1')}</label>
-            <input type="text" value={data.contact1Name} onChange={(e) => setData({ ...data, contact1Name: e.target.value })} className={inputClasses} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.phone1')}</label>
-            <input type="tel" autoComplete="tel" value={data.contact1Phone} onChange={(e) => setData({ ...data, contact1Phone: e.target.value })} className={inputClasses} />
-          </div>
-
-          {/* Highlight (edit only) */}
-          {isEdit && (
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="editIsHighlighted"
-                checked={data.isHighlighted}
-                onChange={(e) => setData({ ...data, isHighlighted: e.target.checked })}
-                className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-              />
-              <label htmlFor="editIsHighlighted" className="text-sm text-surface-700">{t('sites.highlight')}</label>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-3">
-            <button type="button" onClick={onCancel} className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium">
-              {t('app.cancel')}
-            </button>
-            <button type="submit" disabled={saving} className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200">
-              {saving ? t('app.loading') : t('app.save')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-4">
@@ -436,10 +278,31 @@ export function SitesListPage() {
       )}
 
       {/* Add Site Modal */}
-      {showForm && renderSiteForm(formData, setFormData, handleSubmit, () => setShowForm(false), t('sites.addNew'))}
+      {showForm && (
+        <SiteForm
+          data={formData}
+          setData={setFormData}
+          onSubmit={handleSubmit}
+          onCancel={() => setShowForm(false)}
+          saving={saving}
+          title={t('sites.addNew')}
+          showRating={true}
+        />
+      )}
 
       {/* Edit Site Modal */}
-      {showEditForm && editingSite && renderSiteForm(editFormData, setEditFormData, handleUpdate, () => setShowEditForm(false), t('app.edit'), true)}
+      {showEditForm && editingSite && (
+        <SiteForm
+          data={editFormData}
+          setData={setEditFormData}
+          onSubmit={handleUpdate}
+          onCancel={() => setShowEditForm(false)}
+          saving={saving}
+          title={t('app.edit')}
+          showRating={true}
+          showHighlight={true}
+        />
+      )}
 
       {showDeleteConfirm && siteToDelete && (
         <ConfirmDialog

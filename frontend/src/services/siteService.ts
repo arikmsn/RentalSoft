@@ -11,7 +11,9 @@ export interface SiteFilters {
 export interface CreateSiteRequest {
   name: string;
   address: string;
+  streetName?: string;
   city: string;
+  houseNumber?: string;
   floor?: string;
   apartment?: string;
   contact1Name?: string;
