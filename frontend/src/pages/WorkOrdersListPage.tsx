@@ -15,15 +15,25 @@ interface WorkOrderFilters {
   cities: string[];
   colors: ('black' | 'red' | 'orange' | 'green')[];
   nearMe: boolean;
+  radiusKm: number;
   userLat?: number;
   userLng?: number;
 }
+
+const defaultFilters: WorkOrderFilters = {
+  status: ['open', 'in_progress'],
+  cities: [],
+  colors: [],
+  nearMe: false,
+  radiusKm: 10,
+};
 
 const emptyFilters: WorkOrderFilters = {
   status: [],
   cities: [],
   colors: [],
   nearMe: false,
+  radiusKm: 10,
 };
 
 const statusColors: Record<WorkOrderStatus, string> = {
@@ -38,6 +48,15 @@ const statusDotColors: Record<string, string> = {
   orange: 'bg-warning-500',
   green: 'bg-success-500',
 };
+
+function getStatusColor(wo: WorkOrder): 'black' | 'red' | 'orange' | 'green' {
+  if (!wo.plannedRemovalDate) return 'green';
+  const days = Math.ceil((new Date(wo.plannedRemovalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (days < 0) return 'black';
+  if (days <= 3) return 'red';
+  if (days <= 7) return 'orange';
+  return 'green';
+}
 
 export function WorkOrdersListPage() {
   const { t } = useTranslation();
@@ -66,7 +85,7 @@ export function WorkOrdersListPage() {
   const [savingInlineSite, setSavingInlineSite] = useState(false);
   
   // Advanced filters
-  const [filters, setFilters] = useState<WorkOrderFilters>(emptyFilters);
+  const [filters, setFilters] = useState<WorkOrderFilters>(defaultFilters);
   const [showFilters, setShowFilters] = useState(false);
   const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -112,16 +131,6 @@ export function WorkOrdersListPage() {
     });
     return Array.from(citySet).sort();
   }, [sites]);
-
-  // Calculate status color for a work order
-  const getStatusColor = (wo: WorkOrder): 'black' | 'red' | 'orange' | 'green' => {
-    if (!wo.plannedRemovalDate) return 'green';
-    const days = Math.ceil((new Date(wo.plannedRemovalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (days < 0) return 'black';
-    if (days <= 3) return 'red';
-    if (days <= 7) return 'orange';
-    return 'green';
-  };
 
   // Calculate distance between two coordinates (km)
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -284,13 +293,13 @@ export function WorkOrdersListPage() {
       return true;
     })
     .filter((wo) => {
-      // Near me filter (10km radius)
+      // Near me filter
       if (filters.nearMe && filters.userLat !== undefined && filters.userLng !== undefined) {
         const siteLat = wo.site?.latitude;
         const siteLng = wo.site?.longitude;
         if (!siteLat || !siteLng) return false;
         const distance = calculateDistance(filters.userLat, filters.userLng, siteLat, siteLng);
-        if (distance > 10) return false;
+        if (distance > filters.radiusKm) return false;
       }
       return true;
     })
@@ -485,8 +494,28 @@ export function WorkOrdersListPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              {locationLoading ? 'מאתר...' : 'קרוב אלי (עד 10 ק"מ)'}
+              {locationLoading ? 'מאתר...' : 'קרוב אלי'}
             </button>
+            {filters.nearMe && (
+              <div className="mt-3 px-3 py-2 bg-surface-50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-surface-600">רדיוס</span>
+                  <span className="text-sm font-medium text-surface-800">{filters.radiusKm} ק"מ</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="30"
+                  value={filters.radiusKm}
+                  onChange={(e) => setFilters(prev => ({ ...prev, radiusKm: parseInt(e.target.value) }))}
+                  className="w-full h-2 bg-surface-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                />
+                <div className="flex justify-between text-xs text-surface-400 mt-1">
+                  <span>1 ק"מ</span>
+                  <span>30 ק"מ</span>
+                </div>
+              </div>
+            )}
             {locationError && (
               <p className="text-xs text-danger-600 mt-1">{locationError}</p>
             )}
@@ -897,44 +926,61 @@ function WeeklyCalendar({ workOrders, t, onRefresh }: { workOrders: WorkOrder[];
                   </span>
                 )}
               </div>
-              <div className="space-y-2">
-                {dayWorkOrders.map(wo => (
+              <div className="space-y-3">
+                {dayWorkOrders.map(wo => {
+                  const statusColor = getStatusColor(wo);
+                  return (
                   <div
                     key={wo.id}
-                    className="block p-3 rounded-xl text-sm bg-surface-50 border border-surface-100"
+                    className="block p-4 sm:p-5 rounded-2xl text-sm bg-white shadow-card border border-surface-100 hover:shadow-card-hover transition-all duration-300"
                   >
                     <Link to={`/workorders/${wo.id}`} className="block">
-                      <div className="flex items-center gap-2">
-                        <div className="font-medium text-surface-800">{wo.site?.name}</div>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-3">
+                          {wo.status !== 'completed' && wo.equipmentCount ? (
+                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1.5 ${statusDotColors[statusColor]}`} />
+                          ) : (
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0 mt-1.5 border-2 border-surface-400" />
+                          )}
+                          <div>
+                            <div className="font-semibold text-surface-800 text-base">{wo.site?.name}</div>
+                            <div className="text-surface-600 text-sm mt-1">
+                              {wo.workTypeName || wo.type}
+                              {wo.site ? `, ${wo.site.city}` : ''}
+                            </div>
+                            <div className="text-surface-500 text-xs mt-0.5">{wo.site?.address}</div>
+                          </div>
+                        </div>
+                        <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[wo.status]}`}>
+                          {t(`workOrders.statuses.${wo.status}`)}
+                        </span>
                       </div>
-                      <div className="text-surface-600 text-xs">{wo.workTypeName || wo.type}</div>
-                      <div className="text-surface-500 text-xs mt-0.5">{wo.site?.address}</div>
                     </Link>
-                    <div className="mt-2 pt-2 border-t border-surface-200 space-y-1">
+                    <div className="mt-3 pt-3 border-t border-surface-200 space-y-2">
                       {wo.plannedDate && (
-                        <div className="text-xs text-surface-500">
-                          תאריך התקנה: {new Date(wo.plannedDate).toLocaleDateString('he-IL')}
+                        <div className="text-sm text-surface-500">
+                          <span className="font-medium">{t('workOrders.plannedDate')}:</span> {new Date(wo.plannedDate).toLocaleDateString('he-IL')}
                         </div>
                       )}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {(wo as any).isNextVisitPotentialRemoval && (
-                          <span className="px-1 py-0.5 bg-orange-100 text-orange-700 text-xs rounded font-bold">פ</span>
+                          <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded font-bold">פירוק</span>
                         )}
-                        <label className="text-xs text-surface-500">{t('equipment.nextVisit')}:</label>
+                        <label className="text-sm text-surface-600 font-medium">{t('equipment.nextVisit')}:</label>
                         <input
                           type="date"
                           value={wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate).toISOString().split('T')[0] : ''}
                           onChange={(e) => {
-                            // Save immediately when date changes (including from date picker popup)
                             handleDateBlur(wo.id, e.target.value);
                           }}
                           disabled={savingDate === wo.id}
-                          className="text-xs px-2 py-1 border border-surface-200 rounded focus:ring-1 focus:ring-primary-500 bg-white"
+                          className="text-sm px-3 py-2 border border-surface-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white min-h-[44px]"
                         />
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 {dayWorkOrders.length === 0 && (
                   <div className="text-xs text-surface-400 py-2">-</div>
                 )}

@@ -11,6 +11,7 @@ interface MapFilters {
   cities: string[];
   colors: ('black' | 'red' | 'orange' | 'green')[];
   nearMe: boolean;
+  radiusKm: number;
   userLat?: number;
   userLng?: number;
 }
@@ -20,6 +21,7 @@ const emptyFilters: MapFilters = {
   cities: [],
   colors: [],
   nearMe: false,
+  radiusKm: 10,
 };
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -278,10 +280,10 @@ export function MapPage() {
       return true;
     })
     .filter(site => {
-      // Near me filter (10km radius)
+      // Near me filter
       if (filters.nearMe && userLocation && site.latitude && site.longitude) {
         const distance = calculateDistance(userLocation.lat, userLocation.lng, Number(site.latitude), Number(site.longitude));
-        if (distance > 10) return false;
+        if (distance > filters.radiusKm) return false;
       }
       return true;
     })
@@ -601,8 +603,28 @@ export function MapPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              {locationLoading ? 'מאתר...' : 'קרוב אלי (עד 10 ק"מ)'}
+              {locationLoading ? 'מאתר...' : 'קרוב אלי'}
             </button>
+            {filters.nearMe && (
+              <div className="mt-3 px-3 py-2 bg-surface-50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-surface-600">רדיוס</span>
+                  <span className="text-sm font-medium text-surface-800">{filters.radiusKm} ק"מ</span>
+                </div>
+                <input
+                  type="range"
+                  min="1"
+                  max="30"
+                  value={filters.radiusKm}
+                  onChange={(e) => setFilters(prev => ({ ...prev, radiusKm: parseInt(e.target.value) }))}
+                  className="w-full h-2 bg-surface-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                />
+                <div className="flex justify-between text-xs text-surface-400 mt-1">
+                  <span>1 ק"מ</span>
+                  <span>30 ק"מ</span>
+                </div>
+              </div>
+            )}
             {locationError && (
               <p className="text-xs text-danger-600 mt-1">{locationError}</p>
             )}
