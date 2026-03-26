@@ -6,7 +6,7 @@ const mobileNavItems = [
   { path: '/workorders?filter=active', icon: '📋', label: 'workOrders', roles: ['manager', 'technician', 'admin'] },
   { path: '/sites', icon: '📍', label: 'sites', roles: ['manager', 'technician', 'admin'] },
   { path: '/equipment', icon: '📦', label: 'equipment', roles: ['manager', 'technician', 'admin'] },
-  { path: '/map', icon: '🗺️', label: 'map', roles: ['manager', 'admin'] },
+  { path: '/map', icon: '🗺️', label: 'map', roles: ['manager', 'technician', 'admin'] },
 ];
 
 export function MobileNav() {

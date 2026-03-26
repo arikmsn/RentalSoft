@@ -9,8 +9,8 @@ const navItems = [
   { path: '/equipment', icon: '📦', label: 'equipment', roles: ['manager', 'technician', 'admin'] },
   { path: '/sites', icon: '📍', label: 'sites', roles: ['manager', 'technician', 'admin'] },
   { path: '/workorders', icon: '📋', label: 'workOrders', roles: ['manager', 'technician', 'admin'] },
-  { path: '/map', icon: '🗺️', label: 'map', roles: ['manager', 'admin'] },
-  { path: '/alerts', icon: '🔔', label: 'alerts', roles: ['manager', 'admin'] },
+  { path: '/map', icon: '🗺️', label: 'map', roles: ['manager', 'technician', 'admin'] },
+  { path: '/alerts', icon: '🔔', label: 'alerts', roles: ['manager', 'technician', 'admin'] },
   { path: '/settings', icon: '⚙️', label: 'settings', roles: ['manager', 'admin'] },
 ];
 
