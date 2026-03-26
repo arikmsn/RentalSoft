@@ -32,13 +32,15 @@ export function formatDateTime(date: Date | string | null | undefined): string {
 
 export type WorkOrderStatusColor = 'black' | 'red' | 'orange' | 'green';
 
-function toLocalDate(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+function toLocalMidnight(date: Date): Date {
+  const str = date.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const [month, day, year] = str.split('/').map(Number);
+  return new Date(year, month - 1, day);
 }
 
 function diffInDays(dateA: Date, dateB: Date): number {
-  const a = toLocalDate(dateA);
-  const b = toLocalDate(dateB);
+  const a = toLocalMidnight(dateA);
+  const b = toLocalMidnight(dateB);
   const msPerDay = 24 * 60 * 60 * 1000;
   return Math.round((a.getTime() - b.getTime()) / msPerDay);
 }
@@ -51,8 +53,8 @@ export function computeWorkOrderStatus(
 
   const targetDate = typeof plannedRemovalDate === 'string' ? new Date(plannedRemovalDate) : plannedRemovalDate;
   
-  const today = toLocalDate(now);
-  const target = toLocalDate(targetDate);
+  const today = toLocalMidnight(now);
+  const target = toLocalMidnight(targetDate);
   const daysUntilRemoval = diffInDays(target, today);
 
   if (daysUntilRemoval < 0) return { statusColor: 'black', daysUntilRemoval };

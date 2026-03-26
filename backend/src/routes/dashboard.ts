@@ -8,7 +8,7 @@ const router = Router();
 router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -95,7 +95,7 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
   try {
     const { type } = req.query;
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
 
     console.log('[Alerts] today:', today.toISOString(), 'local:', today.toString());
 
