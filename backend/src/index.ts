@@ -11,6 +11,7 @@ const allowedOrigins = [
   'http://localhost:3001',
   'https://rentalsoft.onrender.com',
   'https://rental-soft-three.vercel.app',
+  'https://app.freshmor.co.il',
 ];
 
 app.use(cors({
