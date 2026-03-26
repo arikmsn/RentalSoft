@@ -41,8 +41,8 @@ export function LoginPage() {
           <div className="text-center mb-6 sm:mb-8">
             <div className="inline-flex items-center justify-center mb-4">
               <img 
-                src="/RentalLogo.png" 
-                alt="RentalSoft Logo" 
+                src="/FreshMorLogo.png" 
+                alt="FreshMor App" 
                 className="w-20 h-20 sm:w-24 sm:h-24 object-contain"
                 style={{ imageRendering: 'auto' }}
               />
