@@ -69,6 +69,7 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
     });
 
     const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
 
     const sitesWithStatus = await Promise.all(
       sites.map(async (site) => {
@@ -89,12 +90,14 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
           statusReason = 'no equipment';
         } else if (activeWorkOrders.length > 0) {
           const ranked = activeWorkOrders
-            .map(wo => ({
-              wo,
-              days: wo.plannedRemovalDate
-                ? Math.ceil((new Date(wo.plannedRemovalDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-                : Infinity,
-            }))
+            .map(wo => {
+              const result = computeWorkOrderStatus(wo.plannedRemovalDate, today);
+              return {
+                wo,
+                days: result.daysUntilRemoval ?? Infinity,
+                statusColor: result.statusColor,
+              };
+            })
             .sort((a, b) => a.days - b.days);
 
           const priority = ranked.map(r => r.days);
