@@ -95,6 +95,8 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+    console.log('[Alerts] today:', today.toISOString(), 'local:', today.toString());
+
     const sites = await prisma.site.findMany({
       include: {
         workOrders: {
@@ -115,7 +117,9 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
         if (activeWorkOrders.length > 0) {
           const ranked = activeWorkOrders
             .map(wo => {
+              console.log('[Alerts] workOrder:', wo.id, 'plannedRemovalDate:', wo.plannedRemovalDate?.toISOString());
               const result = computeWorkOrderStatus(wo.plannedRemovalDate, today);
+              console.log('[Alerts] result:', result);
               return {
                 wo,
                 days: result.daysUntilRemoval ?? Infinity,
