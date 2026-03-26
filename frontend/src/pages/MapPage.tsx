@@ -18,7 +18,7 @@ interface MapFilters {
 }
 
 const emptyFilters: MapFilters = {
-  status: [],
+  status: ['open', 'in_progress'],
   cities: [],
   colors: [],
   nearMe: false,

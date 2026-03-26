@@ -36,7 +36,7 @@ export function EquipmentListPage() {
   const [filters, setFilters] = useState({
     status: 'all' as string,
     location: 'all' as string,
-    condition: 'all' as string,
+    condition: 'OK' as string,
     type: 'all' as string,
   });
   const [search, setSearch] = useState('');
