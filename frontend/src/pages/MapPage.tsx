@@ -65,7 +65,33 @@ const statusColors: Record<string, string> = {
   green: '#16a34a',
 };
 
-const getMarkerIcon = (status?: 'black' | 'red' | 'orange' | 'green' | null, selected?: boolean, hasEquipment?: boolean, hasPotentialRemoval?: boolean) => {
+const getMarkerIcon = (
+  status?: 'black' | 'red' | 'orange' | 'green' | null, 
+  selected?: boolean, 
+  hasEquipment?: boolean, 
+  hasPotentialRemoval?: boolean,
+  workOrderStatus?: string
+) => {
+  // Hollow marker for completed jobs
+  if (workOrderStatus === 'completed') {
+    const size = selected ? 32 : 24;
+    return L.divIcon({
+      className: 'custom-marker',
+      html: `<div style="
+        background-color: transparent;
+        width: ${size}px;
+        height: ${size}px;
+        border-radius: 50%;
+        border: 3px solid #999999;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        ${selected ? 'z-index: 1000;' : ''}
+      "></div>`,
+      iconSize: [size, size],
+      iconAnchor: [size/2, size/2],
+      popupAnchor: [0, -size/2],
+    });
+  }
+
   const color = status ? statusColors[status] : '#9ca3af';
   const size = selected ? 32 : 24;
   const borderWidth = selected ? 4 : 4;
@@ -257,15 +283,18 @@ export function MapPage() {
       );
     })
     .filter(site => {
-      // Status filter
+      // Status filter - OR logic: show site if it has ANY of the selected statuses
       if (filters.status.length > 0) {
         const siteHasOpenWo = site.workOrders?.some(wo => wo.status === 'open');
         const siteHasInProgressWo = site.workOrders?.some(wo => wo.status === 'in_progress');
         const siteHasCompletedWo = site.workOrders?.some(wo => wo.status === 'completed');
         
-        if (filters.status.includes('open') && !siteHasOpenWo) return false;
-        if (filters.status.includes('in_progress') && !siteHasInProgressWo) return false;
-        if (filters.status.includes('completed') && !siteHasCompletedWo) return false;
+        const hasMatchingStatus = 
+          (filters.status.includes('open') && siteHasOpenWo) ||
+          (filters.status.includes('in_progress') && siteHasInProgressWo) ||
+          (filters.status.includes('completed') && siteHasCompletedWo);
+        
+        if (!hasMatchingStatus) return false;
       }
       return true;
     })
@@ -698,6 +727,12 @@ export function MapPage() {
               const lat = Number(rawLat);
               const lng = Number(rawLng);
               
+              // Get the most urgent work order status for marker styling
+              const activeWorkOrders = site.workOrders?.filter(wo => wo.status !== 'completed') || [];
+              const completedWorkOrders = site.workOrders?.filter(wo => wo.status === 'completed') || [];
+              const mostUrgentWorkOrder = activeWorkOrders.length > 0 ? activeWorkOrders[0] : (completedWorkOrders.length > 0 ? completedWorkOrders[0] : null);
+              const workOrderStatus = mostUrgentWorkOrder?.status;
+              
               // Skip sites with invalid or missing coordinates
               if (rawLat == null || rawLng == null) {
                 console.warn('[Map] Skipping site - null coordinates:', site.name);
@@ -722,7 +757,7 @@ export function MapPage() {
               <Marker
                 key={site.id}
                 position={[lat, lng]}
-                icon={getMarkerIcon(site.overallStatus, selectedSiteId === site.id, site.hasEquipment, site.hasPotentialRemoval)}
+                icon={getMarkerIcon(site.overallStatus, selectedSiteId === site.id, site.hasEquipment, site.hasPotentialRemoval, workOrderStatus)}
                 eventHandlers={{
                   click: () => handleSiteClick(site),
                 }}
