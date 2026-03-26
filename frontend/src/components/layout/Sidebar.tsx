@@ -5,7 +5,7 @@ import { useAppStore } from '../../stores/appStore';
 import { changeLanguage } from '../../i18n';
 
 const navItems = [
-  { path: '/dashboard', icon: '📊', label: 'dashboard', roles: ['manager', 'admin'] },
+  { path: '/dashboard', icon: '📊', label: 'dashboard', roles: ['manager', 'technician', 'admin'] },
   { path: '/equipment', icon: '📦', label: 'equipment', roles: ['manager', 'technician', 'admin'] },
   { path: '/sites', icon: '📍', label: 'sites', roles: ['manager', 'technician', 'admin'] },
   { path: '/workorders', icon: '📋', label: 'workOrders', roles: ['manager', 'technician', 'admin'] },
