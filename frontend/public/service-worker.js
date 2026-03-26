@@ -1,4 +1,4 @@
-const CACHE_NAME = 'freshmor-v3';
+const CACHE_NAME = 'freshmor-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
