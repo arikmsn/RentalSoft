@@ -317,7 +317,6 @@ export function WorkOrdersListPage() {
     })
     .filter((wo) => {
       // Time range filter
-      if (filters.timeRange === 'all') return true;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const targetDate = wo.plannedRemovalDate ? new Date(wo.plannedRemovalDate) : (wo.plannedDate ? new Date(wo.plannedDate) : null);
@@ -326,7 +325,9 @@ export function WorkOrdersListPage() {
       
       const diffDays = Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       
-      if (filters.timeRange === 'week') {
+      if (filters.timeRange === 'all') {
+        return diffDays >= -30 && diffDays <= 30;
+      } else if (filters.timeRange === 'week') {
         return diffDays >= 0 && diffDays <= 7;
       } else if (filters.timeRange === '2weeks') {
         return diffDays >= 0 && diffDays <= 14;
@@ -791,16 +792,22 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
     }))
   );
   const today = new Date();
-  const daysMap: Record<string, number> = { 'week': 6, '2weeks': 13, 'month': 29, 'lastMonth': 31, 'all': 29 };
+  const daysMap: Record<string, number> = { 'week': 6, '2weeks': 13, 'month': 29, 'lastMonth': 31, 'all': 60 };
   
   const getDateRangeForTimeRange = (range: string) => {
+    const now = new Date();
+    const todayNormalized = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
     if (range === 'lastMonth') {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const start = new Date(today);
+      const start = new Date(todayNormalized);
       start.setDate(start.getDate() - 30);
-      const days = Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      const days = Math.ceil((todayNormalized.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
       return { start, days };
+    }
+    if (range === 'all') {
+      const start = new Date(todayNormalized);
+      start.setDate(start.getDate() - 30);
+      return { start: start, days: daysMap[range] || 60 };
     }
     return { start: today, days: daysMap[range] || 6 };
   };
