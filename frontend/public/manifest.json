@@ -9,15 +9,16 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/freshmor-icon-192.png",
+      "src": "/icons/freshmor-icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/icons/freshmor-icon-512.png",
+      "src": "/icons/freshmor-icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
