@@ -7,7 +7,6 @@ const mobileNavItems = [
   { path: '/sites', icon: '📍', label: 'sites', roles: ['manager', 'technician', 'admin'] },
   { path: '/equipment', icon: '📦', label: 'equipment', roles: ['manager', 'technician', 'admin'] },
   { path: '/map', icon: '🗺️', label: 'map', roles: ['manager', 'admin'] },
-  { path: '/my-tasks', icon: '✅', label: 'myTasks', roles: ['technician'] },
 ];
 
 export function MobileNav() {

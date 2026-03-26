@@ -10,7 +10,6 @@ import {
   WorkOrderDetailsPage,
   MapPage,
   AlertsPage,
-  MyTasksPage,
   SettingsPage,
   MinimalScanner,
 } from './pages';
@@ -19,7 +18,7 @@ import { useAuthStore } from './stores/authStore';
 function SettingsRoute() {
   const { user } = useAuthStore();
   if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/sites" replace />;
   }
   return <SettingsPage />;
 }
@@ -42,7 +41,6 @@ function App() {
         <Route path="/workorders/:id" element={<WorkOrderDetailsPage />} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/alerts" element={<AlertsPage />} />
-        <Route path="/my-tasks" element={<MyTasksPage />} />
         <Route path="/settings" element={<SettingsRoute />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
