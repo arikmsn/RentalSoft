@@ -8,7 +8,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
 interface MapFilters {
-  status: ('open' | 'in_progress' | 'completed')[];
+  status: ('open' | 'in_progress')[];
   cities: string[];
   colors: ('black' | 'red' | 'orange' | 'green')[];
   nearMe: boolean;
@@ -287,12 +287,10 @@ export function MapPage() {
       if (filters.status.length > 0) {
         const siteHasOpenWo = site.workOrders?.some(wo => wo.status === 'open');
         const siteHasInProgressWo = site.workOrders?.some(wo => wo.status === 'in_progress');
-        const siteHasCompletedWo = site.workOrders?.some(wo => wo.status === 'completed');
         
         const hasMatchingStatus = 
           (filters.status.includes('open') && siteHasOpenWo) ||
-          (filters.status.includes('in_progress') && siteHasInProgressWo) ||
-          (filters.status.includes('completed') && siteHasCompletedWo);
+          (filters.status.includes('in_progress') && siteHasInProgressWo);
         
         if (!hasMatchingStatus) return false;
       }
@@ -524,7 +522,6 @@ export function MapPage() {
               {[
                 { key: 'open' as const, label: 'פתוח' },
                 { key: 'in_progress' as const, label: 'בביצוע' },
-                { key: 'completed' as const, label: 'הושלם' },
               ].map((status) => (
                 <button
                   key={status.key}
@@ -726,11 +723,10 @@ export function MapPage() {
               const rawLng = site.longitude;
               const lat = Number(rawLat);
               const lng = Number(rawLng);
-              
-              // Get the most urgent work order status for marker styling
+               
+              // Get the most urgent work order status for marker styling (only active jobs)
               const activeWorkOrders = site.workOrders?.filter(wo => wo.status !== 'completed') || [];
-              const completedWorkOrders = site.workOrders?.filter(wo => wo.status === 'completed') || [];
-              const mostUrgentWorkOrder = activeWorkOrders.length > 0 ? activeWorkOrders[0] : (completedWorkOrders.length > 0 ? completedWorkOrders[0] : null);
+              const mostUrgentWorkOrder = activeWorkOrders.length > 0 ? activeWorkOrders[0] : null;
               const workOrderStatus = mostUrgentWorkOrder?.status;
               
               // Skip sites with invalid or missing coordinates
