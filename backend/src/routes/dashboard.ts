@@ -67,7 +67,9 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
         .filter((d): d is Date => d !== null);
       if (removalDates.length === 0) continue;
       const earliest = new Date(Math.min(...removalDates.map((d) => d.getTime())));
-      const { statusColor } = computeWorkOrderStatus(earliest, today);
+      console.log('[Stats] site:', site.id, 'earliest:', earliest.toISOString());
+      const { statusColor, daysUntilRemoval } = computeWorkOrderStatus(earliest, today);
+      console.log('[Stats] statusColor:', statusColor, 'daysUntilRemoval:', daysUntilRemoval);
       if (statusColor === 'black') overdueRemovals++;
       else if (statusColor === 'red') upcomingRemovals++;
     }

@@ -21,6 +21,11 @@ export function computeWorkOrderStatus(
   const target = toLocalDate(plannedRemovalDate);
   const daysUntilRemoval = diffInDays(target, today);
 
+  console.log('[computeWorkOrderStatus] input date:', plannedRemovalDate.toISOString());
+  console.log('[computeWorkOrderStatus] today (normalized):', today.toISOString());
+  console.log('[computeWorkOrderStatus] target (normalized):', target.toISOString());
+  console.log('[computeWorkOrderStatus] daysUntilRemoval:', daysUntilRemoval);
+
   if (daysUntilRemoval < 0) return { statusColor: 'black', daysUntilRemoval };
   if (daysUntilRemoval >= 0 && daysUntilRemoval <= 3) return { statusColor: 'red', daysUntilRemoval };
   if (daysUntilRemoval >= 4 && daysUntilRemoval <= 7) return { statusColor: 'orange', daysUntilRemoval };
