@@ -6,10 +6,20 @@ import { authenticate, authorize } from '../middleware/auth';
 const router = Router();
 const prisma = new PrismaClient();
 
+// Authentication required for all routes
 router.use(authenticate);
-router.use(authorize('admin', 'manager'));
 
-// Checklist Items
+// GET routes are accessible to all authenticated users (admin, manager, tech)
+// POST/PUT/DELETE routes require admin or manager
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    res.json({ message: 'Settings API' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Checklist Items - GET is open, mutations require admin/manager
 router.get('/checklist', async (req: Request, res: Response) => {
   try {
     const { isActive } = req.query;
@@ -25,7 +35,7 @@ router.get('/checklist', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/checklist', async (req: Request, res: Response) => {
+router.post('/checklist', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, isActive, sortOrder } = req.body;
     const item = await prisma.settingsChecklistItem.create({
@@ -38,7 +48,7 @@ router.post('/checklist', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/checklist/:id', async (req: Request, res: Response) => {
+router.put('/checklist/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, isActive, sortOrder } = req.body;
@@ -53,7 +63,7 @@ router.put('/checklist/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/checklist/:id', async (req: Request, res: Response) => {
+router.delete('/checklist/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     await prisma.settingsChecklistItem.delete({ where: { id } });
@@ -64,7 +74,7 @@ router.delete('/checklist/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Work Order Types
+// Work Order Types - GET is open, mutations require admin/manager
 router.get('/work-order-types', async (req: Request, res: Response) => {
   try {
     const { isActive } = req.query;
@@ -80,7 +90,7 @@ router.get('/work-order-types', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/work-order-types', async (req: Request, res: Response) => {
+router.post('/work-order-types', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, isActive, sortOrder } = req.body;
     const type = await prisma.settingsWorkOrderType.create({
@@ -93,7 +103,7 @@ router.post('/work-order-types', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/work-order-types/:id', async (req: Request, res: Response) => {
+router.put('/work-order-types/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, isActive, sortOrder } = req.body;
@@ -108,7 +118,7 @@ router.put('/work-order-types/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/work-order-types/:id', async (req: Request, res: Response) => {
+router.delete('/work-order-types/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     await prisma.settingsWorkOrderType.delete({ where: { id } });
@@ -119,7 +129,7 @@ router.delete('/work-order-types/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Equipment Types
+// Equipment Types - GET is open, mutations require admin/manager
 router.get('/equipment-types', async (req: Request, res: Response) => {
   try {
     const { isActive } = req.query;
@@ -135,7 +145,7 @@ router.get('/equipment-types', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/equipment-types', async (req: Request, res: Response) => {
+router.post('/equipment-types', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, code, isActive, sortOrder } = req.body;
     const type = await prisma.settingsEquipmentType.create({
@@ -148,7 +158,7 @@ router.post('/equipment-types', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/equipment-types/:id', async (req: Request, res: Response) => {
+router.put('/equipment-types/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, code, isActive, sortOrder } = req.body;
@@ -163,7 +173,7 @@ router.put('/equipment-types/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/equipment-types/:id', async (req: Request, res: Response) => {
+router.delete('/equipment-types/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     await prisma.settingsEquipmentType.delete({ where: { id } });
@@ -190,7 +200,7 @@ router.get('/equipment-statuses', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/equipment-statuses', async (req: Request, res: Response) => {
+router.post('/equipment-statuses', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, code, isActive, sortOrder } = req.body;
     const status = await prisma.settingsEquipmentStatus.create({
@@ -203,7 +213,7 @@ router.post('/equipment-statuses', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/equipment-statuses/:id', async (req: Request, res: Response) => {
+router.put('/equipment-statuses/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, code, isActive, sortOrder } = req.body;
@@ -218,7 +228,7 @@ router.put('/equipment-statuses/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/equipment-statuses/:id', async (req: Request, res: Response) => {
+router.delete('/equipment-statuses/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     await prisma.settingsEquipmentStatus.delete({ where: { id } });
@@ -245,7 +255,7 @@ router.get('/equipment-conditions', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/equipment-conditions', async (req: Request, res: Response) => {
+router.post('/equipment-conditions', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, code, isActive, sortOrder } = req.body;
     const condition = await prisma.settingsEquipmentCondition.create({
@@ -258,7 +268,7 @@ router.post('/equipment-conditions', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/equipment-conditions/:id', async (req: Request, res: Response) => {
+router.put('/equipment-conditions/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, code, isActive, sortOrder } = req.body;
@@ -273,7 +283,7 @@ router.put('/equipment-conditions/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/equipment-conditions/:id', async (req: Request, res: Response) => {
+router.delete('/equipment-conditions/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     await prisma.settingsEquipmentCondition.delete({ where: { id } });
@@ -297,7 +307,7 @@ router.get('/technicians', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/technicians', async (req: Request, res: Response) => {
+router.post('/technicians', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, active } = req.body;
     if (!name) {
@@ -316,7 +326,7 @@ router.post('/technicians', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/technicians/:id', async (req: Request, res: Response) => {
+router.put('/technicians/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, active } = req.body;
@@ -335,7 +345,7 @@ router.put('/technicians/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/technicians/:id', async (req: Request, res: Response) => {
+router.delete('/technicians/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -378,7 +388,7 @@ router.get('/equipment-locations', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/equipment-locations', async (req: Request, res: Response) => {
+router.post('/equipment-locations', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name } = req.body;
     if (!name) {
@@ -398,7 +408,7 @@ router.post('/equipment-locations', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/equipment-locations/:id', async (req: Request, res: Response) => {
+router.put('/equipment-locations/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
@@ -426,7 +436,7 @@ router.put('/equipment-locations/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/equipment-locations/:id', async (req: Request, res: Response) => {
+router.delete('/equipment-locations/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const existing = await prisma.equipmentLocation.findUnique({ where: { id } });
