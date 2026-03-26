@@ -333,12 +333,11 @@ export function WorkOrdersListPage() {
       } else if (filters.timeRange === 'month') {
         return diffDays >= 0 && diffDays <= 30;
       } else if (filters.timeRange === 'lastMonth') {
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-        const firstDayOfLastMonth = new Date(currentMonth === 0 ? currentYear - 1 : currentYear, currentMonth === 0 ? 11 : currentMonth - 1, 1);
-        const lastDayOfLastMonth = new Date(currentMonth === 0 ? currentYear - 1 : currentYear, currentMonth === 0 ? 12 : currentMonth, 0);
-        return targetDate >= firstDayOfLastMonth && targetDate <= lastDayOfLastMonth;
+        const today = new Date();
+        const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const startDate = new Date(todayNormalized);
+        startDate.setDate(startDate.getDate() - 30);
+        return targetDate >= startDate && targetDate <= todayNormalized;
       }
       return true;
     })
@@ -795,15 +794,13 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
   const daysMap: Record<string, number> = { 'week': 6, '2weeks': 13, 'month': 29, 'lastMonth': 31, 'all': 29 };
   
   const getDateRangeForTimeRange = (range: string) => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    
     if (range === 'lastMonth') {
-      const firstDayOfLastMonth = new Date(currentMonth === 0 ? currentYear - 1 : currentYear, currentMonth === 0 ? 11 : currentMonth - 1, 1);
-      const lastDayOfLastMonth = new Date(currentMonth === 0 ? currentYear - 1 : currentYear, currentMonth === 0 ? 12 : currentMonth, 0);
-      const days = Math.ceil((lastDayOfLastMonth.getTime() - firstDayOfLastMonth.getTime()) / (1000 * 60 * 60 * 24));
-      return { start: firstDayOfLastMonth, days };
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const start = new Date(today);
+      start.setDate(start.getDate() - 30);
+      const days = Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      return { start, days };
     }
     return { start: today, days: daysMap[range] || 6 };
   };
