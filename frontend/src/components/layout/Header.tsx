@@ -97,8 +97,8 @@ export function Header({ onMenuToggle }: HeaderProps) {
           <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-l from-primary-600 to-primary-500 bg-clip-text text-transparent">{t('app.title')}</h1>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Sync status indicator */}
+        <div className="flex items-center gap-2 sm:gap-3 lg:hidden">
+          {/* Sync status indicator - mobile only */}
           <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm" title={getSyncText()}>
             <span>{getSyncIcon()}</span>
             <span className={`hidden xs:inline ${getSyncClass()}`}>
@@ -111,7 +111,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
             )}
           </div>
 
-          {/* Language selector */}
+          {/* Language selector - mobile only */}
           <div className="relative" ref={langMenuRef}>
             <button
               onClick={() => setShowLangMenu(!showLangMenu)}
@@ -138,7 +138,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
             )}
           </div>
 
-          {/* User menu */}
+          {/* User menu - mobile only */}
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}

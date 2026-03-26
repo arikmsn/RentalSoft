@@ -1,6 +1,8 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
+import { useAppStore } from '../../stores/appStore';
+import { changeLanguage } from '../../i18n';
 
 const navItems = [
   { path: '/dashboard', icon: '📊', label: 'dashboard', roles: ['manager', 'admin'] },
@@ -18,8 +20,10 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onClose }: SidebarProps) {
-  const { t } = useTranslation();
-  const { user } = useAuthStore();
+  const { t, i18n } = useTranslation();
+  const { user, logout } = useAuthStore();
+  const { isOnline, syncStatus, pendingActionsCount } = useAppStore();
+  const navigate = useNavigate();
 
   const filteredItems = navItems.filter(
     item => user && item.roles.includes(user.role)
@@ -29,6 +33,45 @@ export function Sidebar({ onClose }: SidebarProps) {
     if (onClose) {
       onClose();
     }
+  };
+
+  const handleLanguageChange = (lng: string) => {
+    changeLanguage(lng);
+  };
+
+  const getSyncIcon = () => {
+    switch (syncStatus) {
+      case 'online': return '🟢';
+      case 'offline': return '🔴';
+      case 'syncing': return '🔄';
+      case 'synced': return '☁️';
+      case 'pending': return '⏳';
+      case 'error': return '⚠️';
+      default: return '☁️';
+    }
+  };
+
+  const getSyncText = () => {
+    if (!isOnline) return t('sync.offline');
+    if (syncStatus === 'syncing') return t('sync.syncing');
+    if (syncStatus === 'pending' && pendingActionsCount > 0) {
+      return `${pendingActionsCount} ${t('sync.pending')}`;
+    }
+    return isOnline ? t('sync.online') : t('sync.offline');
+  };
+
+  const getSyncClass = () => {
+    if (!isOnline) return 'text-red-600';
+    if (syncStatus === 'syncing') return 'text-blue-600';
+    if (syncStatus === 'pending') return 'text-yellow-600';
+    if (syncStatus === 'error') return 'text-red-600';
+    return 'text-green-600';
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+    if (onClose) onClose();
   };
 
   return (
@@ -65,6 +108,46 @@ export function Sidebar({ onClose }: SidebarProps) {
           </NavLink>
         ))}
       </nav>
+
+      {/* Desktop-only controls - bottom of sidebar */}
+      <div className="hidden lg:block p-3 border-t border-surface-200 space-y-2">
+        {/* Sync status */}
+        <div className="flex items-center gap-2 px-4 py-2 text-sm" title={getSyncText()}>
+          <span>{getSyncIcon()}</span>
+          <span className={getSyncClass()}>{getSyncText()}</span>
+        </div>
+
+        {/* Language switcher */}
+        <div className="flex items-center gap-1 px-4 py-2">
+          <button
+            onClick={() => handleLanguageChange('he')}
+            className={`px-2 py-1 rounded ${i18n.language === 'he' ? 'bg-primary-100 text-primary-600' : 'hover:bg-surface-100'}`}
+          >
+            🇮🇱 HE
+          </button>
+          <button
+            onClick={() => handleLanguageChange('en')}
+            className={`px-2 py-1 rounded ${i18n.language === 'en' ? 'bg-primary-100 text-primary-600' : 'hover:bg-surface-100'}`}
+          >
+            🇬🇧 EN
+          </button>
+        </div>
+
+        {/* User info and logout */}
+        <div className="px-4 py-2">
+          <p className="text-sm font-medium text-surface-700">{user?.name}</p>
+          <p className="text-xs text-surface-500">{t(`roles.${user?.role}`)}</p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          {t('auth.logout')}
+        </button>
+      </div>
     </aside>
   );
 }
