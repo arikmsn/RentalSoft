@@ -1,4 +1,4 @@
-const CACHE_NAME = 'freshmor-v7';
+const CACHE_NAME = 'freshmor-v8';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -41,40 +41,57 @@ self.addEventListener('fetch', (event) => {
 
   // Network-first for API calls — always get fresh data
   if (event.request.url.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
-    );
+    try {
+      event.respondWith(
+        fetch(event.request).catch(() => caches.match(event.request))
+      );
+    } catch (e) {
+      console.warn('[ServiceWorker] API fetch error:', e);
+    }
     return;
   }
 
   // Network-first for navigation requests (index.html, SPA routes)
   if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request) || caches.match('/'))
-    );
+    try {
+      event.respondWith(
+        fetch(event.request)
+          .then((response) => {
+            if (response.ok) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            }
+            return response;
+          })
+          .catch(() => caches.match(event.request) || caches.match('/'))
+      );
+    } catch (e) {
+      console.warn('[ServiceWorker] Navigation fetch error:', e);
+    }
     return;
   }
 
   // Cache-first for static assets (JS, CSS, images, fonts)
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).then((response) => {
-        // Only cache successful, same-origin static assets
-        if (response.ok && url.origin === self.location.origin) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      });
-    })
-  );
+  try {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request)
+          .then((response) => {
+            // Only cache successful, same-origin static assets
+            if (response.ok && url.origin === self.location.origin) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            }
+            return response;
+          })
+          .catch((e) => {
+            console.warn('[ServiceWorker] Static asset fetch error:', e);
+            return new Response('', { status: 503 });
+          });
+      })
+    );
+  } catch (e) {
+    console.warn('[ServiceWorker] Cache-first fetch error:', e);
+  }
 });

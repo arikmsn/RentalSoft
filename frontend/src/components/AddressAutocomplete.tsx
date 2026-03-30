@@ -177,7 +177,8 @@ export function AddressAutocomplete({
       if (cancelled) return;
 
       if (!loaded) {
-        console.error('[Autocomplete] Google Maps did not load');
+        console.warn('[Autocomplete] Google Maps did not load (API key missing or load failed) - falling back to plain input');
+        setReady(true);
         return;
       }
 
@@ -193,18 +194,35 @@ export function AddressAutocomplete({
         return;
       }
 
+      // Check if Autocomplete is available
+      if (
+        typeof google === 'undefined' ||
+        !google?.maps ||
+        !google?.maps?.places ||
+        !google?.maps?.places?.Autocomplete
+      ) {
+        console.warn('[Autocomplete] Google Maps Places not available (maybe API key / referrer issue) - falling back to plain input');
+        setReady(true);
+        return;
+      }
+
       console.log('[Autocomplete] Creating Autocomplete instance...');
 
-      const ac = new google.maps.places.Autocomplete(input, {
-        types: ['address'],
-        componentRestrictions: { country: 'il' },
-        fields: ['geometry', 'address_components', 'formatted_address', 'name'],
-      });
+      try {
+        const ac = new google.maps.places.Autocomplete(input, {
+          types: ['address'],
+          componentRestrictions: { country: 'il' },
+          fields: ['geometry', 'address_components', 'formatted_address', 'name'],
+        });
 
-      ac.addListener('place_changed', onPlaceChanged);
-      acRef.current = ac;
-      setReady(true);
-      console.log('[Autocomplete] Ready - suggestions should now appear when typing');
+        ac.addListener('place_changed', onPlaceChanged);
+        acRef.current = ac;
+        setReady(true);
+        console.log('[Autocomplete] Ready - suggestions should now appear when typing');
+      } catch (e) {
+        console.warn('[Autocomplete] Failed to init Places Autocomplete', e);
+        setReady(true);
+      }
     })();
 
     return () => { cancelled = true; };
