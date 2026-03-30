@@ -76,8 +76,12 @@ export function EquipmentDetailsPage() {
       return [];
     }).then(notesData => {
       setNotes(notesData || []);
-    }).catch((err) => {
+    }).catch((err: any) => {
       console.error('Failed to fetch equipment:', err);
+      if (err.response?.status === 401) {
+        // Session expired - let axios interceptor handle redirect
+        return;
+      }
       navigate('/equipment');
     }).finally(() => {
       setLoading(false);

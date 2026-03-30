@@ -18,11 +18,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+let isRedirecting = false;
+
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isRedirecting) {
+      isRedirecting = true;
       useAuthStore.getState().logout();
+      window.location.href = '/login?reason=session_expired';
     }
     return Promise.reject(error);
   }

@@ -34,6 +34,7 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('workOrderTypes');
   const [items, setItems] = useState<(SettingsItem | Technician | EquipmentLocation)[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<SettingsItem | Technician | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -76,6 +77,7 @@ export function SettingsPage() {
       setItems(response.data);
     } catch (error) {
       console.error('Error fetching items:', error);
+      setError('session_expired');
     } finally {
       setLoading(false);
     }
@@ -237,6 +239,8 @@ export function SettingsPage() {
       <div className="bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-surface-500">{t('app.loading')}</div>
+        ) : error ? (
+          <div className="p-8 text-center text-danger-600">{error === 'session_expired' ? 'הסיום הסתיים, אנא התחבר מחדש' : t('errors.serverError')}</div>
         ) : items.length === 0 ? (
           <div className="p-8 text-center text-surface-500">{t('errors.notFound')}</div>
         ) : (

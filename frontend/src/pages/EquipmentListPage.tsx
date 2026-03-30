@@ -33,6 +33,7 @@ export function EquipmentListPage() {
   const [equipmentTypes, setEquipmentTypes] = useState<SettingsEquipmentType[]>([]);
   const [locations, setLocations] = useState<SettingsEquipmentLocation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     status: 'all' as string,
     location: 'all' as string,
@@ -94,6 +95,7 @@ export function EquipmentListPage() {
       setLocations(locData);
     }).catch((err) => {
       console.error('Failed to fetch data:', err);
+      setFetchError('session_expired');
     }).finally(() => {
       setLoading(false);
     });
@@ -182,6 +184,16 @@ export function EquipmentListPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-surface-500">{t('app.loading')}</div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-danger-600 text-center">
+          {fetchError === 'session_expired' ? 'הסיום הסתיים, אנא התחבר מחדש' : t('errors.serverError')}
+        </div>
       </div>
     );
   }

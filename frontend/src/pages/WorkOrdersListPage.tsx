@@ -67,6 +67,7 @@ export function WorkOrdersListPage() {
   const [technicians, setTechnicians] = useState<{id: string; name: string; active: boolean}[]>([]);
   const [workTypes, setWorkTypes] = useState<{id: string; name: string}[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>(searchParams.get('view') === 'calendar' ? 'calendar' : 'list');
   const [search, setSearch] = useState('');
@@ -113,6 +114,7 @@ export function WorkOrdersListPage() {
       setTechnicians(uniqueTechs);
     }).catch((err) => {
       console.error('Failed to fetch data:', err);
+      setFetchError('session_expired');
     }).finally(() => {
       setLoading(false);
     });
@@ -365,6 +367,16 @@ export function WorkOrdersListPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-surface-500">{t('app.loading')}</div>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-danger-600 text-center">
+          {fetchError === 'session_expired' ? 'הסיום הסתיים, אנא התחבר מחדש' : t('errors.serverError')}
+        </div>
       </div>
     );
   }
