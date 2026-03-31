@@ -375,7 +375,7 @@ export function WorkOrdersListPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-danger-600 text-center">
-          {fetchError === 'session_expired' ? 'הסיום הסתיים, אנא התחבר מחדש' : t('errors.serverError')}
+          {fetchError === 'session_expired' ? 'מערכת עודכנה, נא להתחבר מחדש' : t('errors.serverError')}
         </div>
       </div>
     );

@@ -240,7 +240,7 @@ export function SettingsPage() {
         {loading ? (
           <div className="p-8 text-center text-surface-500">{t('app.loading')}</div>
         ) : error ? (
-          <div className="p-8 text-center text-danger-600">{error === 'session_expired' ? 'הסיום הסתיים, אנא התחבר מחדש' : t('errors.serverError')}</div>
+          <div className="p-8 text-center text-danger-600">{error === 'session_expired' ? 'מערכת עודכנה, נא להתחבר מחדש' : t('errors.serverError')}</div>
         ) : items.length === 0 ? (
           <div className="p-8 text-center text-surface-500">{t('errors.notFound')}</div>
         ) : (

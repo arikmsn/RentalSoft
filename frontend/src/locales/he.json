@@ -212,7 +212,7 @@
     "summary": "סיכום",
     "availableEquipment": "ציוד פנוי",
     "activeEquipment": "ציוד פעיל",
-    "sitesWithEquipment": "אתרים עם ציוד",
+    "sitesWithEquipment": "אתרים פעילים",
     "overdueRemovals": "ביקורים שחלף זמנם",
     "upcomingRemovals": "ביקורים בימים הקרובים",
     "noAlerts": "אין התראות"

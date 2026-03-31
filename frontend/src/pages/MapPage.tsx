@@ -417,7 +417,7 @@ export function MapPage() {
             ${workType ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">${workType}</div>` : ''}
             <div style="margin-top:8px; font-size:11px; line-height:1.6;">
               ${installationDate ? `<div><span style="color:#64748b; font-weight:500;">תאריך התקנה:</span> <span style="color:#1e293b; font-weight:600;">${installationDate}</span></div>` : ''}
-              ${removalDate ? `<div><span style="color:#64748b; font-weight:500;">ת.בדיקה הבאה:</span> <span style="color:#1e293b; font-weight:600;">${removalDate}</span></div>` : ''}
+              <div><span style="color:#64748b; font-weight:500;">ת.בדיקה הבאה:</span> <span style="color:#1e293b; font-weight:600;">${removalDate || 'לא נקבע'}</span></div>
             </div>
             ${statusHtml}
             <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
@@ -773,11 +773,9 @@ export function MapPage() {
                     <p className="text-xs text-surface-600 mt-1">
                       {site.address}{site.floor ? `, קומה ${site.floor}` : ''}
                     </p>
-                    {site.earliestRemovalDate && (
-                      <div className="mt-2 text-xs">
-                        <span className="font-medium text-surface-600">ת.בדיקה הבאה:</span> <span className="text-surface-800">{new Date(site.earliestRemovalDate).toLocaleDateString('he-IL')}</span>
-                      </div>
-                    )}
+                    <div className="mt-2 text-xs">
+                      <span className="font-medium text-surface-600">ת.בדיקה הבאה:</span> <span className="text-surface-800">{site.earliestRemovalDate ? new Date(site.earliestRemovalDate).toLocaleDateString('he-IL') : 'לא נקבע'}</span>
+                    </div>
                     {site.workOrders && site.workOrders.length > 0 && (
                       <div className="mt-2 text-xs space-y-0.5">
                         <div><span className="font-medium text-surface-600">תאריך התקנה:</span> <span className="text-surface-800">{new Date(site.workOrders[site.workOrders.length - 1].plannedDate).toLocaleDateString('he-IL')}</span></div>

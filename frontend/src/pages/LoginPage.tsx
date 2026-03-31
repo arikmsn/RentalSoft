@@ -13,7 +13,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('reason') === 'session_expired' ? 'הסיום הסתיים, אנא התחבר שוב' : '';
+    return params.get('reason') === 'session_expired' ? 'מערכת עודכנה, נא להתחבר מחדש' : '';
   });
   const [loading, setLoading] = useState(false);
 
