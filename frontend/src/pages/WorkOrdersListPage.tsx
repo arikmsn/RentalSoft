@@ -633,6 +633,11 @@ export function WorkOrdersListPage() {
                         ))}
                         {wo.site ? wo.site.name : ''}
                       </h3>
+                      {(wo.equipmentCount === 0 || wo.equipmentCount === undefined || !wo.equipmentCount) && (
+                        <span className="mr-2 text-xs text-surface-400 bg-surface-100 px-1.5 py-0.5 rounded">
+                          ללא ציוד
+                        </span>
+                      )}
                       <p className="text-sm text-surface-500 mt-1">
                         {wo.workTypeName || wo.type || t('workOrders.workType')}
                         {wo.site ? `, ${wo.site.city}` : ''}

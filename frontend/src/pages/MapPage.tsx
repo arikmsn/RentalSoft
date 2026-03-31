@@ -95,13 +95,19 @@ const getMarkerIcon = (
   const color = status ? statusColors[status] : '#9ca3af';
   const size = selected ? 32 : 24;
   const borderWidth = selected ? 4 : 4;
-  const isHollow = !hasEquipment;
+  const isNoEquipment = !hasEquipment;
   const innerIcon = hasPotentialRemoval ? 'פ' : '';
-  const borderColor = isHollow ? color : (status === 'green' ? '#15803d' : (status === 'orange' ? '#c2410c' : (status === 'red' ? '#b91c1c' : (status === 'black' ? '#000000' : 'white'))));
+  const borderColor = status === 'green' ? '#15803d' : (status === 'orange' ? '#c2410c' : (status === 'red' ? '#b91c1c' : (status === 'black' ? '#000000' : 'white')));
+  
+  // Add white dot in center for jobs without equipment
+  const innerDot = isNoEquipment 
+    ? `<div style="position:absolute; width:8px; height:8px; background:white; border-radius:50%; top:50%; left:50%; transform:translate(-50%, -50%);"></div>` 
+    : '';
+  
   return L.divIcon({
     className: 'custom-marker',
     html: `<div style="
-      background-color: ${isHollow ? 'transparent' : color};
+      background-color: ${color};
       width: ${size}px;
       height: ${size}px;
       border-radius: 50%;
@@ -114,7 +120,8 @@ const getMarkerIcon = (
       font-size: ${hasPotentialRemoval ? '14px' : '0'};
       color: white;
       font-weight: bold;
-    ">${innerIcon}</div>`,
+      position: relative;
+    ">${innerIcon}${innerDot}</div>`,
     iconSize: [size, size],
     iconAnchor: [size/2, size/2],
     popupAnchor: [0, -size/2],
@@ -766,12 +773,22 @@ export function MapPage() {
                     <p className="text-xs text-surface-600 mt-1">
                       {site.address}{site.floor ? `, קומה ${site.floor}` : ''}
                     </p>
+                    {site.earliestRemovalDate && (
+                      <div className="mt-2 text-xs">
+                        <span className="font-medium text-surface-600">תאריך בדיקה הבא:</span> <span className="text-surface-800">{new Date(site.earliestRemovalDate).toLocaleDateString('he-IL')}</span>
+                      </div>
+                    )}
                     {site.workOrders && site.workOrders.length > 0 && (
                       <div className="mt-2 text-xs space-y-0.5">
                         <div><span className="font-medium text-surface-600">תאריך התקנה:</span> <span className="text-surface-800">{new Date(site.workOrders[site.workOrders.length - 1].plannedDate).toLocaleDateString('he-IL')}</span></div>
                         {site.earliestRemovalDate && (
                           <div><span className="font-medium text-surface-600">מתפנה בתאריך:</span> <span className="text-surface-800">{new Date(site.earliestRemovalDate).toLocaleDateString('he-IL')}</span></div>
                         )}
+                      </div>
+                    )}
+                    {!site.hasEquipment && (
+                      <div className="mt-2 text-xs text-surface-400 bg-surface-50 px-2 py-1 rounded">
+                        ללא ציוד
                       </div>
                     )}
                     {site.overallStatus && (
