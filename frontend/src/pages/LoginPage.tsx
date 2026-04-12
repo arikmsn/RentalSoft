@@ -30,7 +30,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
- 
+  
     try {
       const response = await authService.login({ username, password, tenantSlug: routeTenantSlug });
       login(response.user, response.token);
@@ -38,11 +38,16 @@ const handleSubmit = async (e: React.FormEvent) => {
       if (response.user.isSuperAdmin) {
         navigate('/super/dashboard');
       } else {
+        // Always use tenantSlug from the login response, fallback to routeTenantSlug or 'default'
         const targetSlug = response.user.tenantSlug || routeTenantSlug || 'default';
         navigate(`/${targetSlug}/dashboard`);
       }
-    } catch (err) {
-      setError(handleApiError(err));
+    } catch (err: any) {
+      if (err?.response?.status === 401 || err?.response?.status === 400) {
+        setError('שם משתמש או סיסמה שגויים');
+      } else {
+        setError(handleApiError(err));
+      }
     } finally {
       setLoading(false);
     }

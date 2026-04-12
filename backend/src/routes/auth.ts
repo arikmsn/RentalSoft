@@ -52,7 +52,10 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
     }
 
     if (!user || !user.isActive) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ 
+        status: 'invalid_credentials',
+        message: 'Invalid credentials' 
+      });
     }
 
     // If tenant-scoped, verify membership (except for super admin)
@@ -61,13 +64,19 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
         where: { userId: user.id, tenantId },
       });
       if (!membership) {
-        return res.status(401).json({ message: 'Invalid credentials for this tenant' });
+        return res.status(401).json({ 
+          status: 'invalid_credentials',
+          message: 'Invalid credentials for this tenant' 
+        });
       }
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ 
+        status: 'invalid_credentials',
+        message: 'Invalid credentials' 
+      });
     }
 
     await prisma.user.update({

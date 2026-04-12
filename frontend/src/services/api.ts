@@ -25,17 +25,16 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     const status = error.response?.status;
     const data = error.response?.data as any;
+    const url = error.config?.url || '';
+    
     const isSessionExpired = status === 401 && data?.status === 'session_expired';
+    const isLoginRequest = url.includes('/auth/login');
 
-    if ((status === 401 || isSessionExpired) && !isRedirecting) {
+    // Only redirect for session_expired on API calls (not login form)
+    if (isSessionExpired && !isLoginRequest && !isRedirecting) {
       isRedirecting = true;
       useAuthStore.getState().logout();
-      
-      const message = isSessionExpired 
-        ? 'המערכת עודכנה, נא להתחבר מחדש'
-        : 'נא להתחבר מחדש';
-      
-      window.location.href = `/login?reason=session_expired&message=${encodeURIComponent(message)}`;
+      window.location.href = `/login?reason=session_expired&message=${encodeURIComponent('המערכת עודכנה, נא להתחבר מחדש')}`;
     }
     return Promise.reject(error);
   }
@@ -44,6 +43,14 @@ api.interceptors.response.use(
 export const handleApiError = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as any;
+    const status = error.response?.status;
+    
+    if (status === 401 || status === 400) {
+      if (data?.status === 'session_expired') {
+        return 'המערכת עודכנה, נא להתחבר מחדש';
+      }
+      return data?.message || 'שם משתמש או סיסמה שגויים';
+    }
     if (error.response) {
       return data?.message || 'Server error';
     } else if (error.request) {
