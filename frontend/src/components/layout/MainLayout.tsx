@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
@@ -8,9 +8,10 @@ import { useAppStore } from '../../stores/appStore';
 
 interface MainLayoutProps {
   tenantSlug?: string;
+  children?: ReactNode;
 }
 
-export function MainLayout({ tenantSlug }: MainLayoutProps) {
+export function MainLayout({ tenantSlug, children }: MainLayoutProps) {
   const { isAuthenticated } = useAuthStore();
   const { setOnline, setSyncStatus } = useAppStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -117,7 +118,7 @@ export function MainLayout({ tenantSlug }: MainLayoutProps) {
       {/* Main content - with left margin on desktop, top padding for fixed header on mobile only */}
       <main className="lg:ms-64 p-4 sm:p-5 pb-24 sm:pb-5 pt-16 lg:pt-4 min-h-screen">
         <div className="animate-fade-in">
-          <Outlet />
+          {children || <Outlet />}
         </div>
       </main>
       
