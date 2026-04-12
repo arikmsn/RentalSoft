@@ -1,7 +1,7 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { authenticate, authorize, isSuperAdmin } from '../middleware/auth';
+import { authenticate, authorize, isSuperAdmin, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -17,7 +17,7 @@ router.use(authenticate);
 
 // GET routes are accessible to all authenticated users (admin, manager, tech)
 // POST/PUT/DELETE routes require admin or manager
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     res.json({ message: 'Settings API' });
   } catch (error) {
@@ -26,7 +26,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // Checklist Items - GET is open, mutations require admin/manager
-router.get('/checklist', async (req: Request, res: Response) => {
+router.get('/checklist', async (req: AuthRequest, res: Response) => {
   try {
     const { isActive } = req.query;
     const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
@@ -43,7 +43,7 @@ router.get('/checklist', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/checklist', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.post('/checklist', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { name, isActive, sortOrder } = req.body;
     const tenantId = req.tenantId;
@@ -65,7 +65,7 @@ router.post('/checklist', authorize('admin', 'manager'), async (req: Request, re
   }
 });
 
-router.put('/checklist/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.put('/checklist/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, isActive, sortOrder } = req.body;
@@ -87,7 +87,7 @@ router.put('/checklist/:id', authorize('admin', 'manager'), async (req: Request,
   }
 });
 
-router.delete('/checklist/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.delete('/checklist/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
@@ -106,7 +106,7 @@ router.delete('/checklist/:id', authorize('admin', 'manager'), async (req: Reque
 });
 
 // Work Order Types - GET is open, mutations require admin/manager
-router.get('/work-order-types', async (req: Request, res: Response) => {
+router.get('/work-order-types', async (req: AuthRequest, res: Response) => {
   try {
     const { isActive } = req.query;
     const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
@@ -123,7 +123,7 @@ router.get('/work-order-types', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/work-order-types', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.post('/work-order-types', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { name, isActive, sortOrder } = req.body;
     const tenantId = req.tenantId;
@@ -145,7 +145,7 @@ router.post('/work-order-types', authorize('admin', 'manager'), async (req: Requ
   }
 });
 
-router.put('/work-order-types/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.put('/work-order-types/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, isActive, sortOrder } = req.body;
@@ -167,7 +167,7 @@ router.put('/work-order-types/:id', authorize('admin', 'manager'), async (req: R
   }
 });
 
-router.delete('/work-order-types/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.delete('/work-order-types/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
@@ -186,7 +186,7 @@ router.delete('/work-order-types/:id', authorize('admin', 'manager'), async (req
 });
 
 // Equipment Types - GET is open, mutations require admin/manager
-router.get('/equipment-types', async (req: Request, res: Response) => {
+router.get('/equipment-types', async (req: AuthRequest, res: Response) => {
   try {
     const { isActive } = req.query;
     const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
@@ -203,7 +203,7 @@ router.get('/equipment-types', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/equipment-types', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.post('/equipment-types', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { name, code, isActive, sortOrder } = req.body;
     const tenantId = req.tenantId;
@@ -226,7 +226,7 @@ router.post('/equipment-types', authorize('admin', 'manager'), async (req: Reque
   }
 });
 
-router.put('/equipment-types/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.put('/equipment-types/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, code, isActive, sortOrder } = req.body;
@@ -248,7 +248,7 @@ router.put('/equipment-types/:id', authorize('admin', 'manager'), async (req: Re
   }
 });
 
-router.delete('/equipment-types/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.delete('/equipment-types/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
@@ -267,7 +267,7 @@ router.delete('/equipment-types/:id', authorize('admin', 'manager'), async (req:
 });
 
 // Equipment Statuses
-router.get('/equipment-statuses', async (req: Request, res: Response) => {
+router.get('/equipment-statuses', async (req: AuthRequest, res: Response) => {
   try {
     const { isActive } = req.query;
     const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
@@ -284,7 +284,7 @@ router.get('/equipment-statuses', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/equipment-statuses', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.post('/equipment-statuses', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { name, code, isActive, sortOrder } = req.body;
     const tenantId = req.tenantId;
@@ -307,7 +307,7 @@ router.post('/equipment-statuses', authorize('admin', 'manager'), async (req: Re
   }
 });
 
-router.put('/equipment-statuses/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.put('/equipment-statuses/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, code, isActive, sortOrder } = req.body;
@@ -329,7 +329,7 @@ router.put('/equipment-statuses/:id', authorize('admin', 'manager'), async (req:
   }
 });
 
-router.delete('/equipment-statuses/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.delete('/equipment-statuses/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
@@ -348,7 +348,7 @@ router.delete('/equipment-statuses/:id', authorize('admin', 'manager'), async (r
 });
 
 // Equipment Conditions
-router.get('/equipment-conditions', async (req: Request, res: Response) => {
+router.get('/equipment-conditions', async (req: AuthRequest, res: Response) => {
   try {
     const { isActive } = req.query;
     const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
@@ -365,7 +365,7 @@ router.get('/equipment-conditions', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/equipment-conditions', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.post('/equipment-conditions', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { name, code, isActive, sortOrder } = req.body;
     const tenantId = req.tenantId;
@@ -388,7 +388,7 @@ router.post('/equipment-conditions', authorize('admin', 'manager'), async (req: 
   }
 });
 
-router.put('/equipment-conditions/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.put('/equipment-conditions/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, code, isActive, sortOrder } = req.body;
@@ -410,7 +410,7 @@ router.put('/equipment-conditions/:id', authorize('admin', 'manager'), async (re
   }
 });
 
-router.delete('/equipment-conditions/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.delete('/equipment-conditions/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
@@ -429,7 +429,7 @@ router.delete('/equipment-conditions/:id', authorize('admin', 'manager'), async 
 });
 
 // Technicians (separate lookup table)
-router.get('/technicians', async (req: Request, res: Response) => {
+router.get('/technicians', async (req: AuthRequest, res: Response) => {
   try {
     const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     const technicians = await prisma.technician.findMany({
@@ -443,7 +443,7 @@ router.get('/technicians', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/technicians', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.post('/technicians', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { name, active } = req.body;
     if (!name) {
@@ -467,7 +467,7 @@ router.post('/technicians', authorize('admin', 'manager'), async (req: Request, 
   }
 });
 
-router.put('/technicians/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.put('/technicians/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, active } = req.body;
@@ -493,7 +493,7 @@ router.put('/technicians/:id', authorize('admin', 'manager'), async (req: Reques
   }
 });
 
-router.delete('/technicians/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.delete('/technicians/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
@@ -531,7 +531,7 @@ router.delete('/technicians/:id', authorize('admin', 'manager'), async (req: Req
 export default router;
 
 // Equipment Locations
-router.get('/equipment-locations', async (req: Request, res: Response) => {
+router.get('/equipment-locations', async (req: AuthRequest, res: Response) => {
   try {
     // Return system locations + tenant-specific locations
     const tenantId = req.tenantId;
@@ -561,7 +561,7 @@ router.get('/equipment-locations', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/equipment-locations', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.post('/equipment-locations', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { name } = req.body;
     if (!name) {
@@ -593,7 +593,7 @@ router.post('/equipment-locations', authorize('admin', 'manager'), async (req: R
   }
 });
 
-router.put('/equipment-locations/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.put('/equipment-locations/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
@@ -628,7 +628,7 @@ router.put('/equipment-locations/:id', authorize('admin', 'manager'), async (req
   }
 });
 
-router.delete('/equipment-locations/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
+router.delete('/equipment-locations/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const tenantId = req.tenantId;

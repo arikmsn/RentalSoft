@@ -9,8 +9,8 @@ export interface AuthRequest extends Request {
     email: string;
     role: string;
   };
-  tenantId?: string | null;
-  tenantSlug?: string | null;
+  tenantId?: string;
+  tenantSlug?: string;
   isSuperAdmin?: boolean;
 }
 
@@ -56,8 +56,8 @@ export const authenticate = async (
 
     // Attach tenant context from JWT
     const isSuperAdmin = decoded.isSuperAdmin || user.isSuperAdmin || false;
-    req.tenantId = decoded.tenantId || null;
-    req.tenantSlug = decoded.tenantSlug || null;
+    req.tenantId = decoded.tenantId || '';
+    req.tenantSlug = decoded.tenantSlug || '';
     req.isSuperAdmin = isSuperAdmin;
 
     // Check for stale JWT: non-super-admin users must have tenantId
