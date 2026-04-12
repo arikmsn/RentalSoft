@@ -41,8 +41,34 @@ router.post('/login', async (req, res) => {
       data: { lastLogin: new Date() },
     });
 
+    // Get tenant membership for tenant context
+    const membership = await prisma.tenantMembership.findFirst({
+      where: { userId: user.id },
+    });
+
+    let tenantSlug: string | null = null;
+    if (membership?.tenantId) {
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: membership.tenantId },
+        select: { slug: true },
+      });
+      tenantSlug = tenant?.slug || null;
+    }
+
+    const tenantId = membership?.tenantId || null;
+
+    // Generate JWT with tenant context (keep existing fields for backward compatibility)
+    const tokenPayload = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      tenantId,
+      tenantSlug,
+      isSuperAdmin: user.isSuperAdmin || false,
+    };
+
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      tokenPayload,
       config.jwtSecret,
       { expiresIn: '24h' as any }
     );
@@ -57,6 +83,9 @@ router.post('/login', async (req, res) => {
         phone: user.phone,
         isActive: user.isActive,
         lastLogin: user.lastLogin,
+        tenantId,
+        tenantSlug,
+        isSuperAdmin: user.isSuperAdmin || false,
       },
       token,
     });

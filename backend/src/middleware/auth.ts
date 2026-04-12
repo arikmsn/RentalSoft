@@ -9,6 +9,18 @@ export interface AuthRequest extends Request {
     email: string;
     role: string;
   };
+  tenantId?: string | null;
+  tenantSlug?: string | null;
+  isSuperAdmin?: boolean;
+}
+
+export interface JwtPayload {
+  id: string;
+  email: string;
+  role: string;
+  tenantId?: string | null;
+  tenantSlug?: string | null;
+  isSuperAdmin?: boolean;
 }
 
 export const authenticate = async (
@@ -24,18 +36,29 @@ export const authenticate = async (
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, config.jwtSecret) as { id: string; email: string; role: string };
+    const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
     
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, role: true, isActive: true },
+      select: { id: true, email: true, role: true, isActive: true, isSuperAdmin: true },
     });
 
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'User not found or inactive' });
     }
 
-    req.user = user;
+    // Attach user info
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    // Attach tenant context from JWT
+    req.tenantId = decoded.tenantId || null;
+    req.tenantSlug = decoded.tenantSlug || null;
+    req.isSuperAdmin = decoded.isSuperAdmin || user.isSuperAdmin || false;
+
     next();
   } catch (error) {
     return res.status(401).json({ message: 'Invalid token' });
