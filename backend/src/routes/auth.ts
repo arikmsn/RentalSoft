@@ -36,19 +36,42 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
       }
     }
 
-    // Build user query - PRIMARY USERNAME, fallback to email for backward compatibility
+    // Build user query - tenant-scoped if tenantId provided
     let user: any = null;
     
-    // Try username first
-    user = await prisma.user.findFirst({
-      where: { username: loginUsername, isActive: true },
-    });
-    
-    // Fallback: try email (for old demo accounts)
-    if (!user) {
-      user = await prisma.user.findFirst({
-        where: { email: loginUsername, isActive: true },
+    if (tenantId) {
+      // Tenant-scoped login: get all user IDs that belong to this tenant
+      const memberRecords = await prisma.tenantMembership.findMany({
+        where: { tenantId },
+        select: { userId: true }
       });
+      const memberUserIds = memberRecords.map(m => m.userId);
+      
+      if (memberUserIds.length > 0) {
+        // Find user by username or email within this tenant's members
+        user = await prisma.user.findFirst({
+          where: { 
+            id: { in: memberUserIds },
+            isActive: true,
+            OR: [
+              { username: loginUsername },
+              { email: loginUsername }
+            ]
+          },
+        });
+      }
+    } else {
+      // Legacy: try username first
+      user = await prisma.user.findFirst({
+        where: { username: loginUsername, isActive: true },
+      });
+      
+      // Fallback: try email
+      if (!user) {
+        user = await prisma.user.findFirst({
+          where: { email: loginUsername, isActive: true },
+        });
+      }
     }
 
     if (!user || !user.isActive) {
