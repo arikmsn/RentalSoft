@@ -179,51 +179,61 @@ model SettingsChecklistItem {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  tenantId  String?  @db.VarChar(36)
+  tenantId  String   @db.VarChar(36)
+
+  @@unique([tenantId, name])
 }
 
 model SettingsWorkOrderType {
   id         String      @id @default(uuid())
-  name       String      @unique
+  name       String
   isActive   Boolean     @default(true)
   sortOrder  Int         @default(0)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
-  tenantId   String?     @db.VarChar(36)
+  tenantId   String      @db.VarChar(36)
   workOrders WorkOrder[]
+
+  @@unique([tenantId, name])
 }
 
 model SettingsEquipmentType {
   id        String   @id @default(uuid())
-  name      String   @unique
+  name      String
   code      String?
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  tenantId  String?  @db.VarChar(36)
+  tenantId  String   @db.VarChar(36)
+
+  @@unique([tenantId, name])
 }
 
 model SettingsEquipmentStatus {
   id        String   @id @default(uuid())
-  name      String   @unique
+  name      String
   code      String?
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  tenantId  String?  @db.VarChar(36)
+  tenantId  String   @db.VarChar(36)
+
+  @@unique([tenantId, name])
 }
 
 model SettingsEquipmentCondition {
   id        String   @id @default(uuid())
-  name      String   @unique
+  name      String
   code      String?
   isActive  Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  tenantId  String?  @db.VarChar(36)
+  tenantId  String   @db.VarChar(36)
+
+  @@unique([tenantId, name])
 }
 
 model WorkOrderStatusHistory {
@@ -253,13 +263,15 @@ model WorkOrderEquipment {
 
 model EquipmentLocation {
   id                String      @id @default(uuid())
-  name              String      @unique
+  name              String
   isDefaultCustomer Boolean     @default(false)
   isSystem          Boolean     @default(false)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
-  tenantId          String?     @db.VarChar(36)
+  tenantId          String      @db.VarChar(36)
   equipment         Equipment[]
+
+  @@unique([tenantId, name])
 }
 
 model EquipmentNote {

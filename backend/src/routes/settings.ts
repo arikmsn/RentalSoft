@@ -1,10 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, authorize, isSuperAdmin } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+function getTenantFilter(tenantId: string | null, isSuperAdmin: boolean) {
+  if (isSuperAdmin) return {};
+  if (!tenantId) return { tenantId: null };
+  return { tenantId };
+}
 
 // Authentication required for all routes
 router.use(authenticate);
@@ -23,7 +29,9 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/checklist', async (req: Request, res: Response) => {
   try {
     const { isActive } = req.query;
-    const where = isActive !== undefined ? { isActive: isActive === 'true' } : {};
+    const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+    const where: any = { ...tenantFilter };
+    if (isActive !== undefined) where.isActive = isActive === 'true';
     const items = await prisma.settingsChecklistItem.findMany({
       where,
       orderBy: { sortOrder: 'asc' },
@@ -38,8 +46,17 @@ router.get('/checklist', async (req: Request, res: Response) => {
 router.post('/checklist', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, isActive, sortOrder } = req.body;
+    const tenantId = req.tenantId;
+    if (!tenantId && !(req.isSuperAdmin)) {
+      return res.status(400).json({ message: 'Tenant ID required' });
+    }
     const item = await prisma.settingsChecklistItem.create({
-      data: { name, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
+      data: { 
+        name, 
+        isActive: isActive ?? true, 
+        sortOrder: sortOrder ?? 0,
+        tenantId: tenantId || 'default',
+      },
     });
     res.json(item);
   } catch (error) {
@@ -52,6 +69,13 @@ router.put('/checklist/:id', authorize('admin', 'manager'), async (req: Request,
   try {
     const { id } = req.params;
     const { name, isActive, sortOrder } = req.body;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsChecklistItem.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
     const item = await prisma.settingsChecklistItem.update({
       where: { id },
       data: { name, isActive, sortOrder },
@@ -66,6 +90,13 @@ router.put('/checklist/:id', authorize('admin', 'manager'), async (req: Request,
 router.delete('/checklist/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsChecklistItem.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
     await prisma.settingsChecklistItem.delete({ where: { id } });
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
@@ -78,7 +109,9 @@ router.delete('/checklist/:id', authorize('admin', 'manager'), async (req: Reque
 router.get('/work-order-types', async (req: Request, res: Response) => {
   try {
     const { isActive } = req.query;
-    const where = isActive !== undefined ? { isActive: isActive === 'true' } : {};
+    const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+    const where: any = { ...tenantFilter };
+    if (isActive !== undefined) where.isActive = isActive === 'true';
     const types = await prisma.settingsWorkOrderType.findMany({
       where,
       orderBy: { sortOrder: 'asc' },
@@ -93,8 +126,17 @@ router.get('/work-order-types', async (req: Request, res: Response) => {
 router.post('/work-order-types', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, isActive, sortOrder } = req.body;
+    const tenantId = req.tenantId;
+    if (!tenantId && !(req.isSuperAdmin)) {
+      return res.status(400).json({ message: 'Tenant ID required' });
+    }
     const type = await prisma.settingsWorkOrderType.create({
-      data: { name, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
+      data: { 
+        name, 
+        isActive: isActive ?? true, 
+        sortOrder: sortOrder ?? 0,
+        tenantId: tenantId || 'default',
+      },
     });
     res.json(type);
   } catch (error) {
@@ -107,6 +149,13 @@ router.put('/work-order-types/:id', authorize('admin', 'manager'), async (req: R
   try {
     const { id } = req.params;
     const { name, isActive, sortOrder } = req.body;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsWorkOrderType.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Work order type not found' });
+    }
     const type = await prisma.settingsWorkOrderType.update({
       where: { id },
       data: { name, isActive, sortOrder },
@@ -121,6 +170,13 @@ router.put('/work-order-types/:id', authorize('admin', 'manager'), async (req: R
 router.delete('/work-order-types/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsWorkOrderType.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Work order type not found' });
+    }
     await prisma.settingsWorkOrderType.delete({ where: { id } });
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
@@ -133,7 +189,9 @@ router.delete('/work-order-types/:id', authorize('admin', 'manager'), async (req
 router.get('/equipment-types', async (req: Request, res: Response) => {
   try {
     const { isActive } = req.query;
-    const where = isActive !== undefined ? { isActive: isActive === 'true' } : {};
+    const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+    const where: any = { ...tenantFilter };
+    if (isActive !== undefined) where.isActive = isActive === 'true';
     const types = await prisma.settingsEquipmentType.findMany({
       where,
       orderBy: { sortOrder: 'asc' },
@@ -148,8 +206,18 @@ router.get('/equipment-types', async (req: Request, res: Response) => {
 router.post('/equipment-types', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, code, isActive, sortOrder } = req.body;
+    const tenantId = req.tenantId;
+    if (!tenantId && !(req.isSuperAdmin)) {
+      return res.status(400).json({ message: 'Tenant ID required' });
+    }
     const type = await prisma.settingsEquipmentType.create({
-      data: { name, code, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
+      data: { 
+        name, 
+        code, 
+        isActive: isActive ?? true, 
+        sortOrder: sortOrder ?? 0,
+        tenantId: tenantId || 'default',
+      },
     });
     res.json(type);
   } catch (error) {
@@ -162,6 +230,13 @@ router.put('/equipment-types/:id', authorize('admin', 'manager'), async (req: Re
   try {
     const { id } = req.params;
     const { name, code, isActive, sortOrder } = req.body;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsEquipmentType.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Equipment type not found' });
+    }
     const type = await prisma.settingsEquipmentType.update({
       where: { id },
       data: { name, code, isActive, sortOrder },
@@ -176,6 +251,13 @@ router.put('/equipment-types/:id', authorize('admin', 'manager'), async (req: Re
 router.delete('/equipment-types/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsEquipmentType.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Equipment type not found' });
+    }
     await prisma.settingsEquipmentType.delete({ where: { id } });
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
@@ -188,7 +270,9 @@ router.delete('/equipment-types/:id', authorize('admin', 'manager'), async (req:
 router.get('/equipment-statuses', async (req: Request, res: Response) => {
   try {
     const { isActive } = req.query;
-    const where = isActive !== undefined ? { isActive: isActive === 'true' } : {};
+    const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+    const where: any = { ...tenantFilter };
+    if (isActive !== undefined) where.isActive = isActive === 'true';
     const statuses = await prisma.settingsEquipmentStatus.findMany({
       where,
       orderBy: { sortOrder: 'asc' },
@@ -203,8 +287,18 @@ router.get('/equipment-statuses', async (req: Request, res: Response) => {
 router.post('/equipment-statuses', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, code, isActive, sortOrder } = req.body;
+    const tenantId = req.tenantId;
+    if (!tenantId && !(req.isSuperAdmin)) {
+      return res.status(400).json({ message: 'Tenant ID required' });
+    }
     const status = await prisma.settingsEquipmentStatus.create({
-      data: { name, code, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
+      data: { 
+        name, 
+        code, 
+        isActive: isActive ?? true, 
+        sortOrder: sortOrder ?? 0,
+        tenantId: tenantId || 'default',
+      },
     });
     res.json(status);
   } catch (error) {
@@ -217,6 +311,13 @@ router.put('/equipment-statuses/:id', authorize('admin', 'manager'), async (req:
   try {
     const { id } = req.params;
     const { name, code, isActive, sortOrder } = req.body;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsEquipmentStatus.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Equipment status not found' });
+    }
     const status = await prisma.settingsEquipmentStatus.update({
       where: { id },
       data: { name, code, isActive, sortOrder },
@@ -231,6 +332,13 @@ router.put('/equipment-statuses/:id', authorize('admin', 'manager'), async (req:
 router.delete('/equipment-statuses/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsEquipmentStatus.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Equipment status not found' });
+    }
     await prisma.settingsEquipmentStatus.delete({ where: { id } });
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
@@ -243,7 +351,9 @@ router.delete('/equipment-statuses/:id', authorize('admin', 'manager'), async (r
 router.get('/equipment-conditions', async (req: Request, res: Response) => {
   try {
     const { isActive } = req.query;
-    const where = isActive !== undefined ? { isActive: isActive === 'true' } : {};
+    const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+    const where: any = { ...tenantFilter };
+    if (isActive !== undefined) where.isActive = isActive === 'true';
     const conditions = await prisma.settingsEquipmentCondition.findMany({
       where,
       orderBy: { sortOrder: 'asc' },
@@ -258,8 +368,18 @@ router.get('/equipment-conditions', async (req: Request, res: Response) => {
 router.post('/equipment-conditions', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { name, code, isActive, sortOrder } = req.body;
+    const tenantId = req.tenantId;
+    if (!tenantId && !(req.isSuperAdmin)) {
+      return res.status(400).json({ message: 'Tenant ID required' });
+    }
     const condition = await prisma.settingsEquipmentCondition.create({
-      data: { name, code, isActive: isActive ?? true, sortOrder: sortOrder ?? 0 },
+      data: { 
+        name, 
+        code, 
+        isActive: isActive ?? true, 
+        sortOrder: sortOrder ?? 0,
+        tenantId: tenantId || 'default',
+      },
     });
     res.json(condition);
   } catch (error) {
@@ -272,6 +392,13 @@ router.put('/equipment-conditions/:id', authorize('admin', 'manager'), async (re
   try {
     const { id } = req.params;
     const { name, code, isActive, sortOrder } = req.body;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsEquipmentCondition.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Equipment condition not found' });
+    }
     const condition = await prisma.settingsEquipmentCondition.update({
       where: { id },
       data: { name, code, isActive, sortOrder },
@@ -286,6 +413,13 @@ router.put('/equipment-conditions/:id', authorize('admin', 'manager'), async (re
 router.delete('/equipment-conditions/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsEquipmentCondition.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Equipment condition not found' });
+    }
     await prisma.settingsEquipmentCondition.delete({ where: { id } });
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
@@ -297,7 +431,9 @@ router.delete('/equipment-conditions/:id', authorize('admin', 'manager'), async 
 // Technicians (separate lookup table)
 router.get('/technicians', async (req: Request, res: Response) => {
   try {
+    const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     const technicians = await prisma.technician.findMany({
+      where: tenantFilter,
       orderBy: { name: 'asc' },
     });
     res.json(technicians);
@@ -313,10 +449,15 @@ router.post('/technicians', authorize('admin', 'manager'), async (req: Request, 
     if (!name) {
       return res.status(400).json({ message: 'Name is required' });
     }
+    const tenantId = req.tenantId;
+    if (!tenantId && !(req.isSuperAdmin)) {
+      return res.status(400).json({ message: 'Tenant ID required' });
+    }
     const technician = await prisma.technician.create({
       data: {
         name,
         active: active ?? true,
+        tenantId: tenantId || 'default',
       },
     });
     res.json(technician);
@@ -330,6 +471,13 @@ router.put('/technicians/:id', authorize('admin', 'manager'), async (req: Reques
   try {
     const { id } = req.params;
     const { name, active } = req.body;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.technician.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Technician not found' });
+    }
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (active !== undefined) updateData.active = active;
@@ -348,6 +496,13 @@ router.put('/technicians/:id', authorize('admin', 'manager'), async (req: Reques
 router.delete('/technicians/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.technician.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Technician not found' });
+    }
     
     // Check if technician is referenced by any work orders
     const workOrdersCount = await prisma.workOrder.count({
@@ -378,7 +533,25 @@ export default router;
 // Equipment Locations
 router.get('/equipment-locations', async (req: Request, res: Response) => {
   try {
+    // Return system locations + tenant-specific locations
+    const tenantId = req.tenantId;
+    const isSuperAdmin = req.isSuperAdmin || false;
+    
+    let where: any = {};
+    if (isSuperAdmin) {
+      // Super admin sees all
+    } else if (tenantId) {
+      // Regular users see system locations + their tenant's locations
+      where.OR = [
+        { isSystem: true },
+        { tenantId: tenantId }
+      ];
+    } else {
+      where.isSystem = true;
+    }
+    
     const locations = await prisma.equipmentLocation.findMany({
+      where,
       orderBy: { name: 'asc' },
     });
     res.json(locations);
@@ -394,12 +567,24 @@ router.post('/equipment-locations', authorize('admin', 'manager'), async (req: R
     if (!name) {
       return res.status(400).json({ message: 'Name is required' });
     }
-    const existing = await prisma.equipmentLocation.findUnique({ where: { name } });
+    const tenantId = req.tenantId;
+    if (!tenantId && !(req.isSuperAdmin)) {
+      return res.status(400).json({ message: 'Tenant ID required' });
+    }
+    // Check for duplicate within tenant
+    const existing = await prisma.equipmentLocation.findFirst({
+      where: { name, tenantId: tenantId || 'default' },
+    });
     if (existing) {
-      return res.status(400).json({ message: 'Location name already exists' });
+      return res.status(400).json({ message: 'Location name already exists for this tenant' });
     }
     const location = await prisma.equipmentLocation.create({
-      data: { name, isDefaultCustomer: false, isSystem: false },
+      data: { 
+        name, 
+        isDefaultCustomer: false, 
+        isSystem: false,
+        tenantId: tenantId || 'default',
+      },
     });
     res.json(location);
   } catch (error) {
@@ -412,7 +597,12 @@ router.put('/equipment-locations/:id', authorize('admin', 'manager'), async (req
   try {
     const { id } = req.params;
     const { name } = req.body;
-    const existing = await prisma.equipmentLocation.findUnique({ where: { id } });
+    const tenantId = req.tenantId;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: tenantId };
+    
+    const existing = await prisma.equipmentLocation.findFirst({
+      where: { id, ...tenantFilter },
+    });
     if (!existing) {
       return res.status(404).json({ message: 'Location not found' });
     }
@@ -420,9 +610,11 @@ router.put('/equipment-locations/:id', authorize('admin', 'manager'), async (req
       return res.status(400).json({ message: 'Cannot edit system location' });
     }
     if (name && name !== existing.name) {
-      const duplicate = await prisma.equipmentLocation.findUnique({ where: { name } });
+      const duplicate = await prisma.equipmentLocation.findFirst({
+        where: { name, tenantId: tenantId || 'default' },
+      });
       if (duplicate) {
-        return res.status(400).json({ message: 'Location name already exists' });
+        return res.status(400).json({ message: 'Location name already exists for this tenant' });
       }
     }
     const location = await prisma.equipmentLocation.update({
@@ -439,7 +631,12 @@ router.put('/equipment-locations/:id', authorize('admin', 'manager'), async (req
 router.delete('/equipment-locations/:id', authorize('admin', 'manager'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const existing = await prisma.equipmentLocation.findUnique({ where: { id } });
+    const tenantId = req.tenantId;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: tenantId };
+    
+    const existing = await prisma.equipmentLocation.findFirst({
+      where: { id, ...tenantFilter },
+    });
     if (!existing) {
       return res.status(404).json({ message: 'Location not found' });
     }
