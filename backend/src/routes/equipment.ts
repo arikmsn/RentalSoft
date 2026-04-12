@@ -4,11 +4,24 @@ import { authenticate, isManagerOrAdmin, isTechnicianOrHigher, authorize, AuthRe
 
 const router = Router();
 
+// Helper to build tenant filter for equipment
+function getEquipmentTenantFilter(tenantId: string | null, isSuperAdmin: boolean) {
+  if (isSuperAdmin) {
+    return {}; // No filter for super admin
+  }
+  if (!tenantId) {
+    console.error('[Equipment] Missing tenantId for non-super-admin user');
+    return { tenantId: 'invalid-missing-tenant' }; // Will return empty
+  }
+  return { tenantId };
+}
+
 router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
     const { status, type, search, available, locationId, conditionState } = req.query;
+    const tenantFilter = getEquipmentTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
 
-    const where: any = {};
+    const where: any = { ...tenantFilter };
     if (status) where.status = status;
     if (type) where.type = type;
     if (locationId) where.currentLocationId = locationId;
@@ -198,6 +211,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         type,
         typeId: typeRecord.id,
         status: status || 'available',
+        tenantId: req.tenantId || undefined,
       },
     });
 
@@ -207,6 +221,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         userId: req.user!.id,
         actionType: 'status_change',
         notes: `Equipment created with status: ${equipment.status}`,
+        tenantId: req.tenantId || undefined,
       },
     });
 

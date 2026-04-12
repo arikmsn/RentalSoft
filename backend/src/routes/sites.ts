@@ -6,11 +6,24 @@ import { computeWorkOrderStatus } from '../utils/status';
 
 const router = Router();
 
+// Helper to build tenant filter for sites
+function getSitesTenantFilter(tenantId: string | null, isSuperAdmin: boolean) {
+  if (isSuperAdmin) {
+    return {}; // No filter for super admin
+  }
+  if (!tenantId) {
+    console.error('[Sites] Missing tenantId for non-super-admin user');
+    return { tenantId: 'invalid-missing-tenant' }; // Will return empty
+  }
+  return { tenantId };
+}
+
 router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
     const { search, hasEquipment, rating, isActive } = req.query;
+    const tenantFilter = getSitesTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
 
-    const where: any = {};
+    const where: any = { ...tenantFilter };
     if (isActive === 'true') where.isActive = true;
     else if (isActive === 'false') where.isActive = false;
     // no filter → all sites (active + inactive)
@@ -415,6 +428,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         latitude: finalLat,
         longitude: finalLng,
         hasValidLocation,
+        tenantId: req.tenantId || undefined,
       },
     });
 

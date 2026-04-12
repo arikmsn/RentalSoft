@@ -5,11 +5,24 @@ import { computeWorkOrderStatus } from '../utils/status';
 
 const router = Router();
 
+// Helper to build tenant filter for workorders
+function getWorkOrdersTenantFilter(tenantId: string | null, isSuperAdmin: boolean) {
+  if (isSuperAdmin) {
+    return {}; // No filter for super admin
+  }
+  if (!tenantId) {
+    console.error('[WorkOrders] Missing tenantId for non-super-admin user');
+    return { tenantId: 'invalid-missing-tenant' }; // Will return empty
+  }
+  return { tenantId };
+}
+
 router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
     const { type, status, technicianId, siteId, plannedDate, nearLat, nearLng, radiusKm } = req.query;
+    const tenantFilter = getWorkOrdersTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
 
-    const where: any = {};
+    const where: any = { ...tenantFilter };
     if (type) where.type = type;
     if (status) where.status = status;
     if (technicianId) where.technicianId = technicianId;
@@ -196,8 +209,9 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         plannedDate: new Date(plannedDate),
         plannedRemovalDate: plannedRemovalDate ? new Date(plannedRemovalDate) : null,
         isNextVisitPotentialRemoval: isNextVisitPotentialRemoval || false,
+        tenantId: req.tenantId || undefined,
         equipment: equipmentIds && equipmentIds.length > 0 ? {
-          create: equipmentIds.map((eqId: string) => ({ equipmentId: eqId }))
+          create: equipmentIds.map((eqId: string) => ({ equipmentId: eqId, tenantId: req.tenantId || undefined }))
         } : undefined,
       },
       include: {
@@ -216,6 +230,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         userId: req.user!.id,
         actionType: 'workorder_created',
         notes: `Work order created: ${typeLabel}`,
+        tenantId: req.tenantId || undefined,
       },
     });
 
