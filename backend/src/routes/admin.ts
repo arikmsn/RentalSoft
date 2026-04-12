@@ -223,6 +223,7 @@ router.get('/users', async (req: AuthRequest, res) => {
         suspendedAt: u.suspendedAt,
         archivedAt: u.archivedAt,
         createdAt: u.createdAt,
+        lastLogin: u.lastLogin,
         memberships: Array.from(tenantsMap.values()).map((t: any) => ({
           tenantId: t.id,
           tenantName: t.name,
@@ -441,6 +442,149 @@ router.post('/users/:id/reactivate', async (req: AuthRequest, res) => {
     res.json(updated);
   } catch (error) {
     console.error('Reactivate user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ============ METRICS ENDPOINTS ============
+
+// GET /admin/metrics/overview - Global KPIs across all tenants
+router.get('/metrics/overview', async (req: AuthRequest, res) => {
+  try {
+    const tenants = await prisma.tenant.findMany();
+    const users = await prisma.user.findMany();
+    const sites = await prisma.site.findMany();
+    const equipment = await prisma.equipment.findMany();
+    const workOrders = await prisma.workOrder.findMany();
+
+    const activeTenants = tenants.filter(t => t.status === 'active');
+    const activeUsers = users.filter(u => u.status === 'active');
+
+    const workOrderStats = {
+      total: workOrders.length,
+      open: workOrders.filter(wo => wo.status === 'open').length,
+      inProgress: workOrders.filter(wo => wo.status === 'in_progress').length,
+      completed: workOrders.filter(wo => wo.status === 'completed').length,
+    };
+
+    const equipmentInWork = await prisma.workOrderEquipment.count({
+      where: {
+        workOrder: { status: { in: ['open', 'in_progress'] } },
+      },
+    });
+
+    res.json({
+      tenants: {
+        total: tenants.length,
+        active: activeTenants.length,
+        suspended: tenants.filter(t => t.status === 'suspended').length,
+        archived: tenants.filter(t => t.status === 'archived').length,
+      },
+      users: {
+        total: users.length,
+        active: activeUsers.length,
+      },
+      sites: {
+        total: sites.length,
+      },
+      equipment: {
+        total: equipment.length,
+        inWork: equipmentInWork,
+      },
+      workOrders: workOrderStats,
+    });
+  } catch (error) {
+    console.error('Get overview metrics error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /admin/metrics/tenant/:id - Per-tenant detailed metrics
+router.get('/metrics/tenant/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    const tenant = await prisma.tenant.findUnique({ where: { id } });
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+
+    const memberships = await prisma.tenantMembership.findMany({
+      where: { tenantId: id },
+    });
+    const userIds = memberships.map(m => m.userId);
+    const tenantUserIds = await prisma.tenantMembership.findMany({
+      where: { tenantId: id },
+      select: { userId: true },
+    });
+    const tdUserIds = tenantUserIds.map(m => m.userId);
+
+    const sites = await prisma.site.findMany({
+      where: { tenantId: id },
+    });
+    const siteIds = sites.map(s => s.id);
+
+    const equipment = await prisma.equipment.findMany({
+      where: { tenantId: id },
+    });
+    const equipmentIds = equipment.map(e => e.id);
+
+    const workOrders = await prisma.workOrder.findMany({
+      where: {
+        tenantId: id,
+      },
+    });
+
+    const activeUsers = await prisma.user.count({
+      where: {
+        id: { in: tdUserIds },
+        status: 'active',
+      },
+    });
+
+    const workOrderStats = {
+      total: workOrders.length,
+      open: workOrders.filter(wo => wo.status === 'open').length,
+      inProgress: workOrders.filter(wo => wo.status === 'in_progress').length,
+      completed: workOrders.filter(wo => wo.status === 'completed').length,
+    };
+
+    const equipmentInWork = await prisma.workOrderEquipment.count({
+      where: {
+        equipmentId: { in: equipmentIds },
+        workOrder: { status: { in: ['open', 'in_progress'] } },
+      },
+    });
+
+    const latestLogin = await prisma.user.findFirst({
+      where: { id: { in: tdUserIds } },
+      orderBy: { lastLogin: 'desc' },
+      select: { lastLogin: true },
+    });
+
+    res.json({
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        status: tenant.status,
+      },
+      users: {
+        total: tdUserIds.length,
+        active: activeUsers,
+      },
+      sites: {
+        total: sites.length,
+      },
+      equipment: {
+        total: equipment.length,
+        inWork: equipmentInWork,
+      },
+      workOrders: workOrderStats,
+      lastLogin: latestLogin?.lastLogin || null,
+    });
+  } catch (error) {
+    console.error('Get tenant metrics error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -13,7 +13,7 @@ import {
   SettingsPage,
   MinimalScanner,
 } from './pages';
-import { AdminLoginPage, AdminLayout, TenantsPage, UsersPage } from './pages/admin';
+import { AdminLoginPage, AdminLayout, TenantsPage, UsersPage, DashboardPage as AdminDashboardPage, TenantDetailPage } from './pages/admin';
 import { useAuthStore } from './stores/authStore';
 
 function SettingsRoute() {
@@ -89,8 +89,9 @@ function AdminRoutes() {
   return (
     <AdminLayout>
       <Routes>
-        <Route path="dashboard" element={<TenantsPage />} />
+<Route path="dashboard" element={<AdminDashboardPage />} />
         <Route path="tenants" element={<TenantsPage />} />
+        <Route path="tenants/:id" element={<TenantDetailPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
       </Routes>

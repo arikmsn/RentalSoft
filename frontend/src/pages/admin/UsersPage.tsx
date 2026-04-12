@@ -240,6 +240,7 @@ export function UsersPage() {
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">שם משתמש</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">תפקיד</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">עסק</th>
+              <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">כניסה אחרונה</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">סטטוס</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">פעולות</th>
             </tr>
@@ -261,6 +262,9 @@ export function UsersPage() {
                 </td>
                 <td className="px-4 py-3 text-surface-600">
                   {user.memberships.map(m => m.tenantSlug).join(', ') || '-'}
+                </td>
+                <td className="px-4 py-3 text-surface-600 text-sm">
+                  {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('he-IL') : '-'}
                 </td>
                 <td className="px-4 py-3">{getStatusBadge(user.status)}</td>
                 <td className="px-4 py-3">
@@ -303,7 +307,7 @@ export function UsersPage() {
             ))}
             {filteredUsers.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-surface-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-surface-500">
                   אין משתמשים
                 </td>
               </tr>

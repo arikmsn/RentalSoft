@@ -25,6 +25,7 @@ export interface AdminUser {
   suspendedAt: string | null;
   archivedAt: string | null;
   createdAt: string;
+  lastLogin: string | null;
   memberships: {
     tenantId: string;
     tenantName: string;
@@ -105,6 +106,29 @@ export const adminService = {
 
   async reactivateUser(id: string): Promise<AdminUser> {
     const response = await api.post<AdminUser>(`/admin/users/${id}/reactivate`);
+    return response.data;
+  },
+
+  async getMetricsOverview(): Promise<{
+    tenants: { total: number; active: number; suspended: number; archived: number };
+    users: { total: number; active: number };
+    sites: { total: number };
+    equipment: { total: number; inWork: number };
+    workOrders: { total: number; open: number; inProgress: number; completed: number };
+  }> {
+    const response = await api.get('/admin/metrics/overview');
+    return response.data;
+  },
+
+  async getTenantMetrics(id: string): Promise<{
+    tenant: { id: string; name: string; slug: string; status: string };
+    users: { total: number; active: number };
+    sites: { total: number };
+    equipment: { total: number; inWork: number };
+    workOrders: { total: number; open: number; inProgress: number; completed: number };
+    lastLogin: string | null;
+  }> {
+    const response = await api.get(`/admin/metrics/tenant/${id}`);
     return response.data;
   },
 };
