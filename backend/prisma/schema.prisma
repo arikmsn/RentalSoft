@@ -8,6 +8,282 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Tenant {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  name      String   @db.VarChar(255)
+  slug      String   @unique @db.VarChar(255)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model TenantMembership {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  userId    String   @db.VarChar(36)
+  tenantId  String   @db.VarChar(36)
+  role      String   @default("member") @db.VarChar(255)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([userId, tenantId])
+}
+
+model User {
+  id            String                   @id @default(uuid())
+  name          String
+  email         String                   @unique
+  password      String
+  role          UserRole                 @default(technician)
+  phone         String?
+  isActive      Boolean                  @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  username      String?                  @unique
+  isSuperAdmin  Boolean                  @default(false)
+  activityLogs  ActivityLog[]
+  statusChanges WorkOrderStatusHistory[]
+}
+
+model Equipment {
+  id                 String                  @id @default(uuid())
+  qrTag              String                  @unique
+  type               String
+  status             EquipmentStatus         @default(available)
+  condition          EquipmentCondition      @default(ok)
+  siteId             String?
+  lastScanDate       DateTime?
+  installationDate   DateTime?
+  plannedRemovalDate DateTime?
+  actualRemovalDate  DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  typeId             String?
+  conditionState     EquipmentConditionState @default(OK)
+  currentLocationId  String?
+  purchaseDate       DateTime?
+  tenantId           String?                 @db.VarChar(36)
+  activityLogs       ActivityLog[]
+  location           EquipmentLocation?      @relation(fields: [currentLocationId], references: [id])
+  site               Site?                   @relation(fields: [siteId], references: [id])
+  equipmentTypes     EquipmentType?          @relation(fields: [typeId], references: [id])
+  notes              EquipmentNote[]
+  workOrders         WorkOrderEquipment[]
+}
+
+model EquipmentType {
+  id          String      @id @default(uuid())
+  name        String      @unique
+  description String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  equipment   Equipment[]
+}
+
+model Technician {
+  id         String      @id @default(uuid())
+  name       String
+  active     Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  tenantId   String?     @db.VarChar(36)
+  workOrders WorkOrder[]
+}
+
+model Site {
+  id               String        @id @default(uuid())
+  name             String
+  address          String
+  city             String
+  floor            String?
+  apartment        String?
+  contact1Name     String?
+  contact1Phone    String?
+  contact2Name     String?
+  contact2Phone    String?
+  rating           Int?
+  isHighlighted    Boolean       @default(false)
+  latitude         Float?
+  longitude        Float?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  hasValidLocation Boolean?
+  houseNumber      String?
+  isActive         Boolean       @default(true)
+  isFavorite       Boolean       @default(false)
+  tenantId         String?       @db.VarChar(36)
+  activityLogs     ActivityLog[]
+  equipment        Equipment[]
+  workOrders       WorkOrder[]
+}
+
+model WorkOrder {
+  id                          String                   @id @default(uuid())
+  siteId                      String
+  technicianId                String?
+  status                      WorkOrderStatus          @default(open)
+  plannedDate                 DateTime
+  actualDate                  DateTime?
+  done                        String?
+  todo                        String?
+  plannedRemovalDate          DateTime?
+  createdAt                   DateTime                 @default(now())
+  updatedAt                   DateTime                 @updatedAt
+  workTypeId                  String?
+  type                        String?
+  isNextVisitPotentialRemoval Boolean                  @default(false)
+  tenantId                    String?                  @db.VarChar(36)
+  activityLogs                ActivityLog[]
+  checklist                   ChecklistItem[]
+  site                        Site                     @relation(fields: [siteId], references: [id])
+  technician                  Technician?              @relation(fields: [technicianId], references: [id])
+  workType                    SettingsWorkOrderType?   @relation(fields: [workTypeId], references: [id])
+  equipment                   WorkOrderEquipment[]
+  statusHistory               WorkOrderStatusHistory[]
+}
+
+model ChecklistItem {
+  id          String    @id @default(uuid())
+  workOrderId String
+  itemName    String
+  isChecked   Boolean   @default(false)
+  value       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tenantId    String?   @db.VarChar(36)
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id          String     @id @default(uuid())
+  equipmentId String?
+  siteId      String?
+  workOrderId String?
+  userId      String
+  actionType  ActionType
+  timestamp   DateTime   @default(now())
+  notes       String?
+  locationLat Float?
+  locationLng Float?
+  tenantId    String?    @db.VarChar(36)
+  equipment   Equipment? @relation(fields: [equipmentId], references: [id])
+  site        Site?      @relation(fields: [siteId], references: [id])
+  user        User       @relation(fields: [userId], references: [id])
+  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+}
+
+model SettingsChecklistItem {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String?  @db.VarChar(36)
+}
+
+model SettingsWorkOrderType {
+  id         String      @id @default(uuid())
+  name       String      @unique
+  isActive   Boolean     @default(true)
+  sortOrder  Int         @default(0)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  tenantId   String?     @db.VarChar(36)
+  workOrders WorkOrder[]
+}
+
+model SettingsEquipmentType {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String?  @db.VarChar(36)
+}
+
+model SettingsEquipmentStatus {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String?  @db.VarChar(36)
+}
+
+model SettingsEquipmentCondition {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String?  @db.VarChar(36)
+}
+
+model WorkOrderStatusHistory {
+  id             String    @id @default(uuid())
+  workOrderId    String
+  previousStatus String?
+  newStatus      String
+  changedById    String
+  comment        String?
+  createdAt      DateTime  @default(now())
+  tenantId       String?   @db.VarChar(36)
+  changedBy      User      @relation(fields: [changedById], references: [id])
+  workOrder      WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
+model WorkOrderEquipment {
+  id          String    @id @default(uuid())
+  workOrderId String
+  equipmentId String
+  createdAt   DateTime  @default(now())
+  tenantId    String?   @db.VarChar(36)
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+
+  @@unique([workOrderId, equipmentId])
+}
+
+model EquipmentLocation {
+  id                String      @id @default(uuid())
+  name              String      @unique
+  isDefaultCustomer Boolean     @default(false)
+  isSystem          Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  tenantId          String?     @db.VarChar(36)
+  equipment         Equipment[]
+}
+
+model EquipmentNote {
+  id          String    @id @default(uuid())
+  equipmentId String
+  text        String
+  createdAt   DateTime  @default(now())
+  tenantId    String?   @db.VarChar(36)
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+}
+
+model prisma_migrations {
+  id             String    @id @db.VarChar(36)
+  checksum       String    @db.VarChar(255)
+  finished_at    DateTime  @default(now())
+  migration_name String    @db.VarChar(255)
+  logs           String?
+  rolled_back_at DateTime?
+  started_at     DateTime  @default(now())
+  state          String    @default("APPLIED") @db.VarChar(20)
+
+  @@map("_prisma_migrations")
+}
+
 enum UserRole {
   manager
   technician
@@ -45,334 +321,4 @@ enum ActionType {
   done_update
   todo_update
   planned_removal_change
-}
-
-model Tenant {
-  id        String   @id @default(uuid())
-  name      String
-  slug      String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  memberships               TenantMembership[]
-  sites                     Site[]
-  workOrders                WorkOrder[]
-  equipment                 Equipment[]
-  activityLogs              ActivityLog[]
-  settingsChecklistItems     SettingsChecklistItem[]
-  settingsWorkOrderTypes    SettingsWorkOrderType[]
-  settingsEquipmentTypes     SettingsEquipmentType[]
-  settingsEquipmentStatuses SettingsEquipmentStatus[]
-  settingsEquipmentConditions SettingsEquipmentCondition[]
-  equipmentLocations        EquipmentLocation[]
-  technicians               Technician[]
-  checklistItems            ChecklistItem[]
-  workOrderStatusHistories WorkOrderStatusHistory[]
-  workOrderEquipment       WorkOrderEquipment[]
-  equipmentNotes           EquipmentNote[]
-}
-
-model TenantMembership {
-  id        String   @id @default(uuid())
-
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  tenantId  String
-
-  role      String   @default("member")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, tenantId])
-}
-
-model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  username  String?  @unique
-  password  String
-  role      UserRole @default(technician)
-  phone     String?
-  isActive  Boolean  @default(true)
-  isSuperAdmin Boolean @default(false)
-  lastLogin DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  memberships   TenantMembership[]
-  activityLogs    ActivityLog[]
-  statusChanges   WorkOrderStatusHistory[]
-}
-
-model Equipment {
-  id                  String            @id @default(uuid())
-  qrTag               String           @unique
-  type                String
-  status              EquipmentStatus  @default(available)
-  condition           EquipmentCondition @default(ok)
-  conditionState      EquipmentConditionState @default(OK)
-  siteId              String?
-  lastScanDate        DateTime?
-  installationDate    DateTime?
-  plannedRemovalDate  DateTime?
-  actualRemovalDate   DateTime?
-  purchaseDate        DateTime?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-
-  tenant         Tenant?      @relation(fields: [tenantId], references: [id])
-  tenantId      String?
-
-  site            Site?        @relation(fields: [siteId], references: [id])
-  activityLogs    ActivityLog[]
-  equipmentTypes  EquipmentType? @relation(fields: [typeId], references: [id])
-  typeId          String?
-  workOrders     WorkOrderEquipment[]
-  location        EquipmentLocation? @relation(fields: [currentLocationId], references: [id])
-  currentLocationId String?
-  notes          EquipmentNote[]
-}
-
-model EquipmentType {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  equipment Equipment[]
-}
-
-model Technician {
-  id        String   @id @default(uuid())
-  name      String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant    Tenant?    @relation(fields: [tenantId], references: [id])
-  tenantId  String?
-
-  workOrders WorkOrder[]
-}
-
-model Site {
-  id             String   @id @default(uuid())
-  name           String
-  address        String
-  city           String
-  houseNumber    String?
-  floor          String?
-  apartment      String?
-  contact1Name   String?
-  contact1Phone  String?
-  contact2Name   String?
-  contact2Phone  String?
-  rating         Int?
-  isHighlighted  Boolean  @default(false)
-  isFavorite     Boolean  @default(false)
-  isActive       Boolean  @default(true)
-  latitude       Float?
-  longitude      Float?
-  hasValidLocation Boolean?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId     String?
-
-  equipment   Equipment[]
-  workOrders  WorkOrder[]
-  activityLogs ActivityLog[]
-}
-
-model WorkOrder {
-  id                       String           @id @default(uuid())
-  type                     String?
-  workTypeId               String?
-  siteId                   String
-  technicianId             String?
-  status                   WorkOrderStatus  @default(open)
-  plannedDate              DateTime
-  actualDate               DateTime?
-  done                     String?
-  todo                     String?
-  plannedRemovalDate       DateTime?
-  isNextVisitPotentialRemoval Boolean        @default(false)
-  createdAt                DateTime         @default(now())
-  updatedAt                DateTime         @updatedAt
-
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId     String?
-
-  site       Site          @relation(fields: [siteId], references: [id])
-  technician Technician?  @relation(fields: [technicianId], references: [id])
-  workType  SettingsWorkOrderType? @relation(fields: [workTypeId], references: [id])
-  checklist  ChecklistItem[]
-  activityLogs ActivityLog[]
-  statusHistory WorkOrderStatusHistory[]
-  equipment    WorkOrderEquipment[]
-}
-
-model ChecklistItem {
-  id          String   @id @default(uuid())
-  workOrderId String
-  itemName    String
-  isChecked   Boolean  @default(false)
-  value       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenant     Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId   String?
-
-  workOrder WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-}
-
-model ActivityLog {
-  id             String      @id @default(uuid())
-  equipmentId    String?
-  siteId         String?
-  workOrderId    String?
-  userId         String
-  actionType     ActionType
-  timestamp      DateTime    @default(now())
-  notes          String?
-  locationLat    Float?
-  locationLng    Float?
-
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId     String?
-
-  equipment  Equipment?  @relation(fields: [equipmentId], references: [id])
-  site       Site?       @relation(fields: [siteId], references: [id])
-  workOrder  WorkOrder?  @relation(fields: [workOrderId], references: [id])
-  user       User        @relation(fields: [userId], references: [id])
-}
-
-model SettingsChecklistItem {
-  id          String   @id @default(uuid())
-  name        String
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId     String?
-}
-
-model SettingsWorkOrderType {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId     String?
-
-  workOrders  WorkOrder[]
-}
-
-model SettingsEquipmentType {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  code        String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId     String?
-}
-
-model SettingsEquipmentStatus {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  code        String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId     String?
-}
-
-model SettingsEquipmentCondition {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  code        String?
-  isActive    Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId     String?
-}
-
-model WorkOrderStatusHistory {
-  id              String   @id @default(uuid())
-  workOrderId     String
-  previousStatus  String?
-  newStatus      String
-  changedById    String
-  comment        String?
-  createdAt      DateTime @default(now())
-
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId     String?
-
-  workOrder      WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-  changedBy      User      @relation(fields: [changedById], references: [id])
-}
-
-model WorkOrderEquipment {
-  id          String   @id @default(uuid())
-  workOrderId String
-  equipmentId String
-  createdAt   DateTime @default(now())
-
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId     String?
-
-  workOrder WorkOrder  @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
-  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
-
-  @@unique([workOrderId, equipmentId])
-}
-
-model EquipmentLocation {
-  id               String   @id @default(uuid())
-  name             String   @unique
-  isDefaultCustomer Boolean @default(false)
-  isSystem         Boolean @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  tenant       Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId     String?
-
-  equipment Equipment[]
-}
-
-model EquipmentNote {
-  id          String   @id @default(uuid())
-  equipmentId String
-  text        String
-  createdAt   DateTime @default(now())
-
-  tenant     Tenant?     @relation(fields: [tenantId], references: [id])
-  tenantId   String?
-
-  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
 }

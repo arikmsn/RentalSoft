@@ -13,6 +13,7 @@ import {
   SettingsPage,
   MinimalScanner,
 } from './pages';
+import { AdminLayout, TenantsPage, UsersPage } from './pages/admin';
 import { useAuthStore } from './stores/authStore';
 
 function SettingsRoute() {
@@ -77,6 +78,28 @@ function TenantRoutes() {
   );
 }
 
+function AdminRoutes() {
+  const { user } = useAuthStore();
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!user.isSuperAdmin) {
+    return <Navigate to="/sites" replace />;
+  }
+
+  return (
+    <AdminLayout>
+      <Routes>
+        <Route path="/tenants" element={<TenantsPage />} />
+        <Route path="/users" element={<UsersPage />} />
+        <Route path="*" element={<Navigate to="/admin/tenants" replace />} />
+      </Routes>
+    </AdminLayout>
+  );
+}
+
 function App() {
   console.log('[BUILD] RentalSoft QR build 2026-03-18-QR2');
   
@@ -86,6 +109,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/qr-test" element={<MinimalScanner />} />
       <Route path="/:tenantSlug/login" element={<LoginPage />} />
+      <Route path="/admin/*" element={<AdminRoutes />} />
       <Route path="/:tenantSlug/*" element={<TenantRoutes />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

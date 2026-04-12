@@ -5,8 +5,15 @@ import { computeWorkOrderStatus } from '../utils/status';
 
 const router = Router();
 
+function getTenantFilter(tenantId: string | null, isSuperAdmin: boolean) {
+  if (isSuperAdmin) return {};
+  if (!tenantId) return { tenantId: 'invalid-missing-tenant' };
+  return { tenantId };
+}
+
 router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
+    const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -22,9 +29,10 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
       openWorkOrders,
       sites,
     ] = await Promise.all([
-      prisma.equipment.count(),
+      prisma.equipment.count({ where: tenantFilter }),
       prisma.equipment.count({
         where: {
+          ...tenantFilter,
           NOT: {
             workOrders: {
               some: {
@@ -34,23 +42,28 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
           }
         }
       }),
-      prisma.equipment.count({ where: { status: 'assigned_to_work' } }),
-      prisma.site.count(),
+      prisma.equipment.count({ where: { ...tenantFilter, status: 'assigned_to_work' } }),
+      prisma.site.count({ where: tenantFilter }),
       prisma.site.count({
         where: {
+          ...tenantFilter,
           workOrders: { some: { status: { in: ['open', 'in_progress'] } } },
         },
       }),
       prisma.workOrder.count({
         where: {
           plannedDate: { gte: today, lt: tomorrow },
+          ...(tenantFilter.tenantId ? { site: tenantFilter } : {}),
         },
       }),
       prisma.workOrder.count({
-        where: { status: { in: ['open', 'in_progress'] } },
+        where: { 
+          status: { in: ['open', 'in_progress'] },
+          ...(tenantFilter.tenantId ? { site: tenantFilter } : {}),
+        },
       }),
       prisma.site.findMany({
-        where: { isActive: true },
+        where: { isActive: true, ...tenantFilter },
         include: {
           workOrders: {
             where: { status: { not: 'completed' } },
@@ -93,6 +106,7 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
 
 router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
+    const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     const { type } = req.query;
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
@@ -100,6 +114,7 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
     console.log('[Alerts] today:', today.toISOString(), 'local:', today.toString());
 
     const sites = await prisma.site.findMany({
+      where: tenantFilter,
       include: {
         workOrders: {
           where: { status: { not: 'completed' } },
@@ -175,9 +190,10 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
 
 router.get('/activity', authenticate, async (req: AuthRequest, res) => {
   try {
+    const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     const { equipmentId, siteId, userId, actionType, fromDate, toDate } = req.query;
 
-    const where: any = {};
+    const where: any = { ...tenantFilter };
     if (equipmentId) where.equipmentId = String(equipmentId);
     if (siteId) where.siteId = String(siteId);
     if (userId) where.userId = String(userId);

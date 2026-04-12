@@ -108,3 +108,10 @@ export const isTechnicianOrHigher = (req: AuthRequest, res: Response, next: Next
   }
   next();
 };
+
+export const isSuperAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!req.user || !req.isSuperAdmin) {
+    return res.status(403).json({ message: 'Forbidden: Super admin required' });
+  }
+  next();
+};

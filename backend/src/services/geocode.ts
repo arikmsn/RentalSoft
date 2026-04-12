@@ -158,9 +158,10 @@ export function isSiteLocationValid(site: { latitude?: number | null; longitude?
   return isValidIsraelCoords(site.latitude, site.longitude);
 }
 
-export async function getSitesWithInvalidLocation(): Promise<any[]> {
+export async function getSitesWithInvalidLocation(tenantFilter: Record<string, any> = {}): Promise<any[]> {
   return prisma.site.findMany({
     where: {
+      ...tenantFilter,
       OR: [
         { latitude: null },
         { longitude: null },

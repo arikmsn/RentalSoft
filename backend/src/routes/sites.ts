@@ -59,10 +59,11 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
   }
 });
 
-router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (req, res) => {
+router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
+    const tenantFilter = getSitesTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     const sites = await prisma.site.findMany({
-      where: { isActive: true },
+      where: { isActive: true, ...tenantFilter },
       include: {
         workOrders: {
           where: { status: { not: 'completed' } },
@@ -225,8 +226,9 @@ router.get('/with-equipment-status', authenticate, isTechnicianOrHigher, async (
   }
 });
 
-router.get('/active-work-orders', authenticate, isTechnicianOrHigher, async (req, res) => {
+router.get('/active-work-orders', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
+    const tenantFilter = getSitesTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     const workOrders = await prisma.workOrder.findMany({
       where: {
         status: { in: ['open', 'in_progress'] },
@@ -235,6 +237,7 @@ router.get('/active-work-orders', authenticate, isTechnicianOrHigher, async (req
           latitude: { not: null },
           longitude: { not: null },
           hasValidLocation: { not: false },
+          ...tenantFilter,
         },
       },
       include: {
@@ -274,9 +277,10 @@ router.get('/active-work-orders', authenticate, isTechnicianOrHigher, async (req
   }
 });
 
-router.get('/locations/needs-attention', authenticate, isManagerOrAdmin, async (req, res) => {
+router.get('/locations/needs-attention', authenticate, isManagerOrAdmin, async (req: AuthRequest, res) => {
   try {
-    const sites = await getSitesWithInvalidLocation();
+    const tenantFilter = getSitesTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+    const sites = await getSitesWithInvalidLocation(tenantFilter);
     res.json(sites);
   } catch (error) {
     console.error('Get sites needing location attention error:', error);
@@ -284,10 +288,17 @@ router.get('/locations/needs-attention', authenticate, isManagerOrAdmin, async (
   }
 });
 
-router.post('/:id/revalidate-location', authenticate, isManagerOrAdmin, async (req, res) => {
+router.post('/:id/revalidate-location', authenticate, isManagerOrAdmin, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const { address, city } = req.body;
+
+    const tenantFilter = getSitesTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+
+    const existingSite = await prisma.site.findUnique({ where: { id, ...tenantFilter } });
+    if (!existingSite) {
+      return res.status(404).json({ message: 'Site not found' });
+    }
 
     const result = await geocodeAndUpdateSite(id, address, city);
 
@@ -316,13 +327,20 @@ router.post('/:id/revalidate-location', authenticate, isManagerOrAdmin, async (r
   }
 });
 
-router.patch('/:id/coordinates', authenticate, isManagerOrAdmin, async (req, res) => {
+router.patch('/:id/coordinates', authenticate, isManagerOrAdmin, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const { latitude, longitude } = req.body;
 
     if (latitude == null || longitude == null) {
       return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    const tenantFilter = getSitesTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+
+    const existingSite = await prisma.site.findUnique({ where: { id, ...tenantFilter } });
+    if (!existingSite) {
+      return res.status(404).json({ message: 'Site not found' });
     }
 
     const isValid = latitude >= 29 && latitude <= 35 && longitude >= 33 && longitude <= 36;
