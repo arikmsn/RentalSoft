@@ -111,7 +111,8 @@ function App() {
       {/* Tenant login */}
       <Route path="/:tenantSlug/login" element={<LoginPage />} />
       
-      {/* Admin routes - dedicated entry */}
+      {/* Admin routes - explicit /admin entry, dedicated login, and sub-routes */}
+      <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin/*" element={<AdminRoutes />} />
       
