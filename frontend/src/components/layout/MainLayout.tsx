@@ -89,7 +89,7 @@ export function MainLayout({ tenantSlug, children }: MainLayoutProps) {
 
   return (
     <div className="min-h-screen">
-      <Header onMenuToggle={toggleSidebar} />
+      <Header onMenuToggle={toggleSidebar} tenantSlug={tenantSlug} />
       
       {/* Mobile sidebar backdrop - only on mobile when open */}
       {isMobile && sidebarOpen && (

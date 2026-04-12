@@ -7,9 +7,10 @@ import { useAppStore } from '../../stores/appStore';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
+  tenantSlug?: string;
 }
 
-export function Header({ onMenuToggle }: HeaderProps) {
+export function Header({ onMenuToggle, tenantSlug }: HeaderProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
@@ -95,6 +96,11 @@ export function Header({ onMenuToggle }: HeaderProps) {
             </button>
           )}
           <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-l from-primary-600 to-primary-500 bg-clip-text text-transparent">{t('app.title')}</h1>
+          {tenantSlug && (
+            <span className="text-xs sm:text-sm px-2 py-0.5 bg-primary-100 text-primary-600 rounded-full font-medium">
+              {tenantSlug}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 lg:hidden">
