@@ -50,7 +50,7 @@ export const authenticate = async (
     // Attach user info
     req.user = {
       id: user.id,
-      email: user.email,
+      email: user.email || '',
       role: user.role,
     };
 
