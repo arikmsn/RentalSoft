@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import { siteService } from '../services/siteService';
 import { computeWorkOrderStatus } from '../utils/date';
@@ -146,6 +146,8 @@ function MapEventHandler({ onBoundsChange }: { onBoundsChange: (bounds: L.LatLng
 
 export function MapPage() {
   const { t } = useTranslation();
+  const location = useLocation();
+  const tenantSlug = location.pathname.split('/')[1] || 'default';
   const [sites, setSites] = useState<SiteWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSiteList, setShowSiteList] = useState(false);
@@ -364,7 +366,7 @@ export function MapPage() {
       
       const primaryWo = site.workOrders && site.workOrders.length > 0 ? site.workOrders[0] : null;
       const workType = primaryWo ? (primaryWo.workTypeName || primaryWo.type) : null;
-      const woDetailUrl = primaryWo ? `/workorders/${primaryWo.id}` : `/sites/${site.id}`;
+      const woDetailUrl = primaryWo ? `/${tenantSlug}/workorders/${primaryWo.id}` : `/${tenantSlug}/sites/${site.id}`;
 
       const fullAddress = site.address;
 
@@ -808,7 +810,7 @@ export function MapPage() {
                         ניווט
                       </button>
                       <Link
-                        to={site.workOrders && site.workOrders.length > 0 ? `/workorders/${site.workOrders[0].id}` : `/sites/${site.id}`}
+                        to={site.workOrders && site.workOrders.length > 0 ? `/${tenantSlug}/workorders/${site.workOrders[0].id}` : `/${tenantSlug}/sites/${site.id}`}
                         className="w-full px-2 py-2 bg-surface-100 text-surface-700 rounded-lg text-sm font-medium hover:bg-surface-200 transition-colors text-center"
                       >
                         פירוט

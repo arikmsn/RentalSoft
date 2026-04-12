@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import type { Alert } from '../types';
 import { dashboardService } from '../services/dashboardService';
 
 export function AlertsPage() {
   const { t } = useTranslation();
+  const location = useLocation();
+  const tenantSlug = location.pathname.split('/')[1] || 'default';
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Alert['type'] | 'all'>('all');
@@ -117,7 +119,7 @@ export function AlertsPage() {
                   </a>
                 )}
                 <Link
-                  to={alert.workOrderId ? `/workorders/${alert.workOrderId}` : `/equipment/${alert.equipmentId}`}
+                  to={alert.workOrderId ? `/${tenantSlug}/workorders/${alert.workOrderId}` : `/${tenantSlug}/equipment/${alert.equipmentId}`}
                   className="px-3 py-2 bg-white border border-surface-200 rounded-xl text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors text-center"
                 >
                   {alert.workOrderId ? t('workOrders.details') : t('equipment.details')}

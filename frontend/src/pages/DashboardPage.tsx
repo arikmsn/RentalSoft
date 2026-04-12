@@ -165,7 +165,7 @@ export function DashboardPage() {
               return (
               <Link
                 key={alert.id}
-                to={alert.workOrderId ? `/workorders/${alert.workOrderId}` : `/equipment/${alert.equipmentId}`}
+                to={alert.workOrderId ? `/${tenantSlug}/workorders/${alert.workOrderId}` : `/${tenantSlug}/equipment/${alert.equipmentId}`}
                 className="block"
               >
                 <div className={`flex items-center gap-3 p-3 bg-white rounded-xl hover:bg-surface-50 transition-colors border-2 ${borderColor}`}>

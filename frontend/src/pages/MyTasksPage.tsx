@@ -156,7 +156,7 @@ export function MyTasksPage() {
                     <span className="xs:hidden">נווט</span>
                   </button>
                   <button
-                    onClick={() => navigate(`/workorders/${task.id}`)}
+                    onClick={() => navigate(linkTo(`/workorders/${task.id}`))}
                     className="flex-1 px-3 py-2.5 sm:py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors min-h-[44px]"
                   >
                     {t('app.actions')}
