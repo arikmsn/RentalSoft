@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useParams } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './components/layout';
 import {
   LoginPage,
@@ -13,7 +13,7 @@ import {
   SettingsPage,
   MinimalScanner,
 } from './pages';
-import { AdminLayout, TenantsPage, UsersPage } from './pages/admin';
+import { AdminLoginPage, AdminLayout, TenantsPage, UsersPage } from './pages/admin';
 import { useAuthStore } from './stores/authStore';
 
 function SettingsRoute() {
@@ -25,18 +25,18 @@ function SettingsRoute() {
 }
 
 function TenantAppRoutes() {
-  const { tenantSlug } = useParams();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
 
-  if (!user) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
   const isSuperAdmin = user.isSuperAdmin === true;
   const userTenantSlug = user.tenantSlug || 'default';
 
-  if (!isSuperAdmin && tenantSlug !== userTenantSlug) {
-    return <Navigate to={`/${userTenantSlug}/dashboard`} replace />;
+  // Super admins can access any tenant
+  if (!isSuperAdmin && userTenantSlug) {
+    // For regular users, check if they should be redirect elsewhere
   }
 
   return (
@@ -57,60 +57,68 @@ function TenantAppRoutes() {
 }
 
 function TenantRoutes() {
-  const { tenantSlug } = useParams();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
 
-  if (!user) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
   const isSuperAdmin = user.isSuperAdmin === true;
   const userTenantSlug = user.tenantSlug || 'default';
 
-  if (!isSuperAdmin && tenantSlug !== userTenantSlug) {
-    return <Navigate to={`/${userTenantSlug}/dashboard`} replace />;
+  // Redirect super admin to admin panel if they try to access regular tenant app
+  if (isSuperAdmin) {
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   return (
-    <MainLayout tenantSlug={tenantSlug || userTenantSlug}>
+    <MainLayout tenantSlug={userTenantSlug}>
       <TenantAppRoutes />
     </MainLayout>
   );
 }
 
 function AdminRoutes() {
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!user.isSuperAdmin) {
-    return <Navigate to="/sites" replace />;
+  // If not authenticated or not super admin, go to admin login
+  if (!isAuthenticated || !user?.isSuperAdmin) {
+    return <Navigate to="/admin/login" replace />;
   }
 
   return (
     <AdminLayout>
       <Routes>
-        <Route path="/tenants" element={<TenantsPage />} />
-        <Route path="/users" element={<UsersPage />} />
-        <Route path="*" element={<Navigate to="/admin/tenants" replace />} />
+        <Route path="dashboard" element={<TenantsPage />} />
+        <Route path="tenants" element={<TenantsPage />} />
+        <Route path="users" element={<UsersPage />} />
+        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
       </Routes>
     </AdminLayout>
   );
 }
 
 function App() {
-  console.log('[BUILD] RentalSoft QR build 2026-03-18-QR2');
+  console.log('[BUILD] RentalSoft QR build 2026-04-12-admin');
   
   return (
     <Routes>
+      {/* Public routes */}
       <Route path="/" element={<LoginPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/qr-test" element={<MinimalScanner />} />
+      
+      {/* Tenant login */}
       <Route path="/:tenantSlug/login" element={<LoginPage />} />
+      
+      {/* Admin routes - dedicated entry */}
+      <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin/*" element={<AdminRoutes />} />
+      
+      {/* Tenant app routes */}
       <Route path="/:tenantSlug/*" element={<TenantRoutes />} />
+      
+      {/* Catch all */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
