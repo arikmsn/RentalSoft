@@ -208,17 +208,19 @@ router.post('/users', async (req: AuthRequest, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await prisma.user.create({
-      data: {
-        name,
-        username,
-        email: email || null,
-        password: hashedPassword,
-        role,
-        isActive,
-        isSuperAdmin: false,
-      },
-    });
+    const userData: any = {
+      name,
+      username,
+      password: hashedPassword,
+      role,
+      isActive,
+      isSuperAdmin: false,
+    };
+    if (email) {
+      userData.email = email;
+    }
+
+    const user = await prisma.user.create({ data: userData });
 
     if (tenantId) {
       await prisma.tenantMembership.create({
