@@ -18,6 +18,8 @@ export function UsersPage() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'suspended' | 'archived'>('all');
+  const [tenantFilter, setTenantFilter] = useState<string>('all');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     loadData();
@@ -94,8 +96,25 @@ export function UsersPage() {
   };
 
   const filteredUsers = users.filter(u => {
-    if (filter === 'all') return true;
-    return u.status === filter;
+    if (filter !== 'all' && filter !== u.status) return false;
+
+    if (tenantFilter !== 'all') {
+      const hasTenant = u.memberships.some(m => m.tenantId === tenantFilter);
+      if (!hasTenant) return false;
+    }
+
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      const matchName = u.name?.toLowerCase().includes(s);
+      const matchUsername = u.username?.toLowerCase().includes(s);
+      const matchEmail = u.email?.toLowerCase().includes(s);
+      const matchTenant = u.memberships.some(m =>
+        m.tenantName?.toLowerCase().includes(s) || m.tenantSlug?.toLowerCase().includes(s)
+      );
+      if (!matchName && !matchUsername && !matchEmail && !matchTenant) return false;
+    }
+
+    return true;
   });
 
   const getStatusBadge = (status: string) => {
@@ -129,6 +148,23 @@ export function UsersPage() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-surface-800">משתמשים</h2>
         <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="חיפוש..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="px-3 py-2 border border-surface-200 rounded-lg text-sm w-40"
+          />
+          <select
+            value={tenantFilter}
+            onChange={(e) => setTenantFilter(e.target.value)}
+            className="px-3 py-2 border border-surface-200 rounded-lg text-sm"
+          >
+            <option value="all">כל העסקים</option>
+            {tenants.filter(t => t.status === 'active').map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value as any)}
@@ -241,6 +277,7 @@ export function UsersPage() {
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">תפקיד</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">עסק</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">כניסה אחרונה</th>
+              <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">נוצר</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">סטטוס</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">פעולות</th>
             </tr>
@@ -265,6 +302,9 @@ export function UsersPage() {
                 </td>
                 <td className="px-4 py-3 text-surface-600 text-sm">
                   {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('he-IL') : '-'}
+                </td>
+                <td className="px-4 py-3 text-surface-500 text-sm">
+                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString('he-IL') : '-'}
                 </td>
                 <td className="px-4 py-3">{getStatusBadge(user.status)}</td>
                 <td className="px-4 py-3">

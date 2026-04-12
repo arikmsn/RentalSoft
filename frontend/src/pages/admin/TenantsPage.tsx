@@ -5,6 +5,7 @@ export function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', slug: '', isActive: true });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -45,6 +46,39 @@ export function TenantsPage() {
   const handleSlugChange = (value: string) => {
     const slug = value.toLowerCase().replace(/[^a-z0-9]/g, '').replace(/[+]/g, '');
     setFormData({ ...formData, name: value, slug });
+  };
+
+  const handleEdit = (tenant: Tenant) => {
+    setEditingId(tenant.id);
+    setFormData({ name: tenant.name, slug: tenant.slug, isActive: tenant.isActive });
+    setError('');
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingId) return;
+    setError('');
+    setSaving(true);
+    try {
+      await adminService.updateTenant(editingId, {
+        name: formData.name,
+        slug: formData.slug,
+        isActive: formData.isActive,
+      });
+      setEditingId(null);
+      setFormData({ name: '', slug: '', isActive: true });
+      loadTenants();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to update');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setFormData({ name: '', slug: '', isActive: true });
+    setError('');
   };
 
   const handleSuspend = async (id: string) => {
@@ -181,6 +215,53 @@ export function TenantsPage() {
         </div>
       )}
 
+      {editingId && (
+        <div className="bg-white rounded-lg shadow-sm border border-primary-200 p-4 mb-6">
+          <h3 className="text-lg font-semibold mb-4">עדכן עסק</h3>
+          {error && <div className="mb-4 text-danger-600 text-sm">{error}</div>}
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-1">שם העסק</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-surface-200 rounded-lg"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-surface-700 mb-1">Slug (URL)</label>
+                <input
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') })}
+                  className="w-full px-3 py-2 border border-surface-200 rounded-lg"
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-4">
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+              >
+                {saving ? 'שומר...' : 'שמור'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="px-4 py-2 text-surface-600 hover:text-surface-800"
+              >
+                ביטול
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow-sm border border-surface-200 overflow-hidden">
         <table className="w-full">
           <thead className="bg-surface-50 border-b border-surface-200">
@@ -188,6 +269,7 @@ export function TenantsPage() {
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">שם</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">Slug</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">משתמשים</th>
+              <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">נוצר</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">סטטוס</th>
               <th className="text-start px-4 py-3 text-sm font-medium text-surface-600">פעולות</th>
             </tr>
@@ -198,9 +280,18 @@ export function TenantsPage() {
                 <td className="px-4 py-3 text-surface-800">{tenant.name}</td>
                 <td className="px-4 py-3 text-surface-600 font-mono text-sm">/{tenant.slug}</td>
                 <td className="px-4 py-3 text-surface-600">{tenant.userCount}</td>
+                <td className="px-4 py-3 text-surface-500 text-sm">
+                  {tenant.createdAt ? new Date(tenant.createdAt).toLocaleDateString('he-IL') : '-'}
+                </td>
                 <td className="px-4 py-3">{getStatusBadge(tenant.status)}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(tenant)}
+                      className="text-xs px-2 py-1 text-primary-600 hover:text-primary-700"
+                    >
+                      ערוך
+                    </button>
                     {tenant.status === 'active' && (
                       <>
                         <button
@@ -239,7 +330,7 @@ export function TenantsPage() {
             ))}
             {filteredTenants.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-surface-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-surface-500">
                   אין עסקים
                 </td>
               </tr>

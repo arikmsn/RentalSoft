@@ -99,7 +99,7 @@ export function DashboardPage() {
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-surface-200 p-4">
-          <div className="text-sm text-surface-500">פניות</div>
+          <div className="text-sm text-surface-500">עבודות</div>
           <div className="text-2xl font-bold text-surface-800">{metrics?.workOrders.total || 0}</div>
           <div className="text-xs text-surface-400">
             {metrics?.workOrders.open || 0} פתוחות
@@ -119,7 +119,7 @@ export function DashboardPage() {
               <th className="text-start px-4 py-2 text-sm font-medium text-surface-600">משתמשים</th>
               <th className="text-start px-4 py-2 text-sm font-medium text-surface-600">אתרים</th>
               <th className="text-start px-4 py-2 text-sm font-medium text-surface-600">ציוד</th>
-              <th className="text-start px-4 py-2 text-sm font-medium text-surface-600">פניות</th>
+              <th className="text-start px-4 py-2 text-sm font-medium text-surface-600">עבודות</th>
               <th className="text-start px-4 py-2 text-sm font-medium text-surface-600">סטטוס</th>
               <th className="text-start px-4 py-2 text-sm font-medium text-surface-600"></th>
             </tr>

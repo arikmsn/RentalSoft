@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 
 const navItems = [
+  { path: '/admin/dashboard', icon: '📊', label: 'סיכום מערכת' },
   { path: '/admin/tenants', icon: '🏢', label: 'עסקים' },
   { path: '/admin/users', icon: '👥', label: 'משתמשים' },
 ];
