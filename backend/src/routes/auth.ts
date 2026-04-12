@@ -10,7 +10,11 @@ const router = Router();
 // Shared login logic
 async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | null) {
   try {
-    const { email, username, password } = req.body;
+    const { username: loginUsername, password } = req.body;
+
+    if (!loginUsername || !password) {
+      return res.status(400).json({ message: 'Username and password required' });
+    }
 
     // Resolve tenantId from route param or default tenant
     let tenantId: string | null = null;
@@ -32,17 +36,20 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
       }
     }
 
-    // Build user query
+    // Build user query - PRIMARY USERNAME, fallback to email for backward compatibility
     let user: any = null;
-    const userWhere: any = { isActive: true };
-    if (username) {
-      userWhere.OR = [{ username }, { email: username }];
-    } else if (email) {
-      userWhere.email = email;
+    
+    // Try username first
+    user = await prisma.user.findFirst({
+      where: { username: loginUsername, isActive: true },
+    });
+    
+    // Fallback: try email (for old demo accounts)
+    if (!user) {
+      user = await prisma.user.findFirst({
+        where: { email: loginUsername, isActive: true },
+      });
     }
-
-    // Find user
-    user = await prisma.user.findFirst({ where: userWhere });
 
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'Invalid credentials' });

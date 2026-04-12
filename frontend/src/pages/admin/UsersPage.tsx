@@ -111,21 +111,13 @@ export function UsersPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-surface-700 mb-1">Username</label>
+                <label className="block text-sm font-medium text-surface-700 mb-1">Username *</label>
                 <input
                   type="text"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   className="w-full px-3 py-2 border border-surface-200 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-surface-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-surface-200 rounded-lg"
+                  required
                 />
               </div>
               <div>
