@@ -174,8 +174,26 @@ router.post('/users', async (req: AuthRequest, res) => {
       return res.status(400).json({ message: 'Name and password are required' });
     }
 
-    if (username) {
-      const existingUsername = await prisma.user.findUnique({ where: { username } });
+    // Check username within tenant context (tenant-scoped uniqueness)
+    if (username && tenantId) {
+      const membershipUserIds = await prisma.tenantMembership.findMany({
+        where: { tenantId },
+        select: { userId: true },
+      });
+      const userIds = membershipUserIds.map(m => m.userId);
+      if (userIds.length > 0) {
+        const existingUsers = await prisma.user.findMany({
+          where: { id: { in: userIds }, username },
+        });
+        if (existingUsers.length > 0) {
+          return res.status(400).json({ message: 'Username already exists in this tenant' });
+        }
+      }
+    }
+
+    // Legacy: check global only if no tenant specified (backward compat)
+    if (username && !tenantId) {
+      const existingUsername = await prisma.user.findFirst({ where: { username } });
       if (existingUsername) {
         return res.status(400).json({ message: 'Username already exists' });
       }
@@ -232,9 +250,25 @@ router.patch('/users/:id', async (req: AuthRequest, res) => {
     const updateData: any = {};
     if (name) updateData.name = name;
     if (username && username !== existing.username) {
-      const usernameExists = await prisma.user.findUnique({ where: { username } });
-      if (usernameExists) {
-        return res.status(400).json({ message: 'Username already exists' });
+      if (tenantId) {
+        const membershipUserIds = await prisma.tenantMembership.findMany({
+          where: { tenantId },
+          select: { userId: true },
+        });
+        const userIds = membershipUserIds.map(m => m.userId);
+        if (userIds.length > 0) {
+          const existingUsers = await prisma.user.findMany({
+            where: { id: { in: userIds }, username },
+          });
+          if (existingUsers.length > 0) {
+            return res.status(400).json({ message: 'Username already exists in this tenant' });
+          }
+        }
+      } else {
+        const usernameExists = await prisma.user.findFirst({ where: { username } });
+        if (usernameExists) {
+          return res.status(400).json({ message: 'Username already exists' });
+        }
       }
       updateData.username = username;
     }
