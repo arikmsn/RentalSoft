@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { equipmentService } from '../services/equipmentService';
 import { api } from '../services/api';
@@ -31,7 +31,11 @@ export function EquipmentDetailsPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
+  
+  const tenantSlug = location.pathname.split('/')[1] || user?.tenantSlug || 'default';
+  const navTo = (path: string) => navigate(`/${tenantSlug}/${path.replace(/^\//, '')}`);
   
   const [equipment, setEquipment] = useState<any>(null);
   const [locations, setLocations] = useState<SettingsEquipmentLocation[]>([]);
@@ -82,7 +86,7 @@ export function EquipmentDetailsPage() {
         // Session expired - let axios interceptor handle redirect
         return;
       }
-      navigate('/equipment');
+      navTo('equipment');
     }).finally(() => {
       setLoading(false);
     });
@@ -156,7 +160,7 @@ export function EquipmentDetailsPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate('/equipment')}
+          onClick={() => navTo('equipment')}
           className="p-2 hover:bg-surface-100 rounded-lg transition-colors"
         >
           <svg className="w-5 h-5 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -221,7 +225,7 @@ export function EquipmentDetailsPage() {
           </div>
           <div className="p-4 bg-primary-50 rounded-xl">
             <button
-              onClick={() => navigate(`/workorders/${equipment.activeWorkOrder?.id}`)}
+              onClick={() => navigate(`/${tenantSlug}/workorders/${equipment.activeWorkOrder?.id}`)}
               className="text-primary-700 font-medium hover:underline text-right block w-full"
             >
               {equipment.activeWorkOrder.site?.name}
@@ -336,7 +340,7 @@ export function EquipmentDetailsPage() {
 
       <div className="flex justify-end gap-3">
         <button
-          onClick={() => navigate('/equipment')}
+          onClick={() => navTo('equipment')}
           className="px-6 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
         >
           {t('app.cancel')}

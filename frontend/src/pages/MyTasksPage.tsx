@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useMyTasks } from '../hooks/useOfflineApi';
 import { useAuthStore } from '../stores/authStore';
 import type { DBSite } from '../offline/db';
@@ -14,8 +14,12 @@ const statusColors: Record<string, string> = {
 export function MyTasksPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const { tasks, loading, error, fromCache, refetch } = useMyTasks(user?.id);
+  
+  const tenantSlug = location.pathname.split('/')[1] || user?.tenantSlug || 'default';
+  const linkTo = (path: string) => `/${tenantSlug}/${path.replace(/^\//, '')}`;
 
   const todaysTasks = tasks
     .filter((task) => {
@@ -172,7 +176,7 @@ export function MyTasksPage() {
             {upcomingTasks.map((task) => (
               <Link
                 key={task.id}
-                to={`/workorders/${task.id}`}
+                to={linkTo(`/workorders/${task.id}`)}
                 className="block p-2 sm:p-3 border border-gray-100 rounded-lg hover:bg-gray-50"
               >
                 <div className="flex justify-between items-center">

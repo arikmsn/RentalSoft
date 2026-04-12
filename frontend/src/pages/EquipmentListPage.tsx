@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { Equipment, EquipmentStatus } from '../types';
+import { useAuthStore } from '../stores/authStore';
 import { equipmentService } from '../services/equipmentService';
 import { BaseQrScanner } from '../components/qr/BaseQrScanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -28,7 +29,12 @@ const statusColors: Record<EquipmentStatus, string> = {
 
 export function EquipmentListPage() {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const tenantSlug = location.pathname.split('/')[1] || user?.tenantSlug || 'default';
+  const navTo = (path: string) => navigate(`/${tenantSlug}/${path.replace(/^\//, '')}`);
+  
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [equipmentTypes, setEquipmentTypes] = useState<SettingsEquipmentType[]>([]);
   const [locations, setLocations] = useState<SettingsEquipmentLocation[]>([]);
@@ -121,7 +127,7 @@ export function EquipmentListPage() {
       setFormData({ qrTag: '', type: '' });
       const data = await equipmentService.getAll();
       setEquipment(data);
-      navigate(`/equipment/${created.id}`);
+      navTo(`/equipment/${created.id}`);
     } catch (err: any) {
       console.error('Failed to create equipment:', err);
       alert(err?.response?.data?.message || 'Failed to create equipment');
@@ -331,7 +337,7 @@ export function EquipmentListPage() {
             className="bg-white rounded-2xl p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100"
           >
             <div className="flex justify-between items-start mb-3">
-              <div className="flex-1" onClick={() => navigate(`/equipment/${eq.id}`)}>
+              <div className="flex-1" onClick={() => navTo(`/equipment/${eq.id}`)}>
                 <h3 className="font-semibold text-lg text-surface-800 cursor-pointer">{eq.qrTag}</h3>
                 <p className="text-surface-500 text-sm mt-0.5">{eq.type}</p>
               </div>
@@ -339,7 +345,7 @@ export function EquipmentListPage() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/equipment/${eq.id}`);
+                    navTo(`/equipment/${eq.id}`);
                   }}
                   className="p-2 hover:bg-surface-100 rounded-lg transition-colors"
                   title={t('app.actions')}

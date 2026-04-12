@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import type { DashboardStats, Alert } from '../services/dashboardService';
 import { dashboardService } from '../services/dashboardService';
@@ -10,6 +10,10 @@ export function DashboardPage() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const tenantSlug = location.pathname.split('/')[1] || user?.tenantSlug || 'default';
+  const navTo = (path: string) => navigate(`/${tenantSlug}/${path.replace(/^\//, '')}`);
+  
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,10 +102,10 @@ export function DashboardPage() {
   }
 
   const statCards = [
-    { value: stats?.availableEquipment || 0, label: t('dashboard.availableEquipment'), color: 'text-primary-600', bg: 'bg-primary-50', icon: '📦', onClick: () => navigate('/equipment?filter=available') },
-    { value: stats?.sitesWithEquipment || 0, label: t('dashboard.sitesWithEquipment'), color: 'text-success-600', bg: 'bg-success-50', icon: '📍', onClick: () => navigate('/workorders?view=list') },
-    { value: stats?.overdueRemovals || 0, label: t('dashboard.overdueRemovals'), color: 'text-surface-800', bg: 'bg-surface-100', icon: '⚫', onClick: () => navigate('/alerts?type=past_removal') },
-    { value: stats?.upcomingRemovals || 0, label: t('dashboard.upcomingRemovals'), color: 'text-danger-600', bg: 'bg-danger-50', icon: '🔴', onClick: () => navigate('/map') },
+    { value: stats?.availableEquipment || 0, label: t('dashboard.availableEquipment'), color: 'text-primary-600', bg: 'bg-primary-50', icon: '📦', onClick: () => navTo('equipment?filter=available') },
+    { value: stats?.sitesWithEquipment || 0, label: t('dashboard.sitesWithEquipment'), color: 'text-success-600', bg: 'bg-success-50', icon: '📍', onClick: () => navTo('workorders?view=list') },
+    { value: stats?.overdueRemovals || 0, label: t('dashboard.overdueRemovals'), color: 'text-surface-800', bg: 'bg-surface-100', icon: '⚫', onClick: () => navTo('alerts?type=past_removal') },
+    { value: stats?.upcomingRemovals || 0, label: t('dashboard.upcomingRemovals'), color: 'text-danger-600', bg: 'bg-danger-50', icon: '🔴', onClick: () => navTo('map') },
   ];
 
   return (

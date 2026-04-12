@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { Multiselect } from '../components/Multiselect';
 import type { WorkOrder, WorkOrderStatus, Site } from '../types';
 import { workOrderService } from '../services/workOrderService';
@@ -62,6 +62,10 @@ function getStatusColor(wo: WorkOrder): 'black' | 'red' | 'orange' | 'green' {
 export function WorkOrdersListPage() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
+  const location = useLocation();
+  const tenantSlug = location.pathname.split('/')[1] || user?.tenantSlug || 'default';
+  const linkTo = (path: string) => `/${tenantSlug}/${path.replace(/^\//, '')}`;
+  
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [technicians, setTechnicians] = useState<{id: string; name: string; active: boolean}[]>([]);
@@ -617,7 +621,7 @@ export function WorkOrdersListPage() {
             {filteredWorkOrders.map((wo) => (
               <Link
                 key={wo.id}
-                to={`/workorders/${wo.id}`}
+                to={linkTo(`/workorders/${wo.id}`)}
                 className="block bg-white rounded-2xl p-4 sm:p-5 shadow-card hover:shadow-card-hover transition-all duration-300 border border-surface-100"
               >
                 <div className="flex items-start justify-between">
@@ -953,7 +957,7 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
                     key={wo.id}
                     className="block p-4 sm:p-5 rounded-2xl text-sm bg-white shadow-card border border-surface-100 hover:shadow-card-hover transition-all duration-300"
                   >
-                    <Link to={`/workorders/${wo.id}`} className="block">
+                    <Link to={`/${location.pathname.split('/')[1] || 'default'}/workorders/${wo.id}`} className="block">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3">
                           {wo.status !== 'completed' && wo.equipmentCount ? (

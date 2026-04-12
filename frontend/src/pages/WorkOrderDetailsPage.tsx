@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import type { WorkOrder, WorkOrderStatus, Site, Equipment } from '../types';
 import type { ChecklistUpdate } from '../services/workOrderService';
 import { useAuthStore } from '../stores/authStore';
@@ -28,9 +28,16 @@ interface ScannedEquipment extends Equipment {
 export function WorkOrderDetailsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
   const { syncStatus } = useAppStore();
+  
+  // Derive tenantSlug from URL path (e.g., /client3/workorders/123 -> client3)
+  const tenantSlug = location.pathname.split('/')[1] || user?.tenantSlug || 'default';
+  
+  // Helper for tenant-aware navigation
+  const navTo = (path: string) => navigate(`/${tenantSlug}/${path.replace(/^\//, '')}`);
   
   const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
   const [loading, setLoading] = useState(true);
@@ -359,7 +366,7 @@ export function WorkOrderDetailsPage() {
     setDeleting(true);
     try {
       await workOrderService.delete(id);
-      navigate('/workorders');
+      navTo('workorders');
     } catch (err: any) {
       console.error('Failed to delete work order:', err);
       alert(err?.response?.data?.message || 'Failed to delete work order');
