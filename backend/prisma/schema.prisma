@@ -12,7 +12,10 @@ model Tenant {
   id        String   @id @default(uuid()) @db.VarChar(36)
   name      String   @db.VarChar(255)
   slug      String   @unique @db.VarChar(255)
+  status    TenantStatus @default(active)
   isActive  Boolean  @default(true)
+  suspendedAt DateTime?
+  archivedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
@@ -35,13 +38,16 @@ model User {
   password      String
   role          UserRole                 @default(technician)
   phone         String?
-  isActive      Boolean                  @default(true)
+  status       UserStatus              @default(active)
+  isActive      Boolean                 @default(true)
+  suspendedAt  DateTime?
+  archivedAt    DateTime?
   lastLogin     DateTime?
-  createdAt     DateTime                 @default(now())
-  updatedAt     DateTime                 @updatedAt
-  username      String?
-  isSuperAdmin  Boolean                  @default(false)
-  activityLogs  ActivityLog[]
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  username     String?
+  isSuperAdmin Boolean                 @default(false)
+  activityLogs ActivityLog[]
   statusChanges WorkOrderStatusHistory[]
 }
 
@@ -300,6 +306,18 @@ enum UserRole {
   manager
   technician
   admin
+}
+
+enum TenantStatus {
+  active
+  suspended
+  archived
+}
+
+enum UserStatus {
+  active
+  suspended
+  archived
 }
 
 enum EquipmentStatus {

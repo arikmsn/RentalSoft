@@ -55,7 +55,10 @@ router.get('/tenants', async (req: AuthRequest, res) => {
         id: t.id,
         name: t.name,
         slug: t.slug,
+        status: t.status,
         isActive: t.isActive,
+        suspendedAt: t.suspendedAt,
+        archivedAt: t.archivedAt,
         createdAt: t.createdAt,
         userCount: count,
       };
@@ -125,6 +128,72 @@ router.patch('/tenants/:id', async (req: AuthRequest, res) => {
   }
 });
 
+// Suspend tenant (soft-lock)
+router.post('/tenants/:id/suspend', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const tenant = await prisma.tenant.findUnique({ where: { id } });
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+    if (tenant.status === 'suspended') {
+      return res.status(400).json({ message: 'Tenant already suspended' });
+    }
+    const updated = await prisma.tenant.update({
+      where: { id },
+      data: { status: 'suspended', suspendedAt: new Date(), isActive: false },
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error('Suspend tenant error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Reactivate tenant
+router.post('/tenants/:id/reactivate', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const tenant = await prisma.tenant.findUnique({ where: { id } });
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+    if (tenant.status === 'active') {
+      return res.status(400).json({ message: 'Tenant already active' });
+    }
+    const updated = await prisma.tenant.update({
+      where: { id },
+      data: { status: 'active', suspendedAt: null, isActive: true },
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error('Reactivate tenant error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Archive tenant (soft-delete)
+router.post('/tenants/:id/archive', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const tenant = await prisma.tenant.findUnique({ where: { id } });
+    if (!tenant) {
+      return res.status(404).json({ message: 'Tenant not found' });
+    }
+    if (tenant.status === 'archived') {
+      return res.status(400).json({ message: 'Tenant already archived' });
+    }
+    const updated = await prisma.tenant.update({
+      where: { id },
+      data: { status: 'archived', archivedAt: new Date(), isActive: false },
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error('Archive tenant error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.get('/users', async (req: AuthRequest, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -148,8 +217,11 @@ router.get('/users', async (req: AuthRequest, res) => {
         username: u.username,
         email: u.email,
         role: u.role,
+        status: u.status,
         isActive: u.isActive,
         isSuperAdmin: u.isSuperAdmin,
+        suspendedAt: u.suspendedAt,
+        archivedAt: u.archivedAt,
         createdAt: u.createdAt,
         memberships: Array.from(tenantsMap.values()).map((t: any) => ({
           tenantId: t.id,
@@ -317,11 +389,58 @@ router.delete('/users/:id', async (req: AuthRequest, res) => {
     }
 
     await prisma.tenantMembership.deleteMany({ where: { userId: id } });
-    await prisma.user.delete({ where: { id } });
+    await prisma.user.update({
+      where: { id },
+      data: { status: 'archived', archivedAt: new Date(), isActive: false },
+    });
 
-    res.json({ success: true });
+    res.json({ success: true, message: 'User archived (soft-delete)' });
   } catch (error) {
     console.error('Delete user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Suspend user (soft-lock)
+router.post('/users/:id/suspend', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.status === 'suspended') {
+      return res.status(400).json({ message: 'User already suspended' });
+    }
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { status: 'suspended', suspendedAt: new Date(), isActive: false },
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error('Suspend user error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Reactivate user
+router.post('/users/:id/reactivate', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.status === 'active') {
+      return res.status(400).json({ message: 'User already active' });
+    }
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { status: 'active', suspendedAt: null, isActive: true },
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error('Reactivate user error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

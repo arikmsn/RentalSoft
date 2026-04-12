@@ -5,7 +5,10 @@ export interface Tenant {
   id: string;
   name: string;
   slug: string;
+  status: 'active' | 'suspended' | 'archived';
   isActive: boolean;
+  suspendedAt: string | null;
+  archivedAt: string | null;
   createdAt: string;
   userCount: number;
 }
@@ -16,8 +19,11 @@ export interface AdminUser {
   username: string | null;
   email: string | null;
   role: UserRole;
+  status: 'active' | 'suspended' | 'archived';
   isActive: boolean;
   isSuperAdmin: boolean;
+  suspendedAt: string | null;
+  archivedAt: string | null;
   createdAt: string;
   memberships: {
     tenantId: string;
@@ -39,6 +45,21 @@ export const adminService = {
 
   async updateTenant(id: string, data: { name?: string; slug?: string; isActive?: boolean }): Promise<Tenant> {
     const response = await api.patch<Tenant>(`/admin/tenants/${id}`, data);
+    return response.data;
+  },
+
+  async suspendTenant(id: string): Promise<Tenant> {
+    const response = await api.post<Tenant>(`/admin/tenants/${id}/suspend`);
+    return response.data;
+  },
+
+  async reactivateTenant(id: string): Promise<Tenant> {
+    const response = await api.post<Tenant>(`/admin/tenants/${id}/reactivate`);
+    return response.data;
+  },
+
+  async archiveTenant(id: string): Promise<Tenant> {
+    const response = await api.post<Tenant>(`/admin/tenants/${id}/archive`);
     return response.data;
   },
 
@@ -75,5 +96,15 @@ export const adminService = {
 
   async deleteUser(id: string): Promise<void> {
     await api.delete(`/admin/users/${id}`);
+  },
+
+  async suspendUser(id: string): Promise<AdminUser> {
+    const response = await api.post<AdminUser>(`/admin/users/${id}/suspend`);
+    return response.data;
+  },
+
+  async reactivateUser(id: string): Promise<AdminUser> {
+    const response = await api.post<AdminUser>(`/admin/users/${id}/reactivate`);
+    return response.data;
   },
 };

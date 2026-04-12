@@ -25,6 +25,16 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
       if (!tenant) {
         return res.status(404).json({ message: 'Tenant not found' });
       }
+      // Check tenant status
+      if (tenant.status === 'suspended') {
+        return res.status(403).json({ message: 'העסק מושהה. יש לפנות לתמיכה.' });
+      }
+      if (tenant.status === 'archived') {
+        return res.status(403).json({ message: 'העסק אינו פעיל. יש לפנות לתמיכה.' });
+      }
+      if (!tenant.isActive) {
+        return res.status(403).json({ message: 'העסק אינו פעיל. יש לפנות לתמיכה.' });
+      }
       tenantId = tenant.id;
       resolvedTenantSlug = tenant.slug;
     } else {
@@ -79,6 +89,14 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
         status: 'invalid_credentials',
         message: 'Invalid credentials' 
       });
+    }
+
+    // Check user status
+    if (user.status === 'suspended') {
+      return res.status(403).json({ message: 'המשתמש מושהה. יש לפנות לתמיכה.' });
+    }
+    if (user.status === 'archived') {
+      return res.status(403).json({ message: 'המשתמש לא פעיל. יש לפנות לתמיכה.' });
     }
 
     // If tenant-scoped, verify membership (except for super admin)

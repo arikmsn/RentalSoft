@@ -40,11 +40,19 @@ export const authenticate = async (
     
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, role: true, isActive: true, isSuperAdmin: true },
+      select: { id: true, email: true, role: true, isActive: true, isSuperAdmin: true, status: true },
     });
 
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'User not found or inactive' });
+    }
+
+    // Check user status for soft-lockout
+    if (user.status === 'suspended') {
+      return res.status(403).json({ message: 'המשתמש מושהה. יש לפנות לתמיכה.' });
+    }
+    if (user.status === 'archived') {
+      return res.status(403).json({ message: 'המשתמש לא פעיל. יש לפנות לתמיכה.' });
     }
 
     // Attach user info
