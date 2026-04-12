@@ -102,8 +102,9 @@ router.get('/types', authenticate, isTechnicianOrHigher, async (req, res) => {
 
 router.get('/:id', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
+    const tenantFilter = getEquipmentTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     const equipment = await prisma.equipment.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, ...tenantFilter },
       include: { 
         workOrders: {
           where: {
@@ -235,6 +236,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
 router.patch('/:id', authenticate, isManagerOrAdmin, async (req: AuthRequest, res) => {
   try {
     const { qrTag, type, status, condition, conditionState, purchaseDate, currentLocationId } = req.body;
+    const tenantFilter = getEquipmentTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
 
     const updateData: any = {};
     if (qrTag) updateData.qrTag = qrTag;
@@ -246,7 +248,7 @@ router.patch('/:id', authenticate, isManagerOrAdmin, async (req: AuthRequest, re
     if (currentLocationId !== undefined) updateData.currentLocationId = currentLocationId || null;
 
     const equipment = await prisma.equipment.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id, ...tenantFilter },
       data: updateData,
     });
 
@@ -289,10 +291,11 @@ router.patch('/:id', authenticate, isManagerOrAdmin, async (req: AuthRequest, re
   }
 });
 
-router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, res) => {
+router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req: AuthRequest, res) => {
   try {
+    const tenantFilter = getEquipmentTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     await prisma.equipment.delete({
-      where: { id: req.params.id },
+      where: { id: req.params.id, ...tenantFilter },
     });
 
     res.json({ message: 'Equipment deleted' });
@@ -305,9 +308,10 @@ router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, r
 router.post('/:id/scan', authenticate, async (req: AuthRequest, res) => {
   try {
     const { location } = req.body;
+    const tenantFilter = getEquipmentTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
 
     const equipment = await prisma.equipment.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id, ...tenantFilter },
       data: {
         lastScanDate: new Date(),
         installationDate: new Date(),

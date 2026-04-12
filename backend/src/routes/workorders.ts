@@ -134,10 +134,11 @@ router.get('/my-tasks/:technicianId', authenticate, async (req: AuthRequest, res
   }
 });
 
-router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
+router.get('/:id', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
+    const tenantFilter = getWorkOrdersTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     const workOrder = await prisma.workOrder.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, ...tenantFilter },
       include: {
         site: true,
         technician: { select: { id: true, name: true } },
@@ -251,9 +252,10 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
     const { type, status, technicianId, plannedDate, actualDate, done, todo, plannedRemovalDate, isNextVisitPotentialRemoval } = req.body;
     const userRole = req.user!.role;
     const userId = req.user!.id;
+    const tenantFilter = getWorkOrdersTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
 
     const existingWorkOrder = await prisma.workOrder.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, ...tenantFilter },
       select: { 
         technicianId: true,
         status: true,
@@ -547,12 +549,13 @@ router.delete('/:id/equipment/:equipmentId', authenticate, authorize('manager', 
   }
 });
 
-router.delete('/:id', authenticate, isManagerOrAdmin, async (req, res) => {
+router.delete('/:id', authenticate, isManagerOrAdmin, async (req: AuthRequest, res) => {
   try {
     const workOrderId = req.params.id;
+    const tenantFilter = getWorkOrdersTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
 
     const workOrder = await prisma.workOrder.findUnique({
-      where: { id: workOrderId },
+      where: { id: workOrderId, ...tenantFilter },
       include: {
         equipment: { include: { equipment: true } },
       },

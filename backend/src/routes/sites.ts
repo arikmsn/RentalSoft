@@ -346,10 +346,11 @@ router.patch('/:id/coordinates', authenticate, isManagerOrAdmin, async (req, res
   }
 });
 
-router.get('/:id', authenticate, isTechnicianOrHigher, async (req, res) => {
+router.get('/:id', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
+    const tenantFilter = getSitesTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     const site = await prisma.site.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id, ...tenantFilter },
       include: {
         equipment: { where: { status: 'assigned_to_work' } },
         workOrders: { orderBy: { plannedDate: 'desc' }, take: 10 },
@@ -446,6 +447,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
 
 router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: AuthRequest, res) => {
   try {
+    const tenantFilter = getSitesTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
     const {
       name,
       address,
@@ -464,7 +466,11 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
       longitude,
     } = req.body;
 
-    const currentSite = await prisma.site.findUnique({ where: { id: req.params.id } });
+    const currentSite = await prisma.site.findUnique({ where: { id: req.params.id, ...tenantFilter } });
+
+    if (!currentSite) {
+      return res.status(404).json({ message: 'Site not found' });
+    }
 
     let finalLat = latitude ?? currentSite?.latitude;
     let finalLng = longitude ?? currentSite?.longitude;
@@ -598,12 +604,13 @@ router.patch('/:id/toggle-active', authenticate, authorize('manager', 'admin'), 
   }
 });
 
-router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req, res) => {
+router.delete('/:id', authenticate, authorize('manager', 'admin'), async (req: AuthRequest, res) => {
   try {
     const siteId = req.params.id;
+    const tenantFilter = getSitesTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
 
     const site = await prisma.site.findUnique({
-      where: { id: siteId },
+      where: { id: siteId, ...tenantFilter },
       include: {
         _count: {
           select: {
