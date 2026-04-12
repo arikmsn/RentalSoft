@@ -55,9 +55,18 @@ export const authenticate = async (
     };
 
     // Attach tenant context from JWT
+    const isSuperAdmin = decoded.isSuperAdmin || user.isSuperAdmin || false;
     req.tenantId = decoded.tenantId || null;
     req.tenantSlug = decoded.tenantSlug || null;
-    req.isSuperAdmin = decoded.isSuperAdmin || user.isSuperAdmin || false;
+    req.isSuperAdmin = isSuperAdmin;
+
+    // Check for stale JWT: non-super-admin users must have tenantId
+    if (!isSuperAdmin && !decoded.tenantId) {
+      return res.status(401).json({ 
+        status: 'session_expired',
+        message: 'המערכת עודכנה, נא להתחבר מחדש' 
+      });
+    }
 
     next();
   } catch (error) {
