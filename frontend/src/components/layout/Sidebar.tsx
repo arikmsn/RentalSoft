@@ -5,20 +5,21 @@ import { useAppStore } from '../../stores/appStore';
 import { changeLanguage } from '../../i18n';
 
 const navItems = [
-  { path: '/dashboard', icon: '📊', label: 'dashboard', roles: ['manager', 'technician', 'admin'] },
-  { path: '/equipment', icon: '📦', label: 'equipment', roles: ['manager', 'technician', 'admin'] },
-  { path: '/sites', icon: '📍', label: 'sites', roles: ['manager', 'technician', 'admin'] },
-  { path: '/workorders', icon: '📋', label: 'workOrders', roles: ['manager', 'technician', 'admin'] },
-  { path: '/map', icon: '🗺️', label: 'map', roles: ['manager', 'technician', 'admin'] },
-  { path: '/alerts', icon: '🔔', label: 'alerts', roles: ['manager', 'technician', 'admin'] },
-  { path: '/settings', icon: '⚙️', label: 'settings', roles: ['manager', 'admin'] },
+  { path: 'dashboard', icon: '📊', label: 'dashboard', roles: ['manager', 'technician', 'admin'] },
+  { path: 'equipment', icon: '📦', label: 'equipment', roles: ['manager', 'technician', 'admin'] },
+  { path: 'sites', icon: '📍', label: 'sites', roles: ['manager', 'technician', 'admin'] },
+  { path: 'workorders', icon: '📋', label: 'workOrders', roles: ['manager', 'technician', 'admin'] },
+  { path: 'map', icon: '🗺️', label: 'map', roles: ['manager', 'technician', 'admin'] },
+  { path: 'alerts', icon: '🔔', label: 'alerts', roles: ['manager', 'technician', 'admin'] },
+  { path: 'settings', icon: '⚙️', label: 'settings', roles: ['manager', 'admin'] },
 ];
 
 interface SidebarProps {
+  tenantSlug?: string;
   onClose?: () => void;
 }
 
-export function Sidebar({ onClose }: SidebarProps) {
+export function Sidebar({ tenantSlug, onClose }: SidebarProps) {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuthStore();
   const { isOnline, syncStatus, pendingActionsCount } = useAppStore();
@@ -27,6 +28,11 @@ export function Sidebar({ onClose }: SidebarProps) {
   const filteredItems = navItems.filter(
     item => user && item.roles.includes(user.role)
   );
+
+  const buildPath = (path: string) => {
+    if (!tenantSlug) return `/${path}`;
+    return `/${tenantSlug}/${path}`;
+  };
 
   const handleLinkClick = () => {
     if (onClose) {
@@ -92,7 +98,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         {filteredItems.map((item) => (
           <NavLink
             key={item.path}
-            to={item.path}
+            to={buildPath(item.path)}
             onClick={handleLinkClick}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 min-h-[48px] ${

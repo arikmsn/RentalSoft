@@ -23,10 +23,19 @@ let isRedirecting = false;
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401 && !isRedirecting) {
+    const status = error.response?.status;
+    const data = error.response?.data as any;
+    const isSessionExpired = status === 401 && data?.status === 'session_expired';
+
+    if ((status === 401 || isSessionExpired) && !isRedirecting) {
       isRedirecting = true;
       useAuthStore.getState().logout();
-      window.location.href = '/login?reason=session_expired';
+      
+      const message = isSessionExpired 
+        ? 'המערכת עודכנה, נא להתחבר מחדש'
+        : 'נא להתחבר מחדש';
+      
+      window.location.href = `/login?reason=session_expired&message=${encodeURIComponent(message)}`;
     }
     return Promise.reject(error);
   }
@@ -34,8 +43,9 @@ api.interceptors.response.use(
 
 export const handleApiError = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
+    const data = error.response?.data as any;
     if (error.response) {
-      return error.response.data?.message || 'Server error';
+      return data?.message || 'Server error';
     } else if (error.request) {
       return 'Network error';
     }

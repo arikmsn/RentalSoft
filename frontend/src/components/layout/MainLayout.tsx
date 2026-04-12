@@ -6,7 +6,11 @@ import { MobileNav } from './MobileNav';
 import { useAuthStore } from '../../stores/authStore';
 import { useAppStore } from '../../stores/appStore';
 
-export function MainLayout() {
+interface MainLayoutProps {
+  tenantSlug?: string;
+}
+
+export function MainLayout({ tenantSlug }: MainLayoutProps) {
   const { isAuthenticated } = useAuthStore();
   const { setOnline, setSyncStatus } = useAppStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -97,7 +101,7 @@ export function MainLayout() {
       {/* Sidebar - always mounted on desktop */}
       {!isMobile && (
         <div className="fixed inset-y-0 start-0 z-50 lg:block">
-          <Sidebar onClose={closeSidebar} />
+          <Sidebar tenantSlug={tenantSlug} onClose={closeSidebar} />
         </div>
       )}
 
@@ -106,7 +110,7 @@ export function MainLayout() {
         <div 
           className="fixed inset-y-0 start-0 z-[9999] w-72 animate-slide-up"
         >
-          <Sidebar onClose={closeSidebar} />
+          <Sidebar tenantSlug={tenantSlug} onClose={closeSidebar} />
         </div>
       )}
 
@@ -117,7 +121,7 @@ export function MainLayout() {
         </div>
       </main>
       
-      <MobileNav />
+      <MobileNav tenantSlug={tenantSlug} />
     </div>
   );
 }

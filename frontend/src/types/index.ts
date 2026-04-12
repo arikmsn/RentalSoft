@@ -8,6 +8,9 @@ export interface User {
   phone?: string;
   isActive: boolean;
   lastLogin?: Date;
+  tenantId?: string | null;
+  tenantSlug?: string | null;
+  isSuperAdmin?: boolean;
 }
 
 export type EquipmentStatus = 'available' | 'assigned_to_work';

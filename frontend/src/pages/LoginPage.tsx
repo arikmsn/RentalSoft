@@ -8,7 +8,7 @@ import { handleApiError } from '../services/api';
 export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useAuthStore();
+  const { user, login, isAuthenticated } = useAuthStore();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(() => {
@@ -18,7 +18,11 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    if (user?.isSuperAdmin) {
+      return <Navigate to="/super/dashboard" replace />;
+    }
+    const tenantSlug = user?.tenantSlug || 'default';
+    return <Navigate to={`/${tenantSlug}/dashboard`} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +33,13 @@ export function LoginPage() {
     try {
       const response = await authService.login({ username, password });
       login(response.user, response.token);
-      navigate('/dashboard');
+      
+      if (response.user.isSuperAdmin) {
+        navigate('/super/dashboard');
+      } else {
+        const targetSlug = response.user.tenantSlug || 'default';
+        navigate(`/${targetSlug}/dashboard`);
+      }
     } catch (err) {
       setError(handleApiError(err));
     } finally {

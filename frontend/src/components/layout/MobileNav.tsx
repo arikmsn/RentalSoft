@@ -2,20 +2,29 @@ import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 
+interface MobileNavProps {
+  tenantSlug?: string;
+}
+
 const mobileNavItems = [
-  { path: '/workorders?filter=active', icon: '📋', label: 'workOrders', roles: ['manager', 'technician', 'admin'] },
-  { path: '/sites', icon: '📍', label: 'sites', roles: ['manager', 'technician', 'admin'] },
-  { path: '/equipment', icon: '📦', label: 'equipment', roles: ['manager', 'technician', 'admin'] },
-  { path: '/map', icon: '🗺️', label: 'map', roles: ['manager', 'technician', 'admin'] },
+  { path: 'workorders?filter=active', icon: '📋', label: 'workOrders', roles: ['manager', 'technician', 'admin'] },
+  { path: 'sites', icon: '📍', label: 'sites', roles: ['manager', 'technician', 'admin'] },
+  { path: 'equipment', icon: '📦', label: 'equipment', roles: ['manager', 'technician', 'admin'] },
+  { path: 'map', icon: '🗺️', label: 'map', roles: ['manager', 'technician', 'admin'] },
 ];
 
-export function MobileNav() {
+export function MobileNav({ tenantSlug }: MobileNavProps) {
   const { t } = useTranslation();
   const { user } = useAuthStore();
 
   const filteredItems = mobileNavItems.filter(
     item => user && item.roles.includes(user.role)
   );
+
+  const buildPath = (path: string) => {
+    if (!tenantSlug) return `/${path}`;
+    return `/${tenantSlug}/${path}`;
+  };
 
   if (filteredItems.length === 0) {
     return null;
@@ -27,7 +36,7 @@ export function MobileNav() {
         {filteredItems.map((item) => (
           <NavLink
             key={item.path}
-            to={item.path}
+            to={buildPath(item.path)}
             className={({ isActive }) =>
               `flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all duration-200 min-w-[64px] min-h-[56px] justify-center ${
                 isActive

@@ -34,3 +34,36 @@ export const hasPermission = (user: User | null, requiredRole: UserRole): boolea
   if (user.role === 'technician' && requiredRole === 'technician') return true;
   return false;
 };
+
+export const getTenantSlug = (): string | null => {
+  const user = useAuthStore.getState().user;
+  if (!user) return null;
+  if (user.isSuperAdmin) return null;
+  return user.tenantSlug || null;
+};
+
+export const getTenantId = (): string | null => {
+  const user = useAuthStore.getState().user;
+  if (!user) return null;
+  if (user.isSuperAdmin) return null;
+  return user.tenantId || null;
+};
+
+export const isSuperAdmin = (): boolean => {
+  return useAuthStore.getState().user?.isSuperAdmin === true;
+};
+
+export const tenantAwarePath = (path: string): string => {
+  const slug = getTenantSlug();
+  if (!slug) return path;
+  return `/${slug}${path}`;
+};
+
+export const tenantAwareRedirect = (navigate: (path: string) => void) => {
+  const slug = getTenantSlug();
+  if (slug) {
+    navigate(`/${slug}/dashboard`);
+  } else {
+    navigate('/dashboard');
+  }
+};
