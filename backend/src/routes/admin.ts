@@ -2,8 +2,19 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../config/database';
 import { authenticate, isSuperAdmin, AuthRequest } from '../middleware/auth';
+import { logAdminAction } from '../lib/securityLog';
 
 const router = Router();
+
+const MIN_PASSWORD_LENGTH = 10;
+const BCRYPT_ROUNDS = 12;
+
+function validatePassword(password: string): string | null {
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+  }
+  return null;
+}
 
 router.use(authenticate);
 router.use(isSuperAdmin);
@@ -143,6 +154,7 @@ router.post('/tenants/:id/suspend', async (req: AuthRequest, res) => {
       where: { id },
       data: { status: 'suspended', suspendedAt: new Date(), isActive: false },
     });
+    logAdminAction(req.user!.id, req, 'TENANT_SUSPEND', { targetTenantId: id });
     res.json(updated);
   } catch (error) {
     console.error('Suspend tenant error:', error);
@@ -165,6 +177,7 @@ router.post('/tenants/:id/reactivate', async (req: AuthRequest, res) => {
       where: { id },
       data: { status: 'active', suspendedAt: null, isActive: true },
     });
+    logAdminAction(req.user!.id, req, 'TENANT_REACTIVATE', { targetTenantId: id });
     res.json(updated);
   } catch (error) {
     console.error('Reactivate tenant error:', error);
@@ -187,6 +200,7 @@ router.post('/tenants/:id/archive', async (req: AuthRequest, res) => {
       where: { id },
       data: { status: 'archived', archivedAt: new Date(), isActive: false },
     });
+    logAdminAction(req.user!.id, req, 'TENANT_ARCHIVE', { targetTenantId: id });
     res.json(updated);
   } catch (error) {
     console.error('Archive tenant error:', error);
@@ -247,6 +261,11 @@ router.post('/users', async (req: AuthRequest, res) => {
       return res.status(400).json({ message: 'Name and password are required' });
     }
 
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
+
     // Check username within tenant context (tenant-scoped uniqueness)
     if (username && tenantId) {
       const membershipUserIds = await prisma.tenantMembership.findMany({
@@ -279,7 +298,7 @@ router.post('/users', async (req: AuthRequest, res) => {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     const userData: any = {
       name,
@@ -357,7 +376,12 @@ router.patch('/users/:id', async (req: AuthRequest, res) => {
     if (role) updateData.role = role;
     if (typeof isActive === 'boolean') updateData.isActive = isActive;
     if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        return res.status(400).json({ message: passwordError });
+      }
+      updateData.password = await bcrypt.hash(password, BCRYPT_ROUNDS);
+      logAdminAction(req.user!.id, req, 'PASSWORD_CHANGE', { targetUserId: id });
     }
 
     const user = await prisma.user.update({
@@ -417,6 +441,7 @@ router.post('/users/:id/suspend', async (req: AuthRequest, res) => {
       where: { id },
       data: { status: 'suspended', suspendedAt: new Date(), isActive: false },
     });
+    logAdminAction(req.user!.id, req, 'USER_SUSPEND', { targetUserId: id });
     res.json(updated);
   } catch (error) {
     console.error('Suspend user error:', error);
@@ -439,6 +464,7 @@ router.post('/users/:id/reactivate', async (req: AuthRequest, res) => {
       where: { id },
       data: { status: 'active', suspendedAt: null, isActive: true },
     });
+    logAdminAction(req.user!.id, req, 'USER_REACTIVATE', { targetUserId: id });
     res.json(updated);
   } catch (error) {
     console.error('Reactivate user error:', error);

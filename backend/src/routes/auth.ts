@@ -4,11 +4,44 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database';
 import { config } from '../config';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { checkRateLimit, clearRateLimit } from '../lib/rateLimit';
+import { logLoginSuccess, logLoginFailed, logAdminAction } from '../lib/securityLog';
 
 const router = Router();
 
-// Shared login logic
+const MIN_PASSWORD_LENGTH = 10;
+const BCRYPT_ROUNDS = 12;
+
+function getClientIp(req: any): string {
+  return (
+    req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+    req.headers['x-real-ip'] ||
+    req.socket?.remoteAddress ||
+    'unknown'
+  );
+}
+
+function validatePassword(password: string): string | null {
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+  }
+  return null;
+}
+
 async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | null) {
+  const clientIp = getClientIp(req);
+
+  const rateLimit = checkRateLimit(req);
+  if (!rateLimit.allowed) {
+    const retryAfter = Math.ceil((rateLimit.retryAfter || 0) / 1000);
+    logLoginFailed(null, req, 'RATE_LIMITED', { tenantSlug: tenantSlugFromRoute || null });
+    return res.status(429).json({
+      status: 'rate_limited',
+      message: 'Too many login attempts. Please try again later.',
+      retryAfter,
+    });
+  }
+
   try {
     const { username: loginUsername, password } = req.body;
 
@@ -16,7 +49,6 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
       return res.status(400).json({ message: 'Username and password required' });
     }
 
-    // Resolve tenantId from route param or default tenant
     let tenantId: string | null = null;
     let resolvedTenantSlug: string | null = tenantSlugFromRoute || null;
 
@@ -25,7 +57,6 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
       if (!tenant) {
         return res.status(404).json({ message: 'Tenant not found' });
       }
-      // Check tenant status
       if (tenant.status === 'suspended') {
         return res.status(403).json({ message: 'העסק מושהה. יש לפנות לתמיכה.' });
       }
@@ -38,7 +69,6 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
       tenantId = tenant.id;
       resolvedTenantSlug = tenant.slug;
     } else {
-      // Legacy: look up default tenant (backward compatible)
       const defaultTenant = await prisma.tenant.findUnique({ where: { slug: 'default' } });
       if (defaultTenant) {
         tenantId = defaultTenant.id;
@@ -46,21 +76,18 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
       }
     }
 
-    // Build user query - tenant-scoped if tenantId provided
     let user: any = null;
-    
+
     if (tenantId) {
-      // Tenant-scoped login: get all user IDs that belong to this tenant
       const memberRecords = await prisma.tenantMembership.findMany({
         where: { tenantId },
         select: { userId: true }
       });
       const memberUserIds = memberRecords.map(m => m.userId);
-      
+
       if (memberUserIds.length > 0) {
-        // Find user by username or email within this tenant's members
         user = await prisma.user.findFirst({
-          where: { 
+          where: {
             id: { in: memberUserIds },
             isActive: true,
             OR: [
@@ -71,27 +98,21 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
         });
       }
     } else {
-      // Legacy: try username first
-      user = await prisma.user.findFirst({
-        where: { username: loginUsername, isActive: true },
+      logLoginFailed(null, req, 'NO_TENANT_CONTEXT');
+      return res.status(400).json({
+        status: 'invalid_request',
+        message: 'Tenant context is required for login',
       });
-      
-      // Fallback: try email
-      if (!user) {
-        user = await prisma.user.findFirst({
-          where: { email: loginUsername, isActive: true },
-        });
-      }
     }
 
     if (!user || !user.isActive) {
-      return res.status(401).json({ 
+      logLoginFailed(null, req, 'USER_NOT_FOUND', { tenantSlug: resolvedTenantSlug });
+      return res.status(401).json({
         status: 'invalid_credentials',
-        message: 'Invalid credentials' 
+        message: 'Invalid credentials'
       });
     }
 
-    // Check user status
     if (user.status === 'suspended') {
       return res.status(403).json({ message: 'המשתמש מושהה. יש לפנות לתמיכה.' });
     }
@@ -99,41 +120,42 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
       return res.status(403).json({ message: 'המשתמש לא פעיל. יש לפנות לתמיכה.' });
     }
 
-    // If tenant-scoped, verify membership (except for super admin)
     if (tenantId && !user.isSuperAdmin) {
       const membership = await prisma.tenantMembership.findFirst({
         where: { userId: user.id, tenantId },
       });
       if (!membership) {
-        return res.status(401).json({ 
+        logLoginFailed(user.id, req, 'TENANT_MEMBERSHIP_MISMATCH', { tenantSlug: resolvedTenantSlug });
+        return res.status(401).json({
           status: 'invalid_credentials',
-          message: 'Invalid credentials for this tenant' 
+          message: 'Invalid credentials for this tenant'
         });
       }
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({ 
+      logLoginFailed(user.id, req, 'INVALID_PASSWORD', { tenantSlug: resolvedTenantSlug });
+      return res.status(401).json({
         status: 'invalid_credentials',
-        message: 'Invalid credentials' 
+        message: 'Invalid credentials'
       });
     }
+
+    clearRateLimit(req);
 
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() },
     });
 
-    // Get tenant membership for tenant context
     const membership = await prisma.tenantMembership.findFirst({
       where: { userId: user.id },
     });
 
-    // Use resolved tenant if not super admin
     let finalTenantId: string | null = null;
     let finalTenantSlug: string | null = null;
-    
+
     if (!user.isSuperAdmin) {
       finalTenantId = tenantId || membership?.tenantId || null;
       if (finalTenantId) {
@@ -142,7 +164,6 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
       }
     }
 
-    // Generate JWT with tenant context (keep existing fields for backward compatibility)
     const tokenPayload = {
       id: user.id,
       email: user.email,
@@ -155,8 +176,13 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
     const token = jwt.sign(
       tokenPayload,
       config.jwtSecret,
-      { expiresIn: '24h' as any }
+      { expiresIn: config.jwtExpiresIn }
     );
+
+    logLoginSuccess(user.id, req, {
+      tenantId: finalTenantId,
+      tenantSlug: finalTenantSlug,
+    });
 
     res.json({
       user: {
@@ -180,7 +206,6 @@ async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | nu
   }
 }
 
-// Route definitions
 router.post('/login', async (req, res) => handleLogin(req, res, null));
 router.post('/:tenantSlug/login', async (req, res) => handleLogin(req, res, req.params.tenantSlug));
 
@@ -214,6 +239,11 @@ router.post('/register', async (req, res) => {
   try {
     const { name, email, password, role, phone } = req.body;
 
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return res.status(400).json({ message: passwordError });
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -222,7 +252,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Email already in use' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     const user = await prisma.user.create({
       data: {
@@ -237,7 +267,7 @@ router.post('/register', async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
       config.jwtSecret,
-      { expiresIn: '24h' as any }
+      { expiresIn: config.jwtExpiresIn }
     );
 
     res.status(201).json({
