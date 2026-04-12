@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { authService } from '../services/authService';
@@ -8,6 +8,7 @@ import { handleApiError } from '../services/api';
 export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { tenantSlug: routeTenantSlug } = useParams();
   const { user, login, isAuthenticated } = useAuthStore();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -25,19 +26,19 @@ export function LoginPage() {
     return <Navigate to={`/${tenantSlug}/dashboard`} replace />;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
+ 
     try {
-      const response = await authService.login({ username, password });
+      const response = await authService.login({ username, password, tenantSlug: routeTenantSlug });
       login(response.user, response.token);
       
       if (response.user.isSuperAdmin) {
         navigate('/super/dashboard');
       } else {
-        const targetSlug = response.user.tenantSlug || 'default';
+        const targetSlug = response.user.tenantSlug || routeTenantSlug || 'default';
         navigate(`/${targetSlug}/dashboard`);
       }
     } catch (err) {

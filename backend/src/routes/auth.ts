@@ -7,28 +7,55 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-router.post('/login', async (req, res) => {
+// Shared login logic
+async function handleLogin(req: any, res: any, tenantSlugFromRoute?: string | null) {
   try {
     const { email, username, password } = req.body;
 
-    let user;
-    if (username) {
-      user = await prisma.user.findFirst({
-        where: { 
-          OR: [
-            { username: username },
-            { email: username },
-          ]
-        },
-      });
-    } else if (email) {
-      user = await prisma.user.findUnique({
-        where: { email },
-      });
+    // Resolve tenantId from route param or default tenant
+    let tenantId: string | null = null;
+    let resolvedTenantSlug: string | null = tenantSlugFromRoute || null;
+
+    if (tenantSlugFromRoute) {
+      const tenant = await prisma.tenant.findUnique({ where: { slug: tenantSlugFromRoute } });
+      if (!tenant) {
+        return res.status(404).json({ message: 'Tenant not found' });
+      }
+      tenantId = tenant.id;
+      resolvedTenantSlug = tenant.slug;
+    } else {
+      // Legacy: look up default tenant (backward compatible)
+      const defaultTenant = await prisma.tenant.findUnique({ where: { slug: 'default' } });
+      if (defaultTenant) {
+        tenantId = defaultTenant.id;
+        resolvedTenantSlug = defaultTenant.slug;
+      }
     }
+
+    // Build user query
+    let user: any = null;
+    const userWhere: any = { isActive: true };
+    if (username) {
+      userWhere.OR = [{ username }, { email: username }];
+    } else if (email) {
+      userWhere.email = email;
+    }
+
+    // Find user
+    user = await prisma.user.findFirst({ where: userWhere });
 
     if (!user || !user.isActive) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // If tenant-scoped, verify membership (except for super admin)
+    if (tenantId && !user.isSuperAdmin) {
+      const membership = await prisma.tenantMembership.findFirst({
+        where: { userId: user.id, tenantId },
+      });
+      if (!membership) {
+        return res.status(401).json({ message: 'Invalid credentials for this tenant' });
+      }
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
@@ -46,24 +73,25 @@ router.post('/login', async (req, res) => {
       where: { userId: user.id },
     });
 
-    let tenantSlug: string | null = null;
-    if (membership?.tenantId) {
-      const tenant = await prisma.tenant.findUnique({
-        where: { id: membership.tenantId },
-        select: { slug: true },
-      });
-      tenantSlug = tenant?.slug || null;
+    // Use resolved tenant if not super admin
+    let finalTenantId: string | null = null;
+    let finalTenantSlug: string | null = null;
+    
+    if (!user.isSuperAdmin) {
+      finalTenantId = tenantId || membership?.tenantId || null;
+      if (finalTenantId) {
+        const tenant = await prisma.tenant.findUnique({ where: { id: finalTenantId }, select: { slug: true } });
+        finalTenantSlug = resolvedTenantSlug || tenant?.slug || null;
+      }
     }
-
-    const tenantId = membership?.tenantId || null;
 
     // Generate JWT with tenant context (keep existing fields for backward compatibility)
     const tokenPayload = {
       id: user.id,
       email: user.email,
       role: user.role,
-      tenantId,
-      tenantSlug,
+      tenantId: finalTenantId,
+      tenantSlug: finalTenantSlug,
       isSuperAdmin: user.isSuperAdmin || false,
     };
 
@@ -83,8 +111,8 @@ router.post('/login', async (req, res) => {
         phone: user.phone,
         isActive: user.isActive,
         lastLogin: user.lastLogin,
-        tenantId,
-        tenantSlug,
+        tenantId: finalTenantId,
+        tenantSlug: finalTenantSlug,
         isSuperAdmin: user.isSuperAdmin || false,
       },
       token,
@@ -93,7 +121,11 @@ router.post('/login', async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server error' });
   }
-});
+}
+
+// Route definitions
+router.post('/login', async (req, res) => handleLogin(req, res, null));
+router.post('/:tenantSlug/login', async (req, res) => handleLogin(req, res, req.params.tenantSlug));
 
 router.get('/me', authenticate, async (req: AuthRequest, res) => {
   try {

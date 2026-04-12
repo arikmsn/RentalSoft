@@ -85,6 +85,7 @@ function App() {
       <Route path="/" element={<LoginPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/qr-test" element={<MinimalScanner />} />
+      <Route path="/:tenantSlug/login" element={<LoginPage />} />
       <Route path="/:tenantSlug/*" element={<TenantRoutes />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

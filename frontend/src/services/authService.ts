@@ -4,6 +4,7 @@ import type { User } from '../types';
 export interface LoginRequest {
   username: string;
   password: string;
+  tenantSlug?: string;
 }
 
 export interface LoginResponse {
@@ -13,7 +14,9 @@ export interface LoginResponse {
 
 export const authService = {
   async login(data: LoginRequest): Promise<LoginResponse> {
-    const response = await api.post<LoginResponse>('/auth/login', data);
+    const { tenantSlug, ...credentials } = data;
+    const endpoint = tenantSlug ? `/auth/${tenantSlug}/login` : '/auth/login';
+    const response = await api.post<LoginResponse>(endpoint, credentials);
     return response.data;
   },
 
