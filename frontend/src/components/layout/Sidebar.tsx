@@ -1,6 +1,6 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore, getLogoutRedirectPath } from '../../stores/authStore';
+import { useAuthStore } from '../../stores/authStore';
 import { useAppStore } from '../../stores/appStore';
 import { changeLanguage } from '../../i18n';
 
@@ -23,7 +23,6 @@ export function Sidebar({ tenantSlug, onClose }: SidebarProps) {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuthStore();
   const { isOnline, syncStatus, pendingActionsCount } = useAppStore();
-  const navigate = useNavigate();
 
   const filteredItems = navItems.filter(
     item => user && item.roles.includes(user.role)
@@ -75,7 +74,6 @@ export function Sidebar({ tenantSlug, onClose }: SidebarProps) {
 
   const handleLogout = () => {
     logout();
-    navigate(getLogoutRedirectPath());
     if (onClose) onClose();
   };
 
