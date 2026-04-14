@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './components/layout';
+import { getLogoutRedirectPath } from './stores/authStore';
 import {
   LoginPage,
   DashboardPage,
@@ -28,7 +29,7 @@ function TenantAppRoutes() {
   const { user, isAuthenticated } = useAuthStore();
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={getLogoutRedirectPath()} replace />;
   }
 
   const isSuperAdmin = user.isSuperAdmin === true;
@@ -60,7 +61,7 @@ function TenantRoutes() {
   const { user, isAuthenticated } = useAuthStore();
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={getLogoutRedirectPath()} replace />;
   }
 
   const isSuperAdmin = user.isSuperAdmin === true;

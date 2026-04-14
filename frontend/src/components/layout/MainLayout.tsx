@@ -3,7 +3,7 @@ import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
-import { useAuthStore } from '../../stores/authStore';
+import { useAuthStore, getLogoutRedirectPath } from '../../stores/authStore';
 import { useAppStore } from '../../stores/appStore';
 
 interface MainLayoutProps {
@@ -81,7 +81,7 @@ export function MainLayout({ tenantSlug, children }: MainLayoutProps) {
   }, [setOnline, setSyncStatus]);
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={getLogoutRedirectPath()} replace />;
   }
 
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
