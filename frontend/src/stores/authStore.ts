@@ -19,9 +19,10 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       login: (user, token) => set({ user, token, isAuthenticated: true }),
       logout: () => {
-      const logoutPath = getLogoutRedirectPath();
-      window.location.replace(logoutPath);
-    },
+        useAuthStore.persist.clearStorage();
+        set({ user: null, token: null, isAuthenticated: false });
+        window.location.replace(getLogoutRedirectPath());
+      },
       setUser: (user) => set({ user }),
     }),
     {
