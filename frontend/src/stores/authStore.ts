@@ -67,3 +67,16 @@ export const tenantAwareRedirect = (navigate: (path: string) => void) => {
     navigate('/dashboard');
   }
 };
+
+export const getLogoutRedirectPath = (): string => {
+  const pathname = window.location.pathname;
+  const segments = pathname.split('/').filter(Boolean);
+  const firstSegment = segments[0];
+
+  const reserved = ['login', 'qr-test', 'admin', 'api'];
+  if (!firstSegment || reserved.includes(firstSegment)) {
+    return '/login';
+  }
+
+  return `/${firstSegment}/login`;
+};

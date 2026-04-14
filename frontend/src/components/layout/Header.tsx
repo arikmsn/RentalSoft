@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '../../i18n';
-import { useAuthStore } from '../../stores/authStore';
+import { useAuthStore, getLogoutRedirectPath } from '../../stores/authStore';
 import { useAppStore } from '../../stores/appStore';
 
 interface HeaderProps {
@@ -167,7 +167,7 @@ export function Header({ onMenuToggle, tenantSlug }: HeaderProps) {
                   <p className="text-xs text-gray-500">{t(`roles.${user?.role}`)}</p>
                 </div>
                 <button
-                  onClick={() => { logout(); setShowUserMenu(false); navigate('/'); }}
+                  onClick={() => { logout(); setShowUserMenu(false); navigate(getLogoutRedirectPath()); }}
                   className="w-full px-4 py-2 text-start hover:bg-gray-100 flex items-center gap-2 text-red-600"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

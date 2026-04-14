@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../stores/authStore';
+import { useAuthStore, getLogoutRedirectPath } from '../../stores/authStore';
 import { useAppStore } from '../../stores/appStore';
 import { changeLanguage } from '../../i18n';
 
@@ -75,7 +75,7 @@ export function Sidebar({ tenantSlug, onClose }: SidebarProps) {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate(getLogoutRedirectPath());
     if (onClose) onClose();
   };
 
