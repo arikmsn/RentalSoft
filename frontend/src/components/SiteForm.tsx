@@ -183,25 +183,19 @@ export function SiteForm({
 
       <div>
         <label className="block text-sm font-medium text-surface-700 mb-2">מקור</label>
-        {leadSources.length > 0 ? (
-          <select
-            value={data.source || ''}
-            onChange={(e) => setData({ ...data, source: e.target.value })}
-            className={inputClasses}
-          >
-            <option value="">-- בחר מקור --</option>
-            {leadSources.map(ls => (
-              <option key={ls.id} value={ls.name}>{ls.name}</option>
-            ))}
-          </select>
-        ) : (
-          <input
-            type="text"
-            value={data.source || ''}
-            onChange={(e) => setData({ ...data, source: e.target.value })}
-            placeholder="הזן מקור..."
-            className={inputClasses}
-          />
+        <select
+          value={data.source || ''}
+          onChange={(e) => setData({ ...data, source: e.target.value })}
+          className={inputClasses}
+          disabled={leadSources.length === 0}
+        >
+          <option value="">-- בחר מקור --</option>
+          {leadSources.map(ls => (
+            <option key={ls.id} value={ls.name}>{ls.name}</option>
+          ))}
+        </select>
+        {leadSources.length === 0 && (
+          <p className="text-xs text-surface-500 mt-1">לא הוגדרו מקורות במסך ההגדרות</p>
         )}
       </div>
 
