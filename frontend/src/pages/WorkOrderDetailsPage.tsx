@@ -94,6 +94,10 @@ export function WorkOrderDetailsPage() {
     plannedDate: '',
     plannedRemovalDate: '',
     isNextVisitPotentialRemoval: false,
+    electricMeterStart: undefined as number | undefined,
+    electricMeterEnd: undefined as number | undefined,
+    waterMeterStart: undefined as number | undefined,
+    waterMeterEnd: undefined as number | undefined,
   });
   const [sites, setSites] = useState<Site[]>([]);
   const [technicians, setTechnicians] = useState<{id: string; name: string; active: boolean}[]>([]);
@@ -106,6 +110,7 @@ export function WorkOrderDetailsPage() {
     invoiceNumber: '',
   });
   const [savingPayment, setSavingPayment] = useState(false);
+  const [whatsappTemplate, setWhatsappTemplate] = useState('');
 
   const isAssignedTechnician = user?.id === workOrder?.technicianId;
   const canEdit = user?.role === 'manager' || user?.role === 'admin' || isAssignedTechnician;
@@ -394,15 +399,21 @@ export function WorkOrderDetailsPage() {
       plannedDate: new Date(workOrder.plannedDate).toISOString().slice(0, 10),
       plannedRemovalDate: workOrder.plannedRemovalDate ? new Date(workOrder.plannedRemovalDate).toISOString().slice(0, 10) : '',
       isNextVisitPotentialRemoval: (workOrder as any).isNextVisitPotentialRemoval || false,
+      electricMeterStart: workOrder.electricMeterStart ?? undefined,
+      electricMeterEnd: workOrder.electricMeterEnd ?? undefined,
+      waterMeterStart: workOrder.waterMeterStart ?? undefined,
+      waterMeterEnd: workOrder.waterMeterEnd ?? undefined,
     });
     Promise.all([
       siteService.getAll(),
       api.get('/settings/technicians').then(res => res.data),
       api.get('/settings/work-order-types').then(res => res.data),
-    ]).then(([sitesData, techsData, wtData]) => {
+      api.get('/settings/whatsapp-template').then(res => res.data),
+    ]).then(([sitesData, techsData, wtData, wtRes]) => {
       setSites(sitesData);
       setTechnicians(techsData);
       setWorkTypes((wtData as {id: string; name: string; isActive: boolean}[]).filter((wt: any) => wt.isActive !== false));
+      setWhatsappTemplate(wtRes?.template || '');
       setShowEditForm(true);
     });
   };
@@ -421,6 +432,10 @@ export function WorkOrderDetailsPage() {
         plannedDate: new Date(editFormData.plannedDate),
         plannedRemovalDate: editFormData.plannedRemovalDate ? new Date(editFormData.plannedRemovalDate) : undefined,
         isNextVisitPotentialRemoval: editFormData.isNextVisitPotentialRemoval,
+        electricMeterStart: editFormData.electricMeterStart,
+        electricMeterEnd: editFormData.electricMeterEnd,
+        waterMeterStart: editFormData.waterMeterStart,
+        waterMeterEnd: editFormData.waterMeterEnd,
       });
       setShowEditForm(false);
       fetchData();
@@ -681,6 +696,44 @@ export function WorkOrderDetailsPage() {
                   <span className="text-sm text-gray-700">{t('equipment.isPotentialRemoval')}</span>
                 </label>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrder.electricMeter')}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    value={editFormData.electricMeterStart ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, electricMeterStart: e.target.value ? parseInt(e.target.value) : undefined })}
+                    placeholder={t('workOrder.meterStart')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={editFormData.electricMeterEnd ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, electricMeterEnd: e.target.value ? parseInt(e.target.value) : undefined })}
+                    placeholder={t('workOrder.meterEnd')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('workOrder.waterMeter')}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    value={editFormData.waterMeterStart ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, waterMeterStart: e.target.value ? parseInt(e.target.value) : undefined })}
+                    placeholder={t('workOrder.meterStart')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={editFormData.waterMeterEnd ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, waterMeterEnd: e.target.value ? parseInt(e.target.value) : undefined })}
+                    placeholder={t('workOrder.meterEnd')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                </div>
+              </div>
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -816,7 +869,10 @@ export function WorkOrderDetailsPage() {
                 <button
                   onClick={() => {
                     const phone = workOrder.site?.contact1Phone?.replace(/[^0-9]/g, '') || '';
-                    window.open(`https://wa.me/${phone}`, '_blank');
+                    const text = whatsappTemplate
+                      .replace(/\{site_name\}/g, workOrder.site?.name || '')
+                      .replace(/\{site_address\}/g, workOrder.site?.address || '');
+                    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
                   }}
                   className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1"
                 >
