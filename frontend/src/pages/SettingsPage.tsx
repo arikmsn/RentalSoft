@@ -521,8 +521,7 @@ export function SettingsPage() {
                           <select
                             value={locality.areaId || ''}
                             onChange={(e) => handleChangeLocalityArea(locality.id, e.target.value)}
-                            disabled={locality.isFixed && !locality.isOverride}
-                            className="px-2 py-1 border border-surface-200 rounded text-sm focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-2 py-1 border border-surface-200 rounded text-sm focus:ring-2 focus:ring-primary-500 outline-none"
                           >
                             <option value="">ללא אזור</option>
                             {areas.map(a => (

@@ -406,6 +406,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
       isHighlighted,
       latitude,
       longitude,
+      area,
     } = req.body;
 
     let finalLat = latitude;
@@ -448,6 +449,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
         longitude: finalLng,
         hasValidLocation,
         tenantId: req.tenantId || undefined,
+        area: area || null,
       },
     });
 
@@ -482,6 +484,7 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
       isActive,
       latitude,
       longitude,
+      area,
     } = req.body;
 
     const currentSite = await prisma.site.findUnique({ where: { id: req.params.id, ...tenantFilter } });
@@ -533,6 +536,7 @@ router.patch('/:id', authenticate, authorize('manager', 'admin'), async (req: Au
     if (finalLat !== undefined) updateData.latitude = finalLat;
     if (finalLng !== undefined) updateData.longitude = finalLng;
     if (newHasValidLocation !== undefined) updateData.hasValidLocation = newHasValidLocation;
+    if (area !== undefined) updateData.area = area || null;
 
     const site = await prisma.site.update({
       where: { id: req.params.id },

@@ -70,24 +70,26 @@ export function SiteForm({
 }: SiteFormProps) {
   const { t } = useTranslation();
   const [areas, setAreas] = useState<Area[]>([]);
+  const [localities, setLocalities] = useState<{id: string; name: string; areaId: string | null; area: {id: string; name: string} | null}[]>([]);
 
   useEffect(() => {
-    api.get<Area[]>('/settings/areas')
-      .then(res => setAreas(res.data || []))
-      .catch(err => console.error('Failed to load areas:', err));
+    Promise.all([
+      api.get<Area[]>('/settings/areas'),
+      api.get<any[]>('/settings/localities'),
+    ])
+      .then(([areasRes, locsRes]) => {
+        setAreas(areasRes.data || []);
+        setLocalities(locsRes.data || []);
+      })
+      .catch(err => console.error('Failed to load areas/localities:', err));
   }, []);
 
   const getAreaForCity = (city: string): string => {
     if (!city) return '';
     const normalizedCity = normalize(city);
-
-    for (const area of areas) {
-      if (area.localities) {
-        for (const loc of area.localities) {
-          if (normalize(loc.name) === normalizedCity) {
-            return area.name;
-          }
-        }
+    for (const loc of localities) {
+      if (normalize(loc.name) === normalizedCity && loc.area) {
+        return loc.area.name;
       }
     }
     return '';
