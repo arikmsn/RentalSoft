@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import { siteService } from '../services/siteService';
+import { api } from '../services/api';
 import { computeWorkOrderStatus } from '../utils/date';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -10,6 +11,7 @@ import L from 'leaflet';
 interface MapFilters {
   status: ('open' | 'in_progress')[];
   cities: string[];
+  areas: string[];
   colors: ('black' | 'red' | 'orange' | 'green')[];
   nearMe: boolean;
   radiusKm: number;
@@ -20,6 +22,7 @@ interface MapFilters {
 const emptyFilters: MapFilters = {
   status: ['open', 'in_progress'],
   cities: [],
+  areas: [],
   colors: [],
   nearMe: false,
   radiusKm: 10,
@@ -42,6 +45,7 @@ interface SiteWithStatus {
   latitude?: number | null;
   longitude?: number | null;
   isHighlighted: boolean;
+  area?: string;
   overallStatus?: 'black' | 'red' | 'orange' | 'green' | null;
   earliestRemovalDate?: string | null;
   workOrders?: Array<{
@@ -164,6 +168,19 @@ export function MapPage() {
   const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [, setLocationError] = useState<string | null>(null);
+  const [tenantAreas, setTenantAreas] = useState<string[]>([]);
+
+  // Fetch tenant areas
+  useEffect(() => {
+    api.get<{id: string; name: string}[]>('/settings/areas')
+      .then(res => {
+        setTenantAreas(Array.isArray(res.data) ? res.data.map((a: any) => a.name).sort() : []);
+      })
+      .catch(err => {
+        console.error('Failed to load areas:', err);
+        setTenantAreas([]);
+      });
+  }, []);
 
   // Calculate distance between two coordinates (km)
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
@@ -235,10 +252,11 @@ export function MapPage() {
   };
 
   // Count active filters
-  const activeFilterCount = 
-    filters.status.length + 
-    filters.cities.length + 
-    filters.colors.length + 
+  const activeFilterCount =
+    filters.status.length +
+    filters.cities.length +
+    filters.areas.length +
+    filters.colors.length +
     (filters.nearMe ? 1 : 0);
 
   const handleBoundsChange = useCallback((bounds: L.LatLngBounds) => {
@@ -309,6 +327,13 @@ export function MapPage() {
       // City filter
       if (filters.cities.length > 0) {
         if (!filters.cities.includes(site.city)) return false;
+      }
+      return true;
+    })
+    .filter(site => {
+      // Area filter
+      if (filters.areas.length > 0) {
+        if (!filters.areas.includes(site.area || '')) return false;
       }
       return true;
     })
@@ -587,6 +612,33 @@ export function MapPage() {
               ))}
             </div>
           </div>
+
+          {/* Area Filter */}
+          {tenantAreas.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-surface-700 mb-2">אזור</h3>
+              <div className="flex flex-wrap gap-2">
+                {tenantAreas.map(area => (
+                  <button
+                    key={area}
+                    onClick={() => setFilters(prev => ({
+                      ...prev,
+                      areas: prev.areas.includes(area)
+                        ? prev.areas.filter(a => a !== area)
+                        : [...prev.areas, area]
+                    }))}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      filters.areas.includes(area)
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                    }`}
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Cities Filter */}
           {cities.length > 0 && (

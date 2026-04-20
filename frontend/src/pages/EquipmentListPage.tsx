@@ -329,14 +329,6 @@ export function EquipmentListPage() {
               </select>
             </div>
           </div>
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={() => setFilters({ status: 'all', location: 'all', condition: 'all', type: 'all', scheduledRemoval: 'all' })}
-              className="px-4 py-2 text-surface-600 hover:text-surface-800 text-sm font-medium"
-            >
-              {t('app.clearFilters')}
-            </button>
-          </div>
 
           <div className="mt-4">
             <label className="block text-sm font-medium text-surface-700 mb-2">מיועד לפירוק</label>
@@ -359,6 +351,15 @@ export function EquipmentListPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => setFilters({ status: 'all', location: 'all', condition: 'all', type: 'all', scheduledRemoval: 'all' })}
+              className="px-4 py-2 text-surface-600 hover:text-surface-800 text-sm font-medium"
+            >
+              {t('app.clearFilters')}
+            </button>
           </div>
         </div>
       )}
