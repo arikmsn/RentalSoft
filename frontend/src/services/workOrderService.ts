@@ -33,10 +33,10 @@ export interface UpdateWorkOrderRequest {
   paymentStatus?: 'unpaid' | 'paid';
   receiptNumber?: string;
   invoiceNumber?: string;
-  electricMeterStart?: number;
-  electricMeterEnd?: number;
-  waterMeterStart?: number;
-  waterMeterEnd?: number;
+  electricMeterStart?: number | null;
+  electricMeterEnd?: number | null;
+  waterMeterStart?: number | null;
+  waterMeterEnd?: number | null;
 }
 
 export interface CompleteWorkOrderRequest {

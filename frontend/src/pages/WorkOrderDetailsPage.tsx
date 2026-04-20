@@ -113,10 +113,10 @@ export function WorkOrderDetailsPage() {
     plannedDate: '',
     plannedRemovalDate: '',
     isNextVisitPotentialRemoval: false,
-    electricMeterStart: undefined as number | undefined,
-    electricMeterEnd: undefined as number | undefined,
-    waterMeterStart: undefined as number | undefined,
-    waterMeterEnd: undefined as number | undefined,
+    electricMeterStart: null as number | null,
+    electricMeterEnd: null as number | null,
+    waterMeterStart: null as number | null,
+    waterMeterEnd: null as number | null,
   });
   const [sites, setSites] = useState<Site[]>([]);
   const [technicians, setTechnicians] = useState<{id: string; name: string; active: boolean}[]>([]);
@@ -430,10 +430,10 @@ export function WorkOrderDetailsPage() {
       plannedDate: new Date(workOrder.plannedDate).toISOString().slice(0, 10),
       plannedRemovalDate: workOrder.plannedRemovalDate ? new Date(workOrder.plannedRemovalDate).toISOString().slice(0, 10) : '',
       isNextVisitPotentialRemoval: (workOrder as any).isNextVisitPotentialRemoval || false,
-      electricMeterStart: workOrder.electricMeterStart ?? undefined,
-      electricMeterEnd: workOrder.electricMeterEnd ?? undefined,
-      waterMeterStart: workOrder.waterMeterStart ?? undefined,
-      waterMeterEnd: workOrder.waterMeterEnd ?? undefined,
+      electricMeterStart: workOrder.electricMeterStart ?? null,
+      electricMeterEnd: workOrder.electricMeterEnd ?? null,
+      waterMeterStart: workOrder.waterMeterStart ?? null,
+      waterMeterEnd: workOrder.waterMeterEnd ?? null,
     });
     Promise.all([
       siteService.getAll(),
@@ -733,14 +733,14 @@ export function WorkOrderDetailsPage() {
                   <input
                     type="number"
                     value={editFormData.electricMeterStart ?? ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, electricMeterStart: e.target.value ? parseInt(e.target.value) : undefined })}
+                    onChange={(e) => setEditFormData({ ...editFormData, electricMeterStart: e.target.value ? parseInt(e.target.value) : null })}
                     placeholder={t('workOrder.meterStart')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   />
                   <input
                     type="number"
                     value={editFormData.electricMeterEnd ?? ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, electricMeterEnd: e.target.value ? parseInt(e.target.value) : undefined })}
+                    onChange={(e) => setEditFormData({ ...editFormData, electricMeterEnd: e.target.value ? parseInt(e.target.value) : null })}
                     placeholder={t('workOrder.meterEnd')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   />
@@ -752,14 +752,21 @@ export function WorkOrderDetailsPage() {
                   <input
                     type="number"
                     value={editFormData.waterMeterStart ?? ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, waterMeterStart: e.target.value ? parseInt(e.target.value) : undefined })}
+                    onChange={(e) => setEditFormData({ ...editFormData, waterMeterStart: e.target.value ? parseInt(e.target.value) : null })}
                     placeholder={t('workOrder.meterStart')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   />
                   <input
                     type="number"
                     value={editFormData.waterMeterEnd ?? ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, waterMeterEnd: e.target.value ? parseInt(e.target.value) : undefined })}
+                    onChange={(e) => setEditFormData({ ...editFormData, waterMeterEnd: e.target.value ? parseInt(e.target.value) : null })}
+                    placeholder={t('workOrder.meterEnd')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <input
+                    type="number"
+                    value={editFormData.waterMeterEnd ?? ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, waterMeterEnd: e.target.value ? parseInt(e.target.value) : null })}
                     placeholder={t('workOrder.meterEnd')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   />
