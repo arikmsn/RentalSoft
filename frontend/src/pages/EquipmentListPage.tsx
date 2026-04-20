@@ -301,7 +301,8 @@ export function EquipmentListPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* Type, Location, and Scheduled Removal in one row */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <label className="block text-sm font-medium text-surface-700 mb-2">{t('equipment.type')}</label>
               <select
@@ -328,28 +329,27 @@ export function EquipmentListPage() {
                 ))}
               </select>
             </div>
-          </div>
-
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-surface-700 mb-2">מיועד לפירוק</label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { key: 'all', label: 'הכל' },
-                { key: 'yes', label: 'כן' },
-                { key: 'no', label: 'לא' },
-              ].map((option) => (
-                <button
-                  key={option.key}
-                  onClick={() => setFilters({ ...filters, scheduledRemoval: option.key })}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    filters.scheduledRemoval === option.key
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div>
+              <label className="block text-sm font-medium text-surface-700 mb-2">מיועד לפירוק</label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'all', label: 'הכל' },
+                  { key: 'yes', label: 'כן' },
+                  { key: 'no', label: 'לא' },
+                ].map((option) => (
+                  <button
+                    key={option.key}
+                    onClick={() => setFilters({ ...filters, scheduledRemoval: option.key })}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      filters.scheduledRemoval === option.key
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

@@ -1060,7 +1060,14 @@ function WeeklyCalendar({ workOrders, timeRange, t, onRefresh }: { workOrders: W
                             <span className="w-2.5 h-2.5 rounded-full shrink-0 mt-1.5 border-2 border-surface-400" />
                           )}
                           <div>
-                            <div className="font-semibold text-surface-800 text-base">{wo.site?.name}</div>
+                            <div className="font-semibold text-surface-800 text-base flex items-center gap-2">
+                              {wo.site?.name}
+                              {(wo.equipmentCount === 0 || wo.equipmentCount === undefined || !wo.equipmentCount) && (
+                                <span className="text-xs text-surface-400 bg-surface-100 px-1.5 py-0.5 rounded">
+                                  ללא ציוד
+                                </span>
+                              )}
+                            </div>
                             <div className="text-surface-600 text-sm mt-1">
                               {wo.workTypeName || wo.type}
                             </div>
