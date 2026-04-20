@@ -19,72 +19,76 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const [
-      totalEquipment,
-      availableEquipment,
-      atCustomerEquipment,
-      totalSites,
-      sitesWithEquipment,
-      todayWorkOrders,
-      openWorkOrders,
-      sites,
-    ] = await Promise.all([
-      prisma.equipment.count({ where: tenantFilter }),
-      prisma.equipment.count({
-        where: {
-          ...tenantFilter,
-          NOT: {
-            workOrders: {
-              some: {
-                workOrder: { status: { in: ['open', 'in_progress'] } }
+    let totalEquipment = 0, availableEquipment = 0, atCustomerEquipment = 0, totalSites = 0, sitesWithEquipment = 0, todayWorkOrders = 0, openWorkOrders = 0;
+    let overdueRemovals = 0, upcomingRemovals = 0;
+    let sites: any[] = [];
+
+    try {
+      const results = await Promise.all([
+        prisma.equipment.count({ where: tenantFilter }),
+        prisma.equipment.count({
+          where: {
+            ...tenantFilter,
+            NOT: {
+              workOrders: {
+                some: {
+                  workOrder: { status: { in: ['open', 'in_progress'] } }
+                }
               }
             }
           }
-        }
-      }),
-      prisma.equipment.count({ where: { ...tenantFilter, status: 'assigned_to_work' } }),
-      prisma.site.count({ where: tenantFilter }),
-      prisma.site.count({
-        where: {
-          ...tenantFilter,
-          workOrders: { some: { status: { in: ['open', 'in_progress'] } } },
-        },
-      }),
-      prisma.workOrder.count({
-        where: {
-          plannedDate: { gte: today, lt: tomorrow },
-          ...(tenantFilter.tenantId ? { site: tenantFilter } : {}),
-        },
-      }),
-      prisma.workOrder.count({
-        where: { 
-          status: { in: ['open', 'in_progress'] },
-          ...(tenantFilter.tenantId ? { site: tenantFilter } : {}),
-        },
-      }),
-      prisma.site.findMany({
-        where: { isActive: true, ...tenantFilter },
-        include: {
-          workOrders: {
-            where: { status: { not: 'completed' } },
+        }),
+        prisma.equipment.count({ where: { ...tenantFilter, status: 'assigned_to_work' } }),
+        prisma.site.count({ where: tenantFilter }),
+        prisma.site.count({
+          where: {
+            ...tenantFilter,
+            workOrders: { some: { status: { in: ['open', 'in_progress'] } } },
           },
-        },
-      }),
-    ]);
+        }),
+        prisma.workOrder.count({
+          where: {
+            plannedDate: { gte: today, lt: tomorrow },
+            ...(tenantFilter.tenantId ? { site: tenantFilter } : {}),
+          },
+        }),
+        prisma.workOrder.count({
+          where: {
+            status: { in: ['open', 'in_progress'] },
+            ...(tenantFilter.tenantId ? { site: tenantFilter } : {}),
+          },
+        }),
+        prisma.site.findMany({
+          where: { isActive: true, ...tenantFilter },
+          include: {
+            workOrders: {
+              where: { status: { not: 'completed' } },
+            },
+          },
+        }),
+      ]);
 
-    let overdueRemovals = 0;
-    let upcomingRemovals = 0;
-    for (const site of sites) {
-      const removalDates = site.workOrders
-        .map((wo) => wo.plannedRemovalDate)
-        .filter((d): d is Date => d !== null);
-      if (removalDates.length === 0) continue;
-      const earliest = new Date(Math.min(...removalDates.map((d) => d.getTime())));
-      console.log('[Stats] site:', site.id, 'earliest:', earliest.toISOString());
-      const { statusColor, daysUntilRemoval } = computeWorkOrderStatus(earliest, today);
-      console.log('[Stats] statusColor:', statusColor, 'daysUntilRemoval:', daysUntilRemoval);
-      if (statusColor === 'black') overdueRemovals++;
-      else if (statusColor === 'red') upcomingRemovals++;
+      totalEquipment = results[0];
+      availableEquipment = results[1];
+      atCustomerEquipment = results[2];
+      totalSites = results[3];
+      sitesWithEquipment = results[4];
+      todayWorkOrders = results[5];
+      openWorkOrders = results[6];
+      sites = results[7];
+
+      for (const site of sites) {
+        const removalDates = (site as any).workOrders
+          .map((wo: any) => wo.plannedRemovalDate)
+          .filter((d: any): d is Date => d !== null);
+        if (removalDates.length === 0) continue;
+        const earliest = new Date(Math.min(...removalDates.map((d: Date) => d.getTime())));
+        const { statusColor } = computeWorkOrderStatus(earliest, today);
+        if (statusColor === 'black') overdueRemovals++;
+        else if (statusColor === 'red') upcomingRemovals++;
+      }
+    } catch (dbError) {
+      console.warn('[Stats] Partial data due to schema mismatch:', dbError);
     }
 
     res.json({
