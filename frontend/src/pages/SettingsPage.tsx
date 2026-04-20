@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { api } from '../services/api';
@@ -28,7 +28,20 @@ interface EquipmentLocation {
   isDefaultCustomer: boolean;
 }
 
-type TabType = 'workOrderTypes' | 'equipmentTypes' | 'technicians' | 'equipmentLocations' | 'whatsappTemplate' | 'leadSources';
+interface Area {
+  id: string;
+  name: string;
+  localities: Locality[];
+}
+
+interface Locality {
+  id: string;
+  name: string;
+  areaId: string | null;
+  area?: { id: string; name: string } | null;
+}
+
+type TabType = 'workOrderTypes' | 'equipmentTypes' | 'technicians' | 'equipmentLocations' | 'whatsappTemplate' | 'leadSources' | 'areasAndLocalities';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -55,8 +68,24 @@ export function SettingsPage() {
   const [whatsappTemplate, setWhatsappTemplate] = useState('');
   const [leadSourceInput, setLeadSourceInput] = useState('');
 
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [localities, setLocalities] = useState<Locality[]>([]);
+  const [localitySearch, setLocalitySearch] = useState('');
+  const [newLocalityName, setNewLocalityName] = useState('');
+  const [newLocalityAreaId, setNewLocalityAreaId] = useState('');
+  const [newAreaName, setNewAreaName] = useState('');
+  const [editingArea, setEditingArea] = useState<Area | null>(null);
+  const [savingArea, setSavingArea] = useState(false);
+  const [savingLocality, setSavingLocality] = useState(false);
+
   useEffect(() => {
     fetchItems();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'areasAndLocalities') {
+      fetchAreasAndLocalities();
+    }
   }, [activeTab]);
 
   const addLeadSource = async () => {
@@ -93,6 +122,9 @@ export function SettingsPage() {
         case 'whatsappTemplate':
           url = '/settings/whatsapp-template';
           break;
+        case 'areasAndLocalities':
+          url = '/settings/areas';
+          break;
       }
       if (activeTab === 'whatsappTemplate') {
         const response = await api.get<{template?: string}>(url);
@@ -116,13 +148,29 @@ export function SettingsPage() {
     }
   };
 
+  const fetchAreasAndLocalities = async () => {
+    setLoading(true);
+    try {
+      const [areasRes, localitiesRes] = await Promise.all([
+        api.get<Area[]>('/settings/areas'),
+        api.get<Locality[]>('/settings/localities'),
+      ]);
+      setAreas(areasRes.data);
+      setLocalities(localitiesRes.data);
+    } catch (err) {
+      console.error('Error fetching areas/localities:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
       let url = '';
       const isEdit = !!editingItem;
-      
+
       switch (activeTab) {
         case 'workOrderTypes':
           url = '/settings/work-order-types';
@@ -141,13 +189,11 @@ export function SettingsPage() {
           break;
       }
 
-      // Append ID for edit (except technicians which already has it in the switch)
       if (isEdit && activeTab !== 'technicians' && activeTab !== 'equipmentLocations') {
         url += `/${editingItem.id}`;
       }
 
       const payload = { ...formData };
-      // Remove unused fields for technicians
       if (activeTab === 'technicians') {
         delete (payload as any).code;
         delete (payload as any).sortOrder;
@@ -232,6 +278,67 @@ export function SettingsPage() {
     }
   };
 
+  const handleAddArea = async () => {
+    if (!newAreaName.trim()) return;
+    setSavingArea(true);
+    try {
+      await api.post('/settings/areas', { name: newAreaName.trim() });
+      setNewAreaName('');
+      fetchAreasAndLocalities();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'שגיאה בהוספה');
+    } finally {
+      setSavingArea(false);
+    }
+  };
+
+  const handleUpdateArea = async (areaId: string, newName: string) => {
+    if (!newName.trim()) return;
+    setSavingArea(true);
+    try {
+      await api.put(`/settings/areas/${areaId}`, { name: newName.trim() });
+      setEditingArea(null);
+      fetchAreasAndLocalities();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'שגיאה בעדכון');
+    } finally {
+      setSavingArea(false);
+    }
+  };
+
+  const handleAddLocality = async () => {
+    if (!newLocalityName.trim()) return;
+    setSavingLocality(true);
+    try {
+      await api.post('/settings/localities', {
+        name: newLocalityName.trim(),
+        areaId: newLocalityAreaId || null,
+      });
+      setNewLocalityName('');
+      setNewLocalityAreaId('');
+      fetchAreasAndLocalities();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'שגיאה בהוספה');
+    } finally {
+      setSavingLocality(false);
+    }
+  };
+
+  const handleChangeLocalityArea = async (localityId: string, newAreaId: string) => {
+    try {
+      await api.patch(`/settings/localities/${localityId}/area`, { areaId: newAreaId || null });
+      fetchAreasAndLocalities();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'שגיאה בעדכון');
+    }
+  };
+
+  const filteredLocalities = useMemo(() => {
+    if (!localitySearch.trim()) return localities;
+    const search = localitySearch.toLowerCase().trim();
+    return localities.filter(l => l.name.toLowerCase().includes(search));
+  }, [localities, localitySearch]);
+
   const tabs: { key: TabType; label: string }[] = [
     { key: 'workOrderTypes', label: t('settings.workOrderTypes') },
     { key: 'equipmentTypes', label: t('settings.equipmentTypes') },
@@ -243,7 +350,8 @@ export function SettingsPage() {
   if (isManagerOrAdmin) {
     tabs.push(
       { key: 'whatsappTemplate', label: 'הודעת ווטסאפ' },
-      { key: 'leadSources', label: 'מקורות לידים' }
+      { key: 'leadSources', label: 'מקורות לידים' },
+      { key: 'areasAndLocalities', label: 'ערים ואזורים' }
     );
   }
 
@@ -251,7 +359,6 @@ export function SettingsPage() {
     <div className="space-y-4">
       <h1 className="text-xl sm:text-2xl font-bold text-surface-800">{t('settings.title')}</h1>
 
-      {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         {tabs.map((tab) => (
           <button
@@ -268,8 +375,7 @@ export function SettingsPage() {
         ))}
       </div>
 
-      {/* Add Button - hidden for whatsappTemplate and leadSources tabs */}
-      {activeTab !== 'whatsappTemplate' && activeTab !== 'leadSources' && (
+      {activeTab !== 'whatsappTemplate' && activeTab !== 'leadSources' && activeTab !== 'areasAndLocalities' && (
         <div className="flex justify-end">
           <button
             onClick={() => {
@@ -284,7 +390,6 @@ export function SettingsPage() {
         </div>
       )}
 
-      {/* Items List */}
       <div className="bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-surface-500">{t('app.loading')}</div>
@@ -355,6 +460,144 @@ export function SettingsPage() {
               ))}
             </div>
           </div>
+        ) : activeTab === 'areasAndLocalities' ? (
+          <div className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">יישובים</h2>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={localitySearch}
+                      onChange={(e) => setLocalitySearch(e.target.value)}
+                      placeholder="חיפוש יישוב..."
+                      className="px-3 py-1.5 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-surface-50 rounded-xl p-4">
+                  <div className="flex gap-2 mb-4">
+                    <input
+                      type="text"
+                      value={newLocalityName}
+                      onChange={(e) => setNewLocalityName(e.target.value)}
+                      placeholder="שם יישוב חדש..."
+                      className="flex-1 px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddLocality())}
+                    />
+                    <select
+                      value={newLocalityAreaId}
+                      onChange={(e) => setNewLocalityAreaId(e.target.value)}
+                      className="px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                    >
+                      <option value="">ללא אזור</option>
+                      {areas.map(a => (
+                        <option key={a.id} value={a.id}>{a.name}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleAddLocality}
+                      disabled={!newLocalityName.trim() || savingLocality}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 text-sm font-medium"
+                    >
+                      {savingLocality ? '...' : '+ הוסף'}
+                    </button>
+                  </div>
+
+                  <div className="max-h-[400px] overflow-y-auto space-y-1">
+                    {filteredLocalities.length === 0 ? (
+                      <div className="text-center text-surface-500 py-4">אין יישובים</div>
+                    ) : (
+                      filteredLocalities.map(locality => (
+                        <div key={locality.id} className="flex items-center gap-2 p-2 hover:bg-surface-100 rounded-lg">
+                          <span className="flex-1 text-sm font-medium text-surface-800 truncate">{locality.name}</span>
+                          <select
+                            value={locality.areaId || ''}
+                            onChange={(e) => handleChangeLocalityArea(locality.id, e.target.value)}
+                            className="px-2 py-1 border border-surface-200 rounded text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                          >
+                            <option value="">ללא אזור</option>
+                            {areas.map(a => (
+                              <option key={a.id} value={a.id}>{a.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">אזורים</h2>
+                </div>
+
+                <div className="bg-surface-50 rounded-xl p-4">
+                  <div className="flex gap-2 mb-4">
+                    <input
+                      type="text"
+                      value={newAreaName}
+                      onChange={(e) => setNewAreaName(e.target.value)}
+                      placeholder="שם אזור חדש..."
+                      className="flex-1 px-3 py-2 border border-surface-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddArea())}
+                    />
+                    <button
+                      onClick={handleAddArea}
+                      disabled={!newAreaName.trim() || savingArea}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 text-sm font-medium"
+                    >
+                      {savingArea ? '...' : '+'}
+                    </button>
+                  </div>
+
+                  <div className="space-y-1">
+                    {areas.map(area => (
+                      <div key={area.id} className="flex items-center gap-2 p-2 hover:bg-surface-100 rounded-lg group">
+                        {editingArea?.id === area.id ? (
+                          <>
+                            <input
+                              type="text"
+                              defaultValue={editingArea.name}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleUpdateArea(area.id, (e.target as HTMLInputElement).value);
+                                if (e.key === 'Escape') setEditingArea(null);
+                              }}
+                              onBlur={(e) => handleUpdateArea(area.id, e.target.value)}
+                              autoFocus
+                              className="flex-1 px-2 py-1 border border-surface-200 rounded text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                            />
+                            <button
+                              onClick={() => setEditingArea(null)}
+                              className="text-surface-400 hover:text-surface-600 text-sm"
+                            >
+                              ✕
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="flex-1 text-sm font-medium text-surface-800">{area.name}</span>
+                            <span className="text-xs text-surface-500 bg-surface-200 px-2 py-0.5 rounded-full">
+                              {area.localities.length}
+                            </span>
+                            <button
+                              onClick={() => setEditingArea(area)}
+                              className="opacity-0 group-hover:opacity-100 text-surface-400 hover:text-primary-600 text-sm transition-opacity"
+                            >
+                              ✏️
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         ) : items.length === 0 ? (
           <div className="p-8 text-center text-surface-500">{t('errors.notFound')}</div>
         ) : (
@@ -397,7 +640,6 @@ export function SettingsPage() {
         )}
       </div>
 
-      {/* Add/Edit Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-float">
@@ -453,7 +695,6 @@ export function SettingsPage() {
         </div>
       )}
 
-      {/* Delete Confirmation */}
       {showDeleteConfirm && itemToDelete && (
         <ConfirmDialog
           isOpen={showDeleteConfirm}

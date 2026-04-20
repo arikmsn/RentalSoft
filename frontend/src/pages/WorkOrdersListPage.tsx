@@ -95,7 +95,8 @@ export function WorkOrdersListPage() {
   const [isCreatingInlineSite, setIsCreatingInlineSite] = useState(false);
   const [inlineSiteData, setInlineSiteData] = useState<SiteFormData>({ ...emptySiteForm });
   const [savingInlineSite, setSavingInlineSite] = useState(false);
-  
+  const [tenantAreas, setTenantAreas] = useState<string[]>([]);
+
   // Advanced filters
   const [filters, setFilters] = useState<WorkOrderFilters>(defaultFilters);
   const [showFilters, setShowFilters] = useState(false);
@@ -131,9 +132,13 @@ export function WorkOrdersListPage() {
   }, []);
 
   useEffect(() => {
-    api.get<{id: string; name: string; isActive: boolean}[]>('/settings/work-order-types').then(res => {
-      setWorkTypes(res.data.filter((wt: any) => wt.isActive !== false));
-    }).catch(err => console.error('Failed to fetch work types:', err));
+    Promise.all([
+      api.get<{id: string; name: string; isActive: boolean}[]>('/settings/work-order-types'),
+      api.get<{id: string; name: string}[]>('/settings/areas'),
+    ]).then(([wtRes, areasRes]) => {
+      setWorkTypes(wtRes.data.filter((wt: any) => wt.isActive !== false));
+      setTenantAreas(Array.isArray(areasRes.data) ? areasRes.data.map((a: any) => a.name).sort() : []);
+    }).catch(err => console.error('Failed to fetch work types or areas:', err));
   }, []);
 
   // Get unique cities from sites
@@ -145,14 +150,8 @@ export function WorkOrdersListPage() {
     return Array.from(citySet).sort();
   }, [sites]);
 
-  // Get unique areas from sites
-  const areas = useMemo(() => {
-    const areaSet = new Set<string>();
-    sites.forEach(site => {
-      if (site.area) areaSet.add(site.area);
-    });
-    return Array.from(areaSet).sort();
-  }, [sites]);
+  // Use tenant-configured areas from API
+  const areas = tenantAreas;
 
   // Calculate distance between two coordinates (km)
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {

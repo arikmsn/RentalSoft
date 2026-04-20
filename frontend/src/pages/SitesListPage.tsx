@@ -62,6 +62,7 @@ export function SitesListPage() {
   const [editFormData, setEditFormData] = useState<SiteFormData>({ ...emptySiteForm });
   const [whatsappTemplate, setWhatsappTemplate] = useState<string>('');
   const [leadSources, setLeadSources] = useState<{id: string; name: string}[]>([]);
+  const [tenantAreas, setTenantAreas] = useState<string[]>([]);
 
   // Advanced filters
   const [filters, setFilters] = useState<SiteFilters>(defaultFilters);
@@ -142,14 +143,8 @@ export function SitesListPage() {
     return Array.from(citySet).sort();
   }, [sites]);
 
-  // Get unique areas from sites
-  const areas = useMemo(() => {
-    const areaSet = new Set<string>();
-    sites.forEach(site => {
-      if (site.area) areaSet.add(site.area);
-    });
-    return Array.from(areaSet).sort();
-  }, [sites]);
+  // Use tenant-configured areas from API
+  const areas = tenantAreas;
 
   // Count active filters (always show indicator when any filter is active including default status)
   const activeFilterCount = 
@@ -190,14 +185,17 @@ export function SitesListPage() {
     Promise.all([
       api.get<{template?: string}>('/settings/whatsapp-template'),
       api.get<{id: string; name: string}[]>('/settings/lead-sources'),
+      api.get<{id: string; name: string}[]>('/settings/areas'),
     ])
-      .then(([wtRes, lsRes]) => {
+      .then(([wtRes, lsRes, areasRes]) => {
         setWhatsappTemplate(wtRes.data?.template || '');
         setLeadSources(Array.isArray(lsRes.data) ? lsRes.data : []);
+        setTenantAreas(Array.isArray(areasRes.data) ? areasRes.data.map((a: any) => a.name).sort() : []);
       })
       .catch(err => {
         console.error('Failed to load settings:', err);
         setLeadSources([]);
+        setTenantAreas([]);
       });
   }, [canEdit]);
 

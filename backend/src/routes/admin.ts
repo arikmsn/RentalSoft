@@ -9,6 +9,39 @@ const router = Router();
 const MIN_PASSWORD_LENGTH = 10;
 const BCRYPT_ROUNDS = 12;
 
+async function seedAreasAndLocalitiesForTenant(tenantId: string): Promise<void> {
+  const xlsx = await import('xlsx');
+  const path = await import('path');
+
+  const excelPath = path.join(__dirname, '..', '..', '..', 'Info', 'public-zones.xlsx');
+  const workbook = xlsx.readFile(excelPath);
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+  const data = xlsx.utils.sheet_to_json<{ 'שם יישוב': string; 'אזור גאוגרפי': string }>(worksheet);
+
+  const areaMap = new Map<string, string[]>();
+  for (const row of data) {
+    const locality = row['שם יישוב']?.trim();
+    const area = row['אזור גאוגרפי']?.trim();
+    if (!locality || !area) continue;
+    if (!areaMap.has(area)) areaMap.set(area, []);
+    areaMap.get(area)!.push(locality);
+  }
+
+  const areaIdMap = new Map<string, string>();
+  for (const [areaName, localities] of areaMap.entries()) {
+    const area = await prisma.settingsArea.create({
+      data: { tenantId, name: areaName },
+    });
+    areaIdMap.set(areaName, area.id);
+    for (const localityName of localities) {
+      await prisma.settingsLocality.create({
+        data: { tenantId, name: localityName, areaId: area.id },
+      });
+    }
+  }
+}
+
 function validatePassword(password: string): string | null {
   if (!password || password.length < MIN_PASSWORD_LENGTH) {
     return `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
@@ -98,6 +131,8 @@ router.post('/tenants', async (req: AuthRequest, res) => {
     const tenant = await prisma.tenant.create({
       data: { name, slug, isActive },
     });
+
+    await seedAreasAndLocalitiesForTenant(tenant.id);
 
     res.json(tenant);
   } catch (error) {

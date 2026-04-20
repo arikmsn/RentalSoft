@@ -728,9 +728,9 @@ router.post('/lead-sources', authorize('admin', 'manager'), async (req: AuthRequ
       return res.status(400).json({ message: 'Tenant ID required' });
     }
     const source = await prisma.settingsLeadSource.create({
-      data: { 
-        name, 
-        isActive: isActive ?? true, 
+      data: {
+        name,
+        isActive: isActive ?? true,
         sortOrder: sortOrder ?? 0,
         tenantId: tenantId || 'default',
       },
@@ -778,6 +778,223 @@ router.delete('/lead-sources/:id', authorize('admin', 'manager'), async (req: Au
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
     console.error('Error deleting lead source:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ============ AREAS ============
+router.get('/areas', async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.tenantId;
+    const isSuperAdmin = req.isSuperAdmin || false;
+    const where = isSuperAdmin ? {} : { tenantId: tenantId || undefined };
+    const areas = await prisma.settingsArea.findMany({
+      where,
+      orderBy: { name: 'asc' },
+      include: {
+        localities: {
+          orderBy: { name: 'asc' },
+        },
+      },
+    });
+    res.json(areas);
+  } catch (error) {
+    console.error('Error fetching areas:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/areas', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { name } = req.body;
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ message: 'Tenant ID required' });
+    }
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Area name is required' });
+    }
+    const existing = await prisma.settingsArea.findFirst({
+      where: { tenantId, name: name.trim() },
+    });
+    if (existing) {
+      return res.status(400).json({ message: 'Area already exists for this tenant' });
+    }
+    const area = await prisma.settingsArea.create({
+      data: {
+        name: name.trim(),
+        tenantId,
+      },
+    });
+    res.json(area);
+  } catch (error) {
+    console.error('Error creating area:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/areas/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    const tenantId = req.tenantId;
+    const isSuperAdmin = req.isSuperAdmin || false;
+    const where = isSuperAdmin ? { id } : { id, tenantId };
+    const existing = await prisma.settingsArea.findFirst({ where });
+    if (!existing) {
+      return res.status(404).json({ message: 'Area not found' });
+    }
+    if (name && name.trim() !== existing.name) {
+      const duplicate = await prisma.settingsArea.findFirst({
+        where: { tenantId: existing.tenantId, name: name.trim() },
+      });
+      if (duplicate) {
+        return res.status(400).json({ message: 'Area name already exists for this tenant' });
+      }
+    }
+    const area = await prisma.settingsArea.update({
+      where: { id },
+      data: { name: name ? name.trim() : existing.name },
+    });
+    res.json(area);
+  } catch (error) {
+    console.error('Error updating area:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ============ LOCALITIES ============
+router.get('/localities', async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.tenantId;
+    const isSuperAdmin = req.isSuperAdmin || false;
+    const where = isSuperAdmin ? {} : { tenantId: tenantId || undefined };
+    const { areaId, search } = req.query;
+    const finalWhere: any = { ...where };
+    if (areaId) finalWhere.areaId = areaId as string;
+    if (search) finalWhere.name = { contains: search as string, mode: 'insensitive' };
+    const localities = await prisma.settingsLocality.findMany({
+      where: finalWhere,
+      orderBy: { name: 'asc' },
+      include: { area: true },
+    });
+    res.json(localities);
+  } catch (error) {
+    console.error('Error fetching localities:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/localities', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, areaId } = req.body;
+    const tenantId = req.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ message: 'Tenant ID required' });
+    }
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Locality name is required' });
+    }
+    const existing = await prisma.settingsLocality.findFirst({
+      where: { tenantId, name: name.trim() },
+    });
+    if (existing) {
+      return res.status(400).json({ message: 'Locality already exists for this tenant' });
+    }
+    if (areaId) {
+      const areaCheck = await prisma.settingsArea.findFirst({
+        where: { id: areaId, tenantId },
+      });
+      if (!areaCheck) {
+        return res.status(400).json({ message: 'Area not found for this tenant' });
+      }
+    }
+    const locality = await prisma.settingsLocality.create({
+      data: {
+        name: name.trim(),
+        areaId: areaId || null,
+        tenantId,
+      },
+      include: { area: true },
+    });
+    res.json(locality);
+  } catch (error) {
+    console.error('Error creating locality:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/localities/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, areaId } = req.body;
+    const tenantId = req.tenantId;
+    const isSuperAdmin = req.isSuperAdmin || false;
+    const where = isSuperAdmin ? { id } : { id, tenantId };
+    const existing = await prisma.settingsLocality.findFirst({ where });
+    if (!existing) {
+      return res.status(404).json({ message: 'Locality not found' });
+    }
+    if (name && name.trim() !== existing.name) {
+      const duplicate = await prisma.settingsLocality.findFirst({
+        where: { tenantId: existing.tenantId, name: name.trim() },
+      });
+      if (duplicate) {
+        return res.status(400).json({ message: 'Locality name already exists for this tenant' });
+      }
+    }
+    if (areaId !== undefined) {
+      if (areaId) {
+        const areaCheck = await prisma.settingsArea.findFirst({
+          where: { id: areaId, tenantId: existing.tenantId },
+        });
+        if (!areaCheck) {
+          return res.status(400).json({ message: 'Area not found for this tenant' });
+        }
+      }
+    }
+    const locality = await prisma.settingsLocality.update({
+      where: { id },
+      data: {
+        name: name ? name.trim() : existing.name,
+        areaId: areaId !== undefined ? areaId : existing.areaId,
+      },
+      include: { area: true },
+    });
+    res.json(locality);
+  } catch (error) {
+    console.error('Error updating locality:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.patch('/localities/:id/area', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { areaId } = req.body;
+    const tenantId = req.tenantId;
+    const isSuperAdmin = req.isSuperAdmin || false;
+    const where = isSuperAdmin ? { id } : { id, tenantId };
+    const existing = await prisma.settingsLocality.findFirst({ where });
+    if (!existing) {
+      return res.status(404).json({ message: 'Locality not found' });
+    }
+    if (areaId) {
+      const areaCheck = await prisma.settingsArea.findFirst({
+        where: { id: areaId, tenantId: existing.tenantId },
+      });
+      if (!areaCheck) {
+        return res.status(400).json({ message: 'Area not found for this tenant' });
+      }
+    }
+    const locality = await prisma.settingsLocality.update({
+      where: { id },
+      data: { areaId: areaId || null },
+      include: { area: true },
+    });
+    res.json(locality);
+  } catch (error) {
+    console.error('Error updating locality area:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

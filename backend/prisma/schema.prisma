@@ -286,6 +286,29 @@ model SettingsLeadSource {
   @@unique([tenantId, name])
 }
 
+model SettingsArea {
+  id        String   @id @default(uuid())
+  tenantId  String   @db.VarChar(36)
+  name      String   @db.VarChar(255)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  localities SettingsLocality[]
+
+  @@unique([tenantId, name])
+}
+
+model SettingsLocality {
+  id        String   @id @default(uuid())
+  tenantId  String   @db.VarChar(36)
+  name      String   @db.VarChar(255)
+  areaId    String?  @db.VarChar(36)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  area      SettingsArea? @relation(fields: [areaId], references: [id])
+
+  @@unique([tenantId, name])
+}
+
 model WorkOrderStatusHistory {
   id             String    @id @default(uuid())
   workOrderId    String
