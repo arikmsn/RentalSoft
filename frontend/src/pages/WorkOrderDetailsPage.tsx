@@ -797,25 +797,6 @@ export function WorkOrderDetailsPage() {
           {t('app.back')}
         </button>
         <div className="flex items-center gap-2">
-          {canDelete && (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              disabled={deleting}
-              className="text-red-600 hover:text-red-700 p-1"
-              title={t('app.delete')}
-            >
-              🗑️
-            </button>
-          )}
-          {canEdit && (
-            <button
-              onClick={handleEditClick}
-              className="text-primary-600 hover:text-primary-700 p-1"
-              title={t('app.edit')}
-            >
-              ✏️
-            </button>
-          )}
           <div className="relative">
             {canChangeStatus && showStatusDropdown ? (
               <select
@@ -864,12 +845,32 @@ export function WorkOrderDetailsPage() {
       )}
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-bold">{(workOrder as any).workTypeName || workOrder.type || t('workOrders.workType')}</h1>
             <p className="text-sm text-gray-500">
               {formatDateFull(workOrder.plannedDate)}
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {canEdit && (
+              <button
+                onClick={handleEditClick}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm flex items-center gap-1"
+              >
+                ✏️ {t('app.edit')}
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={deleting}
+                className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium"
+                title={t('app.delete')}
+              >
+                🗑️ {t('app.delete')}
+              </button>
+            )}
           </div>
         </div>
 
@@ -983,16 +984,24 @@ export function WorkOrderDetailsPage() {
           <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 mt-4">
             <h3 className="text-sm font-medium text-gray-700 mb-2">{t('workOrder.meters')}</h3>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              {(workOrder.electricMeterStart !== null || workOrder.electricMeterEnd !== null) && (
+              {(workOrder.electricMeterStart != null || workOrder.electricMeterEnd != null) && (
                 <div className="bg-white p-2 rounded">
                   <p className="text-xs text-gray-500">{t('workOrder.electricMeter')}</p>
-                  <p className="font-medium">{workOrder.electricMeterStart ?? '-'} → {workOrder.electricMeterEnd ?? '-'}</p>
+                  {workOrder.electricMeterStart != null && workOrder.electricMeterEnd != null ? (
+                    <p className="font-medium">צריכה: {workOrder.electricMeterEnd - workOrder.electricMeterStart}</p>
+                  ) : (
+                    <p className="font-medium">{workOrder.electricMeterStart ?? '-'} / {workOrder.electricMeterEnd ?? '-'}</p>
+                  )}
                 </div>
               )}
-              {(workOrder.waterMeterStart !== null || workOrder.waterMeterEnd !== null) && (
+              {(workOrder.waterMeterStart != null || workOrder.waterMeterEnd != null) && (
                 <div className="bg-white p-2 rounded">
                   <p className="text-xs text-gray-500">{t('workOrder.waterMeter')}</p>
-                  <p className="font-medium">{workOrder.waterMeterStart ?? '-'} → {workOrder.waterMeterEnd ?? '-'}</p>
+                  {workOrder.waterMeterStart != null && workOrder.waterMeterEnd != null ? (
+                    <p className="font-medium">צריכה: {workOrder.waterMeterEnd - workOrder.waterMeterStart}</p>
+                  ) : (
+                    <p className="font-medium">{workOrder.waterMeterStart ?? '-'} / {workOrder.waterMeterEnd ?? '-'}</p>
+                  )}
                 </div>
               )}
             </div>

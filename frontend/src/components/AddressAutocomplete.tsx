@@ -6,6 +6,7 @@ export interface AddressSelection {
   houseNumber: string;
   latitude: number;
   longitude: number;
+  district?: string;
 }
 
 interface AddressAutocompleteProps {
@@ -148,6 +149,7 @@ export function AddressAutocomplete({
     let street = '';
     let city = '';
     let houseNumber = '';
+    let district = '';
 
     if (place.address_components) {
       for (const c of place.address_components) {
@@ -155,6 +157,7 @@ export function AddressAutocomplete({
         if (c.types.includes('locality')) city = c.long_name;
         if (!city && c.types.includes('administrative_area_level_2')) city = c.long_name;
         if (c.types.includes('street_number')) houseNumber = c.long_name;
+        if (c.types.includes('administrative_area_level_1')) district = c.long_name;
       }
     }
     if (!street && place.name) street = place.name;
@@ -163,7 +166,7 @@ export function AddressAutocomplete({
     console.log('[Autocomplete] Selected:', { street, city, houseNumber, compositeAddress, lat, lng });
 
     onChangeRef.current(compositeAddress);
-    onSelectRef.current({ address: compositeAddress, city, houseNumber, latitude: lat, longitude: lng });
+    onSelectRef.current({ address: compositeAddress, city, houseNumber, latitude: lat, longitude: lng, district });
   }, []);
 
   // Load Google Maps and init Autocomplete

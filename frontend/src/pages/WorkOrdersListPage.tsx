@@ -15,6 +15,7 @@ import type { SiteFormData } from '../components/SiteForm';
 interface WorkOrderFilters {
   status: ('open' | 'in_progress' | 'completed')[];
   cities: string[];
+  areas: string[];
   colors: ('black' | 'red' | 'orange' | 'green')[];
   nearMe: boolean;
   radiusKm: number;
@@ -27,6 +28,7 @@ interface WorkOrderFilters {
 const defaultFilters: WorkOrderFilters = {
   status: ['open', 'in_progress'],
   cities: [],
+  areas: [],
   colors: [],
   nearMe: false,
   radiusKm: 10,
@@ -37,6 +39,7 @@ const defaultFilters: WorkOrderFilters = {
 const emptyFilters: WorkOrderFilters = {
   status: [],
   cities: [],
+  areas: [],
   colors: [],
   nearMe: false,
   radiusKm: 10,
@@ -140,6 +143,15 @@ export function WorkOrdersListPage() {
       if (site.city) citySet.add(site.city);
     });
     return Array.from(citySet).sort();
+  }, [sites]);
+
+  // Get unique areas from sites
+  const areas = useMemo(() => {
+    const areaSet = new Set<string>();
+    sites.forEach(site => {
+      if (site.area) areaSet.add(site.area);
+    });
+    return Array.from(areaSet).sort();
   }, [sites]);
 
   // Calculate distance between two coordinates (km)
@@ -303,6 +315,14 @@ export function WorkOrdersListPage() {
       return true;
     })
     .filter((wo) => {
+      // Area filter
+      if (filters.areas.length > 0) {
+        const woArea = wo.site?.area || '';
+        if (!filters.areas.includes(woArea)) return false;
+      }
+      return true;
+    })
+    .filter((wo) => {
       // Color filter
       if (filters.colors.length > 0) {
         const woColor = getStatusColor(wo);
@@ -374,6 +394,7 @@ export function WorkOrdersListPage() {
   const activeFilterCount = 
     filters.status.length + 
     filters.cities.length + 
+    filters.areas.length +
     filters.colors.length + 
     (filters.nearMe ? 1 : 0) +
     (filters.timeRange !== 'all' ? 1 : 0);
@@ -535,6 +556,33 @@ export function WorkOrdersListPage() {
               ))}
             </div>
           </div>
+
+          {/* Area Filter */}
+          {areas.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-surface-700 mb-2">אזור</h3>
+              <div className="flex flex-wrap gap-2">
+                {areas.map(area => (
+                  <button
+                    key={area}
+                    onClick={() => setFilters(prev => ({
+                      ...prev,
+                      areas: prev.areas.includes(area)
+                        ? prev.areas.filter(a => a !== area)
+                        : [...prev.areas, area]
+                    }))}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      filters.areas.includes(area)
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                    }`}
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Cities Filter */}
           {cities.length > 0 && (
