@@ -118,6 +118,9 @@ model Site {
   isActive         Boolean       @default(true)
   isFavorite       Boolean       @default(false)
   tenantId         String?       @db.VarChar(36)
+  area             String?
+  source           String?
+  orderNumber      Int?
   activityLogs     ActivityLog[]
   equipment        Equipment[]
   workOrders       WorkOrder[]
@@ -133,6 +136,13 @@ model WorkOrder {
   done                        String?
   todo                        String?
   plannedRemovalDate          DateTime?
+  paymentStatus               PaymentStatus            @default(unpaid)
+  receiptNumber              String?
+  invoiceNumber             String?
+  electricMeterStart         Int?
+  electricMeterEnd           Int?
+  waterMeterStart            Int?
+  waterMeterEnd              Int?
   createdAt                   DateTime                 @default(now())
   updatedAt                   DateTime                 @updatedAt
   workTypeId                  String?
@@ -146,6 +156,7 @@ model WorkOrder {
   workType                    SettingsWorkOrderType?   @relation(fields: [workTypeId], references: [id])
   equipment                   WorkOrderEquipment[]
   statusHistory               WorkOrderStatusHistory[]
+  history                    WorkOrderHistory[]
 }
 
 model ChecklistItem {
@@ -242,6 +253,29 @@ model SettingsEquipmentCondition {
   @@unique([tenantId, name])
 }
 
+model SettingsWhatsAppTemplate {
+  id        String   @id @default(uuid())
+  template String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String   @db.VarChar(36)
+
+  @@unique([tenantId])
+}
+
+model SettingsLeadSource {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenantId  String   @db.VarChar(36)
+
+  @@unique([tenantId, name])
+}
+
 model WorkOrderStatusHistory {
   id             String    @id @default(uuid())
   workOrderId    String
@@ -253,6 +287,15 @@ model WorkOrderStatusHistory {
   tenantId       String?   @db.VarChar(36)
   changedBy      User      @relation(fields: [changedById], references: [id])
   workOrder      WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
+model WorkOrderHistory {
+  id          String    @id @default(uuid())
+  workOrderId String
+  text        String
+  createdAt   DateTime  @default(now())
+  tenantId   String?   @db.VarChar(36)
+  workOrder  WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
 }
 
 model WorkOrderEquipment {
@@ -340,6 +383,11 @@ enum WorkOrderStatus {
   open
   in_progress
   completed
+}
+
+enum PaymentStatus {
+  unpaid
+  paid
 }
 
 enum ActionType {

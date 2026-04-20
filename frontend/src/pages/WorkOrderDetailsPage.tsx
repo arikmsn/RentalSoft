@@ -100,6 +100,21 @@ export function WorkOrderDetailsPage() {
   const [workTypes, setWorkTypes] = useState<{id: string; name: string}[]>([]);
   const [deleting, setDeleting] = useState(false);
 
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showMeterFields, setShowMeterFields] = useState(false);
+  const [paymentFormData, setPaymentFormData] = useState({
+    receiptNumber: '',
+    invoiceNumber: '',
+    electricMeterStart: undefined as number | undefined,
+    electricMeterEnd: undefined as number | undefined,
+    waterMeterStart: undefined as number | undefined,
+    waterMeterEnd: undefined as number | undefined,
+  });
+  const [savingPayment, setSavingPayment] = useState(false);
+
+  const [statusHistory, setStatusHistory] = useState<{id: string; previousStatus: string | null; newStatus: string; changedBy: {name: string}; createdAt: Date}[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
   const isAssignedTechnician = user?.id === workOrder?.technicianId;
   const canEdit = user?.role === 'manager' || user?.role === 'admin' || isAssignedTechnician;
   const canDelete = user?.role === 'manager' || user?.role === 'admin';
@@ -162,6 +177,21 @@ export function WorkOrderDetailsPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!workOrder) return;
+    setLoadingHistory(true);
+    api.get(`/workorders/${id}/history`)
+      .then(res => {
+        setStatusHistory(res.data);
+      })
+      .catch(err => {
+        console.error('Failed to load status history:', err);
+      })
+      .finally(() => {
+        setLoadingHistory(false);
+      });
+  }, [workOrder, id]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -447,6 +477,55 @@ export function WorkOrderDetailsPage() {
       setTimeout(() => setError(null), 3000);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePaymentStatusChange = async (newPaymentStatus: 'unpaid' | 'paid') => {
+    if (!id || !workOrder) return;
+
+    if (newPaymentStatus === 'paid') {
+      setPaymentFormData({
+        receiptNumber: workOrder.receiptNumber || '',
+        invoiceNumber: workOrder.invoiceNumber || '',
+        electricMeterStart: workOrder.electricMeterStart,
+        electricMeterEnd: workOrder.electricMeterEnd,
+        waterMeterStart: workOrder.waterMeterStart,
+        waterMeterEnd: workOrder.waterMeterEnd,
+      });
+      setShowPaymentModal(true);
+    } else {
+      try {
+        await workOrderService.update(id, { paymentStatus: 'unpaid', receiptNumber: undefined, invoiceNumber: undefined });
+        fetchData();
+      } catch (err: any) {
+        console.error('Failed to update payment status:', err);
+        setError(t('errors.serverError'));
+        setTimeout(() => setError(null), 3000);
+      }
+    }
+  };
+
+  const handleSavePayment = async () => {
+    if (!id) return;
+    setSavingPayment(true);
+    try {
+      await workOrderService.update(id, {
+        paymentStatus: 'paid',
+        receiptNumber: paymentFormData.receiptNumber || undefined,
+        invoiceNumber: paymentFormData.invoiceNumber || undefined,
+        electricMeterStart: paymentFormData.electricMeterStart,
+        electricMeterEnd: paymentFormData.electricMeterEnd,
+        waterMeterStart: paymentFormData.waterMeterStart,
+        waterMeterEnd: paymentFormData.waterMeterEnd,
+      });
+      setShowPaymentModal(false);
+      fetchData();
+    } catch (err: any) {
+      console.error('Failed to save payment:', err);
+      setError(t('errors.serverError'));
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setSavingPayment(false);
     }
   };
 
@@ -796,6 +875,40 @@ export function WorkOrderDetailsPage() {
             )}
           </div>
         </div>
+
+        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">{t('workOrder.paymentStatus')}:</span>
+            {canEdit ? (
+              <select
+                value={workOrder.paymentStatus || 'unpaid'}
+                onChange={(e) => handlePaymentStatusChange(e.target.value as 'unpaid' | 'paid')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium border-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                  workOrder.paymentStatus === 'paid' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'
+                }`}
+              >
+                <option value="unpaid">{t('workOrder.unpaid')}</option>
+                <option value="paid">{t('workOrder.paid')}</option>
+              </select>
+            ) : (
+              <span className={`px-3 py-2 rounded-lg text-sm font-medium ${
+                workOrder.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              }`}>
+                {workOrder.paymentStatus === 'paid' ? t('workOrder.paid') : t('workOrder.unpaid')}
+              </span>
+            )}
+          </div>
+          {workOrder.paymentStatus === 'paid' && (workOrder.receiptNumber || workOrder.invoiceNumber) && (
+            <div className="mt-2 text-sm text-gray-600 space-y-1">
+              {workOrder.receiptNumber && (
+                <p>{t('workOrder.receiptNumber')}: {workOrder.receiptNumber}</p>
+              )}
+              {workOrder.invoiceNumber && (
+                <p>{t('workOrder.invoiceNumber')}: {workOrder.invoiceNumber}</p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -920,6 +1033,43 @@ export function WorkOrderDetailsPage() {
               {saving ? t('app.loading') : t('app.save')}
             </button>
           </div>
+</div>
+        )}
+
+      {(statusHistory.length > 0 || loadingHistory) && (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <h2 className="text-lg font-semibold mb-4">{t('workOrder.statusHistory')}</h2>
+          {loadingHistory ? (
+            <div className="text-center text-gray-500 py-2">{t('app.loading')}</div>
+          ) : (
+            <div className="space-y-3">
+              {statusHistory.map((entry) => (
+                <div key={entry.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-shrink-0 w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700">
+                      {entry.previousStatus ? (
+                        <>
+                          <span className="font-medium">{t(`workOrders.statuses.${entry.previousStatus}`)}</span>
+                          {' → '}
+                          <span className="font-medium">{t(`workOrders.statuses.${entry.newStatus}`)}</span>
+                        </>
+                      ) : (
+                        <span className="font-medium">{t(`workOrders.statuses.${entry.newStatus}`)}</span>
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {entry.changedBy?.name} • {formatDate(entry.createdAt)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -994,6 +1144,111 @@ export function WorkOrderDetailsPage() {
                 className="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 font-medium transition-all duration-200"
               >
                 {saving ? t('app.loading') : 'אישור'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-surface-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-float">
+            <h2 className="text-xl font-bold mb-4 text-surface-800">{t('workOrder.markAsPaid')}</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('workOrder.receiptNumber')}
+                </label>
+                <input
+                  type="text"
+                  value={paymentFormData.receiptNumber}
+                  onChange={(e) => setPaymentFormData({ ...paymentFormData, receiptNumber: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {t('workOrder.invoiceNumber')}
+                </label>
+                <input
+                  type="text"
+                  value={paymentFormData.invoiceNumber}
+                  onChange={(e) => setPaymentFormData({ ...paymentFormData, invoiceNumber: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMeterFields(!showMeterFields)}
+                className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
+              >
+                {showMeterFields ? '▲ הסתר מדים' : '▼ הצג מדים'}
+              </button>
+              {showMeterFields && (
+                <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm font-medium text-gray-700">{t('workOrder.meters')}</p>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">{t('workOrder.electricMeter')}</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-gray-500">{t('workOrder.meterStart')}</label>
+                        <input
+                          type="number"
+                          value={paymentFormData.electricMeterStart || ''}
+                          onChange={(e) => setPaymentFormData({ ...paymentFormData, electricMeterStart: e.target.value ? parseInt(e.target.value) : undefined })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500">{t('workOrder.meterEnd')}</label>
+                        <input
+                          type="number"
+                          value={paymentFormData.electricMeterEnd || ''}
+                          onChange={(e) => setPaymentFormData({ ...paymentFormData, electricMeterEnd: e.target.value ? parseInt(e.target.value) : undefined })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">{t('workOrder.waterMeter')}</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-gray-500">{t('workOrder.meterStart')}</label>
+                        <input
+                          type="number"
+                          value={paymentFormData.waterMeterStart || ''}
+                          onChange={(e) => setPaymentFormData({ ...paymentFormData, waterMeterStart: e.target.value ? parseInt(e.target.value) : undefined })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500">{t('workOrder.meterEnd')}</label>
+                        <input
+                          type="number"
+                          value={paymentFormData.waterMeterEnd || ''}
+                          onChange={(e) => setPaymentFormData({ ...paymentFormData, waterMeterEnd: e.target.value ? parseInt(e.target.value) : undefined })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => { setShowPaymentModal(false); setPaymentFormData({ receiptNumber: '', invoiceNumber: '', electricMeterStart: undefined, electricMeterEnd: undefined, waterMeterStart: undefined, waterMeterEnd: undefined }); }}
+                className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
+              >
+                {t('app.cancel')}
+              </button>
+              <button
+                onClick={handleSavePayment}
+                disabled={savingPayment}
+                className="flex-1 px-4 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50 font-medium transition-all duration-200"
+              >
+                {savingPayment ? t('app.loading') : t('app.save')}
               </button>
             </div>
           </div>

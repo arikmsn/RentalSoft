@@ -67,6 +67,9 @@ export interface Site {
   latitude?: number;
   longitude?: number;
   hasValidLocation?: boolean;
+  area?: string;
+  source?: string;
+  orderNumber?: number;
   createdAt: Date;
   updatedAt: Date;
   workOrders?: { id: string; title: string; status: WorkOrderStatus; plannedDate: Date }[];
@@ -74,6 +77,14 @@ export interface Site {
 
 export type WorkOrderStatus = 'open' | 'in_progress' | 'completed';
 export type WorkOrderStatusColor = 'black' | 'red' | 'orange' | 'green';
+export type PaymentStatus = 'unpaid' | 'paid';
+
+export interface WorkOrderHistory {
+  id: string;
+  workOrderId: string;
+  text: string;
+  createdAt: Date;
+}
 
 export interface Technician {
   id: string;
@@ -89,6 +100,13 @@ export interface WorkOrder {
   siteId: string;
   technicianId: string;
   status: WorkOrderStatus;
+  paymentStatus?: PaymentStatus;
+  receiptNumber?: string;
+  invoiceNumber?: string;
+  electricMeterStart?: number;
+  electricMeterEnd?: number;
+  waterMeterStart?: number;
+  waterMeterEnd?: number;
   plannedDate: Date;
   actualDate?: Date;
   done?: string;
@@ -102,6 +120,7 @@ export interface WorkOrder {
   equipmentCount?: number;
   statusColor?: WorkOrderStatusColor;
   daysUntilRemoval?: number | null;
+  history?: WorkOrderHistory[];
 }
 
 export interface ChecklistItem {

@@ -277,7 +277,22 @@
     "removeEquipment": "הסר",
     "selectEquipment": "בחר ציוד",
     "noAvailableEquipment": "אין ציוד פנוי זמין",
-    "equipmentAttached": "ציוד מחובר לעבודה זו"
+    "equipmentAttached": "ציוד מחובר לעבודה זו",
+    "payment": "תשלום",
+    "paymentStatus": "סטטוס תשלום",
+    "paid": "שולם",
+    "unpaid": "טרם שולם",
+    "receiptNumber": "מספר קבלה",
+    "invoiceNumber": "מספר חשבונית",
+    "markAsPaid": "סמן כמשולם",
+    "markAsUnpaid": "סמן כטרם שולם",
+    "meters": "מדים",
+    "electricMeter": "חשמל",
+    "waterMeter": "מים",
+    "meterStart": "קריאה התחלתית",
+    "meterEnd": "קריאה סופית",
+    "history": "היסטוריה",
+    "statusHistory": "היסטוריית סטטוס"
   },
   "qrScanner": {
     "title": "סרוק QR",

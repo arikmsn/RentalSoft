@@ -249,7 +249,7 @@ router.post('/', authenticate, authorize('manager', 'admin'), async (req: AuthRe
 
 router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
   try {
-    const { type, status, technicianId, plannedDate, actualDate, done, todo, plannedRemovalDate, isNextVisitPotentialRemoval } = req.body;
+    const { type, status, technicianId, plannedDate, actualDate, done, todo, plannedRemovalDate, isNextVisitPotentialRemoval, paymentStatus, receiptNumber, invoiceNumber, electricMeterStart, electricMeterEnd, waterMeterStart, waterMeterEnd } = req.body;
     const userRole = req.user!.role;
     const userId = req.user!.id;
     const tenantFilter = getWorkOrdersTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
@@ -301,6 +301,13 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res) => {
         ...(todo !== undefined && { todo }),
         ...(plannedRemovalDate && { plannedRemovalDate: new Date(plannedRemovalDate) }),
         ...(isNextVisitPotentialRemoval !== undefined && userRole !== 'technician' && { isNextVisitPotentialRemoval }),
+        ...(paymentStatus !== undefined && { paymentStatus }),
+        ...(receiptNumber !== undefined && { receiptNumber }),
+        ...(invoiceNumber !== undefined && { invoiceNumber }),
+        ...(electricMeterStart !== undefined && { electricMeterStart }),
+        ...(electricMeterEnd !== undefined && { electricMeterEnd }),
+        ...(waterMeterStart !== undefined && { waterMeterStart }),
+        ...(waterMeterEnd !== undefined && { waterMeterEnd }),
       },
       include: {
         site: true,

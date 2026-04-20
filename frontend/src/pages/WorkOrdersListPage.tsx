@@ -19,6 +19,7 @@ interface WorkOrderFilters {
   nearMe: boolean;
   radiusKm: number;
   timeRange: 'week' | '2weeks' | 'month' | 'lastMonth' | 'all';
+  paymentStatus: ('unpaid' | 'paid')[];
   userLat?: number;
   userLng?: number;
 }
@@ -30,6 +31,7 @@ const defaultFilters: WorkOrderFilters = {
   nearMe: false,
   radiusKm: 10,
   timeRange: 'week',
+  paymentStatus: [],
 };
 
 const emptyFilters: WorkOrderFilters = {
@@ -39,6 +41,7 @@ const emptyFilters: WorkOrderFilters = {
   nearMe: false,
   radiusKm: 10,
   timeRange: 'week',
+  paymentStatus: [],
 };
 
 const statusColors: Record<WorkOrderStatus, string> = {
@@ -284,6 +287,14 @@ export function WorkOrdersListPage() {
       return true;
     })
     .filter((wo) => {
+      // Payment status filter
+      if (filters.paymentStatus.length > 0) {
+        const woPaymentStatus = wo.paymentStatus || 'unpaid';
+        if (!filters.paymentStatus.includes(woPaymentStatus as any)) return false;
+      }
+      return true;
+    })
+    .filter((wo) => {
       // City filter
       if (filters.cities.length > 0) {
         const woCity = wo.site?.city || '';
@@ -494,6 +505,37 @@ export function WorkOrdersListPage() {
             </div>
           </div>
 
+          {/* Payment Status Filter */}
+          <div>
+            <h3 className="text-sm font-medium text-surface-700 mb-2">{t('workOrder.paymentStatus')}</h3>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: 'unpaid' as const, label: t('workOrder.unpaid'), color: 'bg-red-500' },
+                { key: 'paid' as const, label: t('workOrder.paid'), color: 'bg-green-500' },
+              ].map((payment) => (
+                <button
+                  key={payment.key}
+                  onClick={() => {
+                    setFilters(prev => ({
+                      ...prev,
+                      paymentStatus: prev.paymentStatus.includes(payment.key)
+                        ? prev.paymentStatus.filter(p => p !== payment.key)
+                        : [...prev.paymentStatus, payment.key]
+                    }));
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                    filters.paymentStatus.includes(payment.key)
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                  }`}
+                >
+                  <span className={`w-3 h-3 rounded-full ${payment.color}`}></span>
+                  {payment.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Cities Filter */}
           {cities.length > 0 && (
             <Multiselect
@@ -661,6 +703,11 @@ export function WorkOrdersListPage() {
                   <div className="flex flex-col items-end gap-2">
                     <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[wo.status]}`}>
                       {t(`workOrders.statuses.${wo.status}`)}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      wo.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {wo.paymentStatus === 'paid' ? t('workOrder.paid') : t('workOrder.unpaid')}
                     </span>
                     {wo.equipmentCount !== undefined && wo.equipmentCount > 0 && (
                       <div className="flex items-center gap-1 text-xs text-surface-500 bg-surface-100 px-2 py-1 rounded-full">

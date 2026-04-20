@@ -30,6 +30,13 @@ export interface UpdateWorkOrderRequest {
   todo?: string;
   plannedRemovalDate?: Date;
   isNextVisitPotentialRemoval?: boolean;
+  paymentStatus?: 'unpaid' | 'paid';
+  receiptNumber?: string;
+  invoiceNumber?: string;
+  electricMeterStart?: number;
+  electricMeterEnd?: number;
+  waterMeterStart?: number;
+  waterMeterEnd?: number;
 }
 
 export interface CompleteWorkOrderRequest {

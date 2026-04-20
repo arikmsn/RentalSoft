@@ -528,8 +528,6 @@ router.delete('/technicians/:id', authorize('admin', 'manager'), async (req: Aut
   }
 });
 
-export default router;
-
 // Equipment Locations
 router.get('/equipment-locations', async (req: AuthRequest, res: Response) => {
   try {
@@ -657,3 +655,131 @@ router.delete('/equipment-locations/:id', authorize('admin', 'manager'), async (
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// WhatsApp Template
+router.get('/whatsapp-template', async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.tenantId;
+    const template = await prisma.settingsWhatsAppTemplate.findUnique({
+      where: { tenantId: tenantId || 'default' },
+    });
+    res.json(template);
+  } catch (error) {
+    console.error('Error fetching WhatsApp template:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/whatsapp-template', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { template, isActive } = req.body;
+    const tenantId = req.tenantId;
+    if (!tenantId && !(req.isSuperAdmin)) {
+      return res.status(400).json({ message: 'Tenant ID required' });
+    }
+    const existing = await prisma.settingsWhatsAppTemplate.findUnique({
+      where: { tenantId: tenantId || 'default' },
+    });
+    if (existing) {
+      const updated = await prisma.settingsWhatsAppTemplate.update({
+        where: { id: existing.id },
+        data: { template: template || '', isActive: isActive ?? true },
+      });
+      res.json(updated);
+    } else {
+      const created = await prisma.settingsWhatsAppTemplate.create({
+        data: { 
+          template: template || '', 
+          isActive: isActive ?? true,
+          tenantId: tenantId || 'default',
+        },
+      });
+      res.json(created);
+    }
+  } catch (error) {
+    console.error('Error saving WhatsApp template:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Lead Sources
+router.get('/lead-sources', async (req: AuthRequest, res: Response) => {
+  try {
+    const { isActive } = req.query;
+    const tenantFilter = getTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+    const where: any = { ...tenantFilter };
+    if (isActive !== undefined) where.isActive = isActive === 'true';
+    const sources = await prisma.settingsLeadSource.findMany({
+      where,
+      orderBy: { sortOrder: 'asc' },
+    });
+    res.json(sources);
+  } catch (error) {
+    console.error('Error fetching lead sources:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/lead-sources', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, isActive, sortOrder } = req.body;
+    const tenantId = req.tenantId;
+    if (!tenantId && !(req.isSuperAdmin)) {
+      return res.status(400).json({ message: 'Tenant ID required' });
+    }
+    const source = await prisma.settingsLeadSource.create({
+      data: { 
+        name, 
+        isActive: isActive ?? true, 
+        sortOrder: sortOrder ?? 0,
+        tenantId: tenantId || 'default',
+      },
+    });
+    res.json(source);
+  } catch (error) {
+    console.error('Error creating lead source:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/lead-sources/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, isActive, sortOrder } = req.body;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsLeadSource.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Lead source not found' });
+    }
+    const source = await prisma.settingsLeadSource.update({
+      where: { id },
+      data: { name, isActive, sortOrder },
+    });
+    res.json(source);
+  } catch (error) {
+    console.error('Error updating lead source:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/lead-sources/:id', authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const tenantFilter = req.isSuperAdmin ? {} : { tenantId: req.tenantId };
+    const existing = await prisma.settingsLeadSource.findFirst({
+      where: { id, ...tenantFilter },
+    });
+    if (!existing) {
+      return res.status(404).json({ message: 'Lead source not found' });
+    }
+    await prisma.settingsLeadSource.delete({ where: { id } });
+    res.json({ message: 'Deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting lead source:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+export default router;
