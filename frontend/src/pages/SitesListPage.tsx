@@ -48,6 +48,7 @@ export function SitesListPage() {
   const [formData, setFormData] = useState<SiteFormData>({ ...emptySiteForm });
   const [editFormData, setEditFormData] = useState<SiteFormData>({ ...emptySiteForm });
   const [whatsappTemplate, setWhatsappTemplate] = useState<string>('');
+  const [leadSources, setLeadSources] = useState<{id: string; name: string}[]>([]);
 
   // Advanced filters
   const [filters, setFilters] = useState<SiteFilters>(defaultFilters);
@@ -163,9 +164,15 @@ export function SitesListPage() {
 
   useEffect(() => {
     if (!canEdit) return;
-    api.get<{template: string}>('/settings/whatsapp-template')
-      .then(res => setWhatsappTemplate(res.data.template || ''))
-      .catch(err => console.error('Failed to load WhatsApp template:', err));
+    Promise.all([
+      api.get<{template: string}>('/settings/whatsapp-template'),
+      api.get<{id: string; name: string}[]>('/settings/lead-sources'),
+    ])
+      .then(([wtRes, lsRes]) => {
+        setWhatsappTemplate(wtRes.data.template || '');
+        setLeadSources(lsRes.data);
+      })
+      .catch(err => console.error('Failed to load settings:', err));
   }, [canEdit]);
 
   // Apply filters to sites
@@ -569,6 +576,7 @@ export function SitesListPage() {
           saving={saving}
           title={t('sites.addNew')}
           showRating={true}
+          leadSources={leadSources}
         />
       )}
 
@@ -580,6 +588,7 @@ export function SitesListPage() {
           onSubmit={handleUpdate}
           onCancel={() => setShowEditForm(false)}
           saving={saving}
+          leadSources={leadSources}
           title={t('app.edit')}
           showRating={true}
         />

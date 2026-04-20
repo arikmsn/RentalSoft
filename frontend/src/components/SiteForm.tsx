@@ -71,6 +71,7 @@ interface SiteFormProps {
   title: string;
   showRating?: boolean;
   inline?: boolean;
+  leadSources?: {id: string; name: string}[];
 }
 
 export function SiteForm({
@@ -82,6 +83,7 @@ export function SiteForm({
   title,
   showRating = true,
   inline = false,
+  leadSources = [],
 }: SiteFormProps) {
   const { t } = useTranslation();
 
@@ -167,30 +169,40 @@ export function SiteForm({
 
       <div>
         <label className="block text-sm font-medium text-surface-700 mb-2">אזור</label>
-        <input
-          type="text"
+        <select
           value={data.area || ''}
           onChange={(e) => setData({ ...data, area: e.target.value })}
-          placeholder="הזן אזור או בחר..."
           className={inputClasses}
-          list="area-suggestions"
-        />
-        <datalist id="area-suggestions">
-          {['צפון', 'דרום', 'מרכז', 'ירושלים', 'חיפה', 'תל אביב', 'באר שבע', 'רמת גן'].map(a => (
-            <option key={a} value={a} />
+        >
+          <option value="">-- בחר אזור --</option>
+          {['צפון', 'דרום', 'מרכז', 'ירושלים', 'חיפה', 'תל אביב', 'באר שבע', 'רמת גן', 'שרון'].map(a => (
+            <option key={a} value={a}>{a}</option>
           ))}
-        </datalist>
+        </select>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-surface-700 mb-2">מקור</label>
-        <input
-          type="text"
-          value={data.source || ''}
-          onChange={(e) => setData({ ...data, source: e.target.value })}
-          placeholder="הזן מקור..."
-          className={inputClasses}
-        />
+        {leadSources.length > 0 ? (
+          <select
+            value={data.source || ''}
+            onChange={(e) => setData({ ...data, source: e.target.value })}
+            className={inputClasses}
+          >
+            <option value="">-- בחר מקור --</option>
+            {leadSources.map(ls => (
+              <option key={ls.id} value={ls.name}>{ls.name}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type="text"
+            value={data.source || ''}
+            onChange={(e) => setData({ ...data, source: e.target.value })}
+            placeholder="הזן מקור..."
+            className={inputClasses}
+          />
+        )}
       </div>
 
       <div>
