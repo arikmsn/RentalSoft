@@ -268,19 +268,21 @@ export function SettingsPage() {
         ))}
       </div>
 
-      {/* Add Button */}
-      <div className="flex justify-end">
-        <button
-          onClick={() => {
-            setEditingItem(null);
-            setFormData({ name: '', code: '', isActive: true, sortOrder: 0, username: '', email: '', phone: '', password: '' });
-            setShowForm(true);
-          }}
-          className="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200 shadow-sm"
-        >
-          + {t('app.add')}
-        </button>
-      </div>
+      {/* Add Button - hidden for whatsappTemplate and leadSources tabs */}
+      {activeTab !== 'whatsappTemplate' && activeTab !== 'leadSources' && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => {
+              setEditingItem(null);
+              setFormData({ name: '', code: '', isActive: true, sortOrder: 0, username: '', email: '', phone: '', password: '' });
+              setShowForm(true);
+            }}
+            className="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200 shadow-sm"
+          >
+            + {t('app.add')}
+          </button>
+        </div>
+      )}
 
       {/* Items List */}
       <div className="bg-white rounded-2xl shadow-card border border-surface-100 overflow-hidden">
