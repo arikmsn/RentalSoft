@@ -17,7 +17,7 @@ async function seedAreasAndLocalitiesForTenant(tenantId: string): Promise<void> 
   const workbook = xlsx.readFile(excelPath);
   const sheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[sheetName];
-  const data = xlsx.utils.sheet_to_json<{ 'שם יישוב': string; 'אזור גאוגרפי': string }>(worksheet);
+  const data = xlsx.utils.sheet_to_json(worksheet) as { 'שם יישוב': string; 'אזור גאוגרפי': string }[];
 
   const areaMap = new Map<string, string[]>();
   for (const row of data) {
