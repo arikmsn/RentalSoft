@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { api } from '../services/api';
+import { useAuthStore } from '../stores/authStore';
 
 interface SettingsItem {
   id: string;
@@ -27,12 +28,13 @@ interface EquipmentLocation {
   isDefaultCustomer: boolean;
 }
 
-type TabType = 'workOrderTypes' | 'equipmentTypes' | 'technicians' | 'equipmentLocations';
+type TabType = 'workOrderTypes' | 'equipmentTypes' | 'technicians' | 'equipmentLocations' | 'whatsappTemplate' | 'leadSources';
 
 export function SettingsPage() {
   const { t } = useTranslation();
+  const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<TabType>('workOrderTypes');
-  const [items, setItems] = useState<(SettingsItem | Technician | EquipmentLocation)[]>([]);
+  const [items, setItems] = useState<(SettingsItem | Technician | EquipmentLocation | {id: string; name: string})[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -50,10 +52,23 @@ export function SettingsPage() {
     phone: '',
     password: '',
   });
+  const [whatsappTemplate, setWhatsappTemplate] = useState('');
+  const [leadSourceInput, setLeadSourceInput] = useState('');
 
   useEffect(() => {
     fetchItems();
   }, [activeTab]);
+
+  const addLeadSource = async () => {
+    if (!leadSourceInput.trim()) return;
+    try {
+      await api.post('/settings/lead-sources', { name: leadSourceInput.trim() });
+      setLeadSourceInput('');
+      fetchItems();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'שגיאה בהוספה');
+    }
+  };
 
   const fetchItems = async () => {
     setLoading(true);
@@ -72,9 +87,23 @@ export function SettingsPage() {
         case 'equipmentLocations':
           url = '/settings/equipment-locations';
           break;
+        case 'leadSources':
+          url = '/settings/lead-sources';
+          break;
+        case 'whatsappTemplate':
+          url = '/settings/whatsapp-template';
+          break;
       }
-      const response = await api.get(url);
-      setItems(response.data);
+      if (activeTab === 'whatsappTemplate') {
+        const response = await api.get<{template: string}>(url);
+        setWhatsappTemplate(response.data.template || '');
+      } else if (activeTab === 'leadSources') {
+        const response = await api.get<{id: string; name: string}[]>(url);
+        setItems(response.data);
+      } else {
+        const response = await api.get(url);
+        setItems(response.data);
+      }
     } catch (error) {
       console.error('Error fetching items:', error);
       setError('session_expired');
@@ -102,6 +131,9 @@ export function SettingsPage() {
           break;
         case 'equipmentLocations':
           url = '/settings/equipment-locations';
+          break;
+        case 'leadSources':
+          url = '/settings/lead-sources';
           break;
       }
 
@@ -179,6 +211,9 @@ export function SettingsPage() {
         case 'equipmentLocations':
           url = `/settings/equipment-locations/${itemToDelete.id}`;
           break;
+        case 'leadSources':
+          url = `/settings/lead-sources/${itemToDelete.id}`;
+          break;
       }
       await api.delete(url);
       fetchItems();
@@ -199,6 +234,14 @@ export function SettingsPage() {
     { key: 'equipmentLocations', label: 'מיקומי ציוד' },
     { key: 'technicians', label: t('settings.technicians') },
   ];
+
+  const isManagerOrAdmin = user?.role === 'manager' || user?.role === 'admin';
+  if (isManagerOrAdmin) {
+    tabs.push(
+      { key: 'whatsappTemplate', label: 'הודעת ווטסאפ' },
+      { key: 'leadSources', label: 'מקורות לידים' }
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -241,6 +284,72 @@ export function SettingsPage() {
           <div className="p-8 text-center text-surface-500">{t('app.loading')}</div>
         ) : error ? (
           <div className="p-8 text-center text-danger-600">{error === 'session_expired' ? 'מערכת עודכנה, נא להתחבר מחדש' : t('errors.serverError')}</div>
+        ) : activeTab === 'whatsappTemplate' ? (
+          <div className="bg-white rounded-xl border border-surface-200 p-6">
+            <h2 className="text-lg font-semibold mb-4">הודעת ווטסאפ לאתרים</h2>
+            <p className="text-sm text-surface-600 mb-4">השתמש בקודים: {'{site_name}'}, {'{site_address}'}</p>
+            <textarea
+              value={whatsappTemplate}
+              onChange={(e) => setWhatsappTemplate(e.target.value)}
+              rows={6}
+              className="w-full px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+              placeholder="הזן תבנית הודעה..."
+            />
+            <button
+              onClick={async () => {
+                try {
+                  await api.put('/settings/whatsapp-template', { template: whatsappTemplate });
+                  alert('נשמר בהצלחה');
+                } catch (err: any) {
+                  alert(err?.response?.data?.message || 'שגיאה בשמירה');
+                }
+              }}
+              className="mt-4 px-6 py-2 bg-primary-600 text-white rounded-xl hover:bg-primary-700 font-medium"
+            >
+              {t('app.save')}
+            </button>
+          </div>
+        ) : activeTab === 'leadSources' ? (
+          <div className="bg-white rounded-xl border border-surface-200 p-6">
+            <h2 className="text-lg font-semibold mb-4">מקורות לידים</h2>
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={leadSourceInput}
+                onChange={(e) => setLeadSourceInput(e.target.value)}
+                placeholder="הוסף מקור חדש..."
+                className="flex-1 px-4 py-2 border border-surface-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addLeadSource())}
+              />
+              <button
+                onClick={addLeadSource}
+                disabled={!leadSourceInput.trim()}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+              >
+                {t('app.add')}
+              </button>
+            </div>
+            <div className="divide-y divide-surface-100">
+              {items.map((item: any) => (
+                <div key={item.id} className="p-3 flex items-center justify-between">
+                  <span className="font-medium">{item.name}</span>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.delete(`/settings/lead-sources/${item.id}`);
+                        fetchItems();
+                      } catch (err: any) {
+                        alert(err?.response?.data?.message || 'שגיאה במחיקה');
+                      }
+                    }}
+                    className="text-danger-600 hover:text-danger-700 p-1"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         ) : items.length === 0 ? (
           <div className="p-8 text-center text-surface-500">{t('errors.notFound')}</div>
         ) : (

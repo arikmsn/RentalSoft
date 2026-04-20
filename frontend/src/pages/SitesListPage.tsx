@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Multiselect } from '../components/Multiselect';
 import type { Site } from '../types';
 import { siteService } from '../services/siteService';
+import { api } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SiteForm, emptySiteForm } from '../components/SiteForm';
@@ -46,6 +47,7 @@ export function SitesListPage() {
   const [siteToDeactivate, setSiteToDeactivate] = useState<Site | null>(null);
   const [formData, setFormData] = useState<SiteFormData>({ ...emptySiteForm });
   const [editFormData, setEditFormData] = useState<SiteFormData>({ ...emptySiteForm });
+  const [whatsappTemplate, setWhatsappTemplate] = useState<string>('');
 
   // Advanced filters
   const [filters, setFilters] = useState<SiteFilters>(defaultFilters);
@@ -159,6 +161,13 @@ export function SitesListPage() {
     return () => clearTimeout(timeout);
   }, [search, filters.status]);
 
+  useEffect(() => {
+    if (!canEdit) return;
+    api.get<{template: string}>('/settings/whatsapp-template')
+      .then(res => setWhatsappTemplate(res.data.template || ''))
+      .catch(err => console.error('Failed to load WhatsApp template:', err));
+  }, [canEdit]);
+
   // Apply filters to sites
   const filteredSites = sites
     .filter(site => {
@@ -223,6 +232,9 @@ export function SitesListPage() {
       rating: site.rating || 3,
       latitude: site.latitude,
       longitude: site.longitude,
+      area: site.area || '',
+      source: site.source || '',
+      orderNumber: site.orderNumber,
     });
     setShowEditForm(true);
   };
@@ -502,6 +514,21 @@ export function SitesListPage() {
                 </div>
               )}
               <div className="flex items-center gap-2 ms-auto">
+                {site.contact1Phone && whatsappTemplate && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const phone = site.contact1Phone?.replace(/[^0-9]/g, '') || '';
+                      const text = whatsappTemplate
+                        .replace('{site_name}', site.name)
+                        .replace('{site_address}', site.address);
+                      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+                    }}
+                    className="text-sm text-green-600 hover:text-green-700 font-medium px-3 py-1.5 hover:bg-green-50 rounded-lg transition-colors"
+                  >
+                    💬 ווטסאפ
+                  </button>
+                )}
                 {(site.hasValidLocation || (site.latitude && site.longitude)) && (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleNavigate(site); }}

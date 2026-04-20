@@ -1,6 +1,35 @@
 import { useTranslation } from 'react-i18next';
 import { AddressAutocomplete } from './AddressAutocomplete';
 
+const AREA_BY_CITY: Record<string, string> = {
+  'תל אביב': 'מרכז',
+  'תל אביב-יפו': 'מרכז',
+  'רמת גן': 'מרכז',
+  'רמת השרון': 'מרכז',
+  'פתח תקווה': 'מרכז',
+  'ראשון לציון': 'מרכז',
+  'חולון': 'מרכז',
+  'בת ים': 'מרכז',
+  'ירושלים': 'ירושלים',
+  'חיפה': 'צפון',
+  'טבריה': 'צפון',
+  'נהריה': 'צפון',
+  'עכו': 'צפון',
+  'קרית שמונה': 'צפון',
+  'באר שבע': 'דרום',
+  'אילת': 'דרום',
+  'אשקלון': 'דרום',
+  'אשדוד': 'דרום',
+  'גבעתיים': 'מרכז',
+  'גבעת זאב': 'ירושלים',
+};
+
+function getInferredArea(city: string): string {
+  if (!city) return '';
+  const normalized = city.trim();
+  return AREA_BY_CITY[normalized] || '';
+}
+
 export interface SiteFormData {
   name: string;
   address: string;
@@ -13,6 +42,9 @@ export interface SiteFormData {
   rating: number;
   latitude?: number;
   longitude?: number;
+  area?: string;
+  source?: string;
+  orderNumber?: number;
 }
 
 export const emptySiteForm: SiteFormData = {
@@ -25,6 +57,9 @@ export const emptySiteForm: SiteFormData = {
   contact1Name: '',
   contact1Phone: '',
   rating: 3,
+  area: '',
+  source: '',
+  orderNumber: undefined,
 };
 
 interface SiteFormProps {
@@ -89,14 +124,17 @@ export function SiteForm({
               const composite = sel.houseNumber
                 ? `${streetName} ${sel.houseNumber}, ${sel.city}`
                 : sel.address;
+              const city = sel.city || prev.city;
+              const inferredArea = getInferredArea(city);
               return {
                 ...prev,
                 address: composite,
                 streetName,
-                city: sel.city || prev.city,
+                city,
                 houseNumber: sel.houseNumber || prev.houseNumber,
                 latitude: sel.latitude,
                 longitude: sel.longitude,
+                area: prev.area || inferredArea,
               };
             });
           }}
@@ -125,6 +163,45 @@ export function SiteForm({
       <div>
         <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.phone1')}</label>
         <input type="tel" autoComplete="tel" value={data.contact1Phone} onChange={(e) => setData({ ...data, contact1Phone: e.target.value })} className={inputClasses} />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-surface-700 mb-2">אזור</label>
+        <input
+          type="text"
+          value={data.area || ''}
+          onChange={(e) => setData({ ...data, area: e.target.value })}
+          placeholder="הזן אזור או בחר..."
+          className={inputClasses}
+          list="area-suggestions"
+        />
+        <datalist id="area-suggestions">
+          {['צפון', 'דרום', 'מרכז', 'ירושלים', 'חיפה', 'תל אביב', 'באר שבע', 'רמת גן'].map(a => (
+            <option key={a} value={a} />
+          ))}
+        </datalist>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-surface-700 mb-2">מקור</label>
+        <input
+          type="text"
+          value={data.source || ''}
+          onChange={(e) => setData({ ...data, source: e.target.value })}
+          placeholder="הזן מקור..."
+          className={inputClasses}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-surface-700 mb-2">מס' הזמנה</label>
+        <input
+          type="number"
+          value={data.orderNumber || ''}
+          onChange={(e) => setData({ ...data, orderNumber: e.target.value ? parseInt(e.target.value) : undefined })}
+          placeholder="מספר הזמנה"
+          className={inputClasses}
+        />
       </div>
 
       <div className={`flex gap-3 ${inline ? 'pt-2' : 'pt-3'}`}>
