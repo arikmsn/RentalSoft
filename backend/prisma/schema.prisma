@@ -309,6 +309,23 @@ model SettingsLocality {
   @@unique([tenantId, name])
 }
 
+model SystemAreaTemplate {
+  id          String   @id @default(uuid())
+  name        String   @unique @db.VarChar(255)
+  displayOrder Int     @default(0)
+  createdAt   DateTime @default(now())
+  localities  SystemLocalityTemplate[]
+}
+
+model SystemLocalityTemplate {
+  id              String   @id @default(uuid())
+  name            String   @unique @db.VarChar(255)
+  areaId          String   @db.VarChar(36)
+  area            SystemAreaTemplate @relation(fields: [areaId], references: [id])
+  excelAreaRaw    String?  @db.VarChar(255)
+  createdAt       DateTime @default(now())
+}
+
 model WorkOrderStatusHistory {
   id             String    @id @default(uuid())
   workOrderId    String
