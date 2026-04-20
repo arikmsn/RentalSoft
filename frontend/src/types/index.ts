@@ -42,6 +42,7 @@ export interface Equipment {
     };
   } | null;
   nextPlannedRemovalDate?: Date | null;
+  isScheduledForRemoval?: boolean;
   location?: {
     id: string;
     name: string;

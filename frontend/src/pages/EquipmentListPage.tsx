@@ -45,6 +45,7 @@ export function EquipmentListPage() {
     location: 'all' as string,
     condition: 'OK' as string,
     type: 'all' as string,
+    scheduledRemoval: 'all' as string,
   });
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -179,6 +180,15 @@ export function EquipmentListPage() {
         matchesFilter = matchesFilter && (eq as any).location?.id === filters.location;
       }
       
+      if (filters.scheduledRemoval !== 'all') {
+        const isScheduledForRemoval = (eq as any).isScheduledForRemoval === true;
+        if (filters.scheduledRemoval === 'yes') {
+          matchesFilter = matchesFilter && isScheduledForRemoval;
+        } else if (filters.scheduledRemoval === 'no') {
+          matchesFilter = matchesFilter && !isScheduledForRemoval;
+        }
+      }
+      
       const matchesSearch = !search || 
         eq.qrTag.toLowerCase().includes(search.toLowerCase()) ||
         eq.type.toLowerCase().includes(search.toLowerCase());
@@ -234,7 +244,7 @@ export function EquipmentListPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
           </svg>
           {t('equipment.filters.title')}
-          {(filters.status !== 'all' || filters.condition !== 'all' || filters.type !== 'all' || filters.location !== 'all') && (
+          {(filters.status !== 'all' || filters.condition !== 'all' || filters.type !== 'all' || filters.location !== 'all' || filters.scheduledRemoval !== 'all') && (
             <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
           )}
         </button>
@@ -321,11 +331,34 @@ export function EquipmentListPage() {
           </div>
           <div className="mt-4 flex justify-end">
             <button
-              onClick={() => setFilters({ status: 'all', location: 'all', condition: 'all', type: 'all' })}
+              onClick={() => setFilters({ status: 'all', location: 'all', condition: 'all', type: 'all', scheduledRemoval: 'all' })}
               className="px-4 py-2 text-surface-600 hover:text-surface-800 text-sm font-medium"
             >
               {t('app.clearFilters')}
             </button>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-surface-700 mb-2">מיועד לפירוק</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { key: 'all', label: 'הכל' },
+                { key: 'yes', label: 'כן' },
+                { key: 'no', label: 'לא' },
+              ].map((option) => (
+                <button
+                  key={option.key}
+                  onClick={() => setFilters({ ...filters, scheduledRemoval: option.key })}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    filters.scheduledRemoval === option.key
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -362,6 +395,11 @@ export function EquipmentListPage() {
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[eq.status]}`}>
                 {eq.status === 'available' ? t('equipment.statuses.available') : t('equipment.statuses.assigned_to_work')}
               </span>
+              {(eq as any).isScheduledForRemoval === true && (
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-warning-100 text-warning-700" title="מיועד לפירוק">
+                  פ
+                </span>
+              )}
               {(eq as any).conditionState === 'NOT_OK' && (
                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-danger-100 text-danger-700">
                   {t('equipment.conditionState.notOk')}

@@ -57,6 +57,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
                 status: true, 
                 type: true,
                 plannedRemovalDate: true,
+                isNextVisitPotentialRemoval: true,
                 site: { select: { id: true, name: true, city: true } },
               },
             },
@@ -76,10 +77,14 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
             new Date(b.workOrder.plannedRemovalDate!).getTime()
           )[0].workOrder.plannedRemovalDate
         : null;
+      const isScheduledForRemoval = eq.workOrders.some(
+        wo => wo.workOrder.isNextVisitPotentialRemoval === true
+      );
       return {
         ...eq,
         activeWorkOrder: activeWorkOrder || null,
         nextPlannedRemovalDate,
+        isScheduledForRemoval,
       };
     });
 
