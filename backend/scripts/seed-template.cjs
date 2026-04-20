@@ -3,7 +3,11 @@ const prisma = new PrismaClient();
 
 const XLSX = require('xlsx');
 const path = require('path');
+const fs = require('fs');
+
 const excelPath = path.join(__dirname, '..', '..', 'Info', 'public-zones.xlsx');
+const mdPath = path.join(__dirname, '..', '..', 'Info', '100-Israel-City.md');
+
 const wb = XLSX.readFile(excelPath);
 const sh = wb.Sheets[wb.SheetNames[0]];
 const data = XLSX.utils.sheet_to_json(sh);
@@ -25,220 +29,59 @@ const excelEilatArava = byArea['אילת ים המלח והערבה'] || new Set
 const excelDrom = byArea['דרום'] || new Set();
 const excelNeguev = byArea['נגב'] || new Set();
 
-const MAJOR_LOCALITIES = new Map([
-  ['תל אביב יפו', 'מרכז'],
-  ['פתח תקווה', 'מרכז'],
-  ['ראשון לציון', 'מרכז'],
-  ['חולון', 'מרכז'],
-  ['בת ים', 'מרכז'],
-  ['רמת גן', 'מרכז'],
-  ['גבעתיים', 'מרכז'],
-  ['בני ברק', 'מרכז'],
-  ['אשדוד', 'מרכז'],
-  ['לוד', 'מרכז'],
-  ['רמלה', 'מרכז'],
-  ['יבנה', 'מרכז'],
-  ['מודיעין', 'מרכז'],
-  ['חדרה', 'מרכז'],
-  ['קרית אונו', 'מרכז'],
-  ['גבעת שמואל', 'מרכז'],
-  ['יהוד', 'מרכז'],
-  ['יהוד מונוסון', 'מרכז'],
-  ['כפר אז"ר', 'מרכז'],
-  ['רמת אפעל', 'מרכז'],
-  ['נס ציונה', 'מרכז'],
+function parseMarkdownCityMap(mdPath) {
+  const content = fs.readFileSync(mdPath, 'utf8');
+  const lines = content.split('\n');
+  const cityToArea = new Map();
 
-  ['כפר סבא', 'השרון'],
-  ['רעננה', 'השרון'],
-  ['הרצליה', 'השרון'],
-  ['הוד השרון', 'השרון'],
-  ['רמת השרון', 'השרון'],
-  ['נתניה', 'השרון'],
-  ['קיסריה', 'השרון'],
-  ['שדה ורבורג', 'השרון'],
-  ['קדימה', 'השרון'],
-  ['אבן יהודה', 'השרון'],
-  ['חריש', 'השרון'],
-  ['טירה', 'השרון'],
-  ['טייבה', 'השרון'],
-  ['כפר ברא', 'השרון'],
-  ['אור יהודה', 'השרון'],
-  ['באר יעקב', 'השרון'],
-  ['גדרה', 'השרון'],
-  ['קלנסווה', 'השרון'],
+  const areaNormalize = {
+    'ירושלים והסביבה': 'ירושלים ויהודה ושומרון',
+    'יהודה ושומרון': 'ירושלים ויהודה ושומרון',
+    'מרכז': 'מרכז',
+    'השרון': 'השרון',
+    'צפון': 'צפון',
+    'דרום': 'דרום',
+  };
 
-  ['חיפה', 'צפון'],
-  ['נהריה', 'צפון'],
-  ['זכרון יעקב', 'צפון'],
-  ['קרית ביאליק', 'צפון'],
-  ['קרית מוצקין', 'צפון'],
-  ['עתלית', 'צפון'],
-  ['קרית ים', 'צפון'],
-  ['קרית אתא', 'צפון'],
-  ['נשר', 'צפון'],
-  ['טירת כרמל', 'צפון'],
-  ['עכו', 'צפון'],
-  ['נצרת', 'צפון'],
-  ['צפת', 'צפון'],
-  ['עפולה', 'צפון'],
-  ['טמרה', 'צפון'],
-  ['מגדל', 'צפון'],
-  ['שפרעם', 'צפון'],
-  ['קרית טבעון', 'צפון'],
-  ['בת שלמה', 'צפון'],
-  ['יקנעם', 'צפון'],
-  ['יקנעם עילית', 'צפון'],
-  ['קרית שמונה', 'צפון'],
-  ['טבריה', 'צפון'],
-  ['ראש העין', 'השרון'],
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('|')) continue;
+    const cells = trimmed.split('|').map(c => c.trim()).filter(c => c.length > 0);
+    if (cells.length < 2) continue;
+    if (cells[0] === 'עיר' || cells[0] === ':------------') continue;
 
-  ['ירושלים', 'ירושלים ויהודה ושומרון'],
-  ['מודיעין עילית', 'ירושלים ויהודה ושומרון'],
-  ['ביתר עילית', 'ירושלים ויהודה ושומרון'],
-  ['מעלה שומרון', 'ירושלים ויהודה ושומרון'],
-  ['אריאל', 'ירושלים ויהודה ושומרון'],
-  ['קרני שומרון', 'ירושלים ויהודה ושומרון'],
-  ['אורנית', 'ירושלים ויהודה ושומרון'],
-  ['כפר עציון', 'ירושלים ויהודה ושומרון'],
-  ['קדומים', 'ירושלים ויהודה ושומרון'],
-  ['אלקנה', 'ירושלים ויהודה ושומרון'],
-  ['שבי שומרון', 'ירושלים ויהודה ושומרון'],
-  ['כפר תפוח', 'ירושלים ויהודה ושומרון'],
-  ['עמנואל', 'ירושלים ויהודה ושומרון'],
-  ['נווה דניאל', 'ירושלים ויהודה ושומרון'],
-  ['כוכב יעקב', 'ירושלים ויהודה ושומרון'],
-  ['ביתר עילית', 'ירושלים ויהודה ושומרון'],
-  ['גבעת זאב', 'ירושלים ויהודה ושומרון'],
-  ['פסגות', 'ירושלים ויהודה ושומרון'],
-  ['עפרה', 'ירושלים ויהודה ושומרון'],
-  ['אפרת', 'ירושלים ויהודה ושומרון'],
-  ['אלון שבות', 'ירושלים ויהודה ושומרון'],
-  ['קרית נטפים', 'ירושלים ויהודה ושומרון'],
+    const cityRaw = cells[0];
+    const areaRaw = cells[1];
+    const areaNorm = areaNormalize[areaRaw];
+    if (!areaNorm) continue;
 
-  ['אשקלון', 'דרום'],
-  ['קרית גת', 'דרום'],
-  ['רחובות', 'דרום'],
-  ['ניר יצחק', 'דרום'],
-  ['שדרות', 'דרום'],
-  ['נתיבות', 'דרום'],
-  ['אופקים', 'דרום'],
-  ['שקף', 'דרום'],
-  ['מיתר', 'דרום'],
-  ['להבים', 'דרום'],
-  ['חורה', 'דרום'],
-  ['רהט', 'דרום'],
-  ['כרמים', 'דרום'],
-  ['תלמי יוסף', 'דרום'],
-  ['כסיפה', 'דרום'],
-  ['כרם שלום', 'דרום'],
-  ['שגב שלום', 'דרום'],
-  ['באר שבע', 'דרום'],
-  ['דימונה', 'דרום'],
-  ['ערד', 'דרום'],
-  ['ירוחם', 'דרום'],
-  ['משאבי שדה', 'דרום'],
-  ['נבטים', 'דרום'],
-  ['עומר', 'דרום'],
-  ['תפרח', 'דרום'],
-  ['צאלים', 'דרום'],
-  ['אורים', 'דרום'],
-  ['גילת', 'דרום'],
-  ['בטחה', 'דרום'],
-  ['מבטחים', 'דרום'],
-  ['ישע', 'דרום'],
-  ['אוהד', 'דרום'],
-  ['תל שבע', 'דרום'],
-  ['שדה ניצן', 'דרום'],
+    cityToArea.set(cityRaw, areaNorm);
+  }
 
-  ['אילת', 'אילת והערבה'],
-  ['מצפה רמון', 'אילת והערבה'],
-  ['נאות הכיכר', 'אילת והערבה'],
-  ['עין חצבה', 'אילת והערבה'],
-  ['יהל', 'אילת והערבה'],
-  ['סמר', 'אילת והערבה'],
-  ['שדה בוקר', 'אילת והערבה'],
-  ['קטורה', 'אילת והערבה'],
-  ['עזוז', 'אילת והערבה'],
-  ['נווה זוהר', 'אילת והערבה'],
-  ['אילות', 'אילת והערבה'],
-  ['גרופית', 'אילת והערבה'],
-  ['מדרשת בן גוריון', 'אילת והערבה'],
-  ['צופר', 'אילת והערבה'],
-  ['פארן', 'אילת והערבה'],
-  ['ספיר', 'אילת והערבה'],
-  ['עין גדי', 'אילת והערבה'],
-  ['ים המלח בתי מלון', 'אילת והערבה'],
-  ['נעמי', 'אילת והערבה'],
-  ['בית הערבה', 'אילת והערבה'],
-  ['מבואות יריחו', 'אילת והערבה'],
-  ['שיבטה', 'אילת והערבה'],
+  return cityToArea;
+}
 
-  ['קרית חינוך שדות נ', 'דרום'],
-  ['תעשיות שער הנגב', 'דרום'],
-  ['מפעלי אבשלום', 'דרום'],
-  ['מפעלי מעון', 'דרום'],
-  ['אזור תעסוקה מיתרי', 'דרום'],
-  ['גבעולים', 'דרום'],
-  ['להב', 'דרום'],
-  ['נטע', 'דרום'],
-  ['בני דקלים', 'דרום'],
-  ['אליאב', 'דרום'],
-  ['כוחלה', 'דרום'],
-  ['מולדה', 'דרום'],
-  ['אבו כף אום בטין', 'דרום'],
-  ['מ סייד', 'דרום'],
-  ['דריג\'את', 'דרום'],
-  ['תראבין א צאנה', 'דרום'],
-  ['גבעות בר', 'דרום'],
-  ['מכחול', 'דרום'],
-  ['כפר זוהרים', 'דרום'],
-  ['חלץ', 'דרום'],
-  ['אחוזם', 'דרום'],
-  ['עוזה', 'דרום'],
-  ['כיסופים', 'דרום'],
-  ['נחל עוז', 'דרום'],
-  ['כפר עזה', 'דרום'],
-  ['דבירה', 'דרום'],
-  ['שיבולים', 'דרום'],
-  ['שלווה', 'דרום'],
-  ['זמרת', 'דרום'],
-  ['מבועים', 'דרום'],
-  ['מעגלים', 'דרום'],
-  ['תושיה', 'דרום'],
-  ['כפר מימון', 'דרום'],
-  ['עלומים', 'דרום'],
-  ['לב יתיר', 'דרום'],
-  ['שומריה', 'דרום'],
-  ['שני ליבנה', 'דרום'],
-  ['מפעלי צומת מלאכי', 'דרום'],
-  ['תעשיון שח"ק', 'דרום'],
-  ['עד הלום', 'דרום'],
-  ['מפעלי ברקן', 'דרום'],
-  ['מפעלי חבל יבנה', 'דרום'],
-  ['פארק תעשיות ראם', 'דרום'],
-  ['תעשיון ראם', 'דרום'],
-  ['מרכז שוהם', 'דרום'],
-  ['מפעלי כנות', 'דרום'],
-  ['פארק תעשיות עמק ח', 'דרום'],
-  ['תעשיון השרון', 'השרון'],
-  ['תעשיון חצב', 'השרון'],
-  ['תעשיון בינימין', 'השרון'],
-  ['תעשיון צריפין', 'השרון'],
-  ['נמל תעופה בן גורי', 'השרון'],
-  ['קרית שדה התעופה', 'השרון'],
-  ['מודיעין מכבים רעות', 'ירושלים ויהודה ושומרון'],
-  ['צוקי ים', 'השרון'],
-  ['גני הדר', 'השרון'],
-  ['צופיה', 'השרון'],
-  ['מבואות ים', 'השרון'],
-  ['בת הדר', 'השרון'],
-  ['ארסוף', 'השרון'],
-  ['אל עריאן', 'השרון'],
-  ['מיגרון', 'ירושלים ויהודה ושומרון'],
-]);
+const MARKDOWN_CITY_MAP = parseMarkdownCityMap(mdPath);
+
+function normalizeCityName(name) {
+  return name.replace(/[_\-]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function findAreaForCity(cityName) {
+  if (MARKDOWN_CITY_MAP.has(cityName)) {
+    return MARKDOWN_CITY_MAP.get(cityName);
+  }
+  const normalized = normalizeCityName(cityName);
+  for (const [key, value] of MARKDOWN_CITY_MAP) {
+    if (normalizeCityName(key) === normalized) {
+      return value;
+    }
+  }
+  return null;
+}
 
 async function seedTemplate() {
-  console.log('=== Seeding System Area Template ===\n');
+  console.log('=== Seeding System Area Template from 100-Israel-City.md ===\n');
 
   await prisma.systemLocalityTemplate.deleteMany({});
   await prisma.systemAreaTemplate.deleteMany({});
@@ -260,8 +103,6 @@ async function seedTemplate() {
     areaIdMap[area.name] = created.id;
   }
 
-  const counts = { major: {}, total: {} };
-
   const allExcelLocalities = new Set([
     ...[...excelTzfon],
     ...[...excelMarkaz],
@@ -273,16 +114,17 @@ async function seedTemplate() {
   ]);
 
   const batches = [];
-  for (const loc of allExcelLocalities) {
-    const isFixed = MAJOR_LOCALITIES.has(loc);
-    const areaName = isFixed ? MAJOR_LOCALITIES.get(loc) : null;
+  const areaCounts = {};
+  const fixedCities = [];
 
-    if (!counts.total[areaName || '_none']) {
-      counts.total[areaName || '_none'] = 0;
-      counts.major[areaName || '_none'] = 0;
+  for (const loc of allExcelLocalities) {
+    const areaName = findAreaForCity(loc);
+    const isFixed = areaName !== null;
+
+    if (!areaCounts[areaName || '_none']) {
+      areaCounts[areaName || '_none'] = 0;
     }
-    counts.total[areaName || '_none']++;
-    if (isFixed) counts.major[areaName || '_none']++;
+    areaCounts[areaName || '_none']++;
 
     batches.push({
       name: loc,
@@ -290,6 +132,10 @@ async function seedTemplate() {
       isFixed,
       excelAreaRaw: '',
     });
+
+    if (isFixed) {
+      fixedCities.push({ city: loc, area: areaName });
+    }
   }
 
   while (batches.length > 0) {
@@ -300,41 +146,16 @@ async function seedTemplate() {
   }
 
   console.log('=== Template locality counts by area ===');
-  console.log('Major localities:');
-  for (const [area, count] of Object.entries(counts.major)) {
+  for (const [area, count] of Object.entries(areaCounts)) {
     const label = area === '_none' ? '(no area)' : area;
     console.log(`  ${label}: ${count}`);
   }
-  console.log('Total localities:');
-  for (const [area, count] of Object.entries(counts.total)) {
-    const label = area === '_none' ? '(no area)' : area;
-    console.log(`  ${label}: ${count}`);
-  }
-  console.log(`  Grand total: ${Object.values(counts.total).reduce((a, b) => a + b, 0)}`);
+  console.log(`  Grand total: ${Object.values(areaCounts).reduce((a, b) => a + b, 0)}`);
+  console.log(`  Fixed: ${fixedCities.length}`);
 
-  console.log('\n=== Fixed localities verification ===');
-  const majorCities = [
-    'תל אביב יפו', 'פתח תקווה', 'ראשון לציון', 'חולון', 'בת ים',
-    'רמת גן', 'גבעתיים', 'בני ברק', 'נתניה', 'כפר סבא',
-    'רעננה', 'הרצליה', 'חדרה', 'אשקלון', 'ירושלים',
-    'באר שבע', 'אילת', 'קרית שמונה', 'חיפה',
-    'טבריה', 'נהריה', 'צפת', 'קרית גת', 'רחובות',
-    'אשדוד', 'לוד', 'רמלה', 'יבנה', 'מודיעין',
-    'צור יצחק', 'צור יגאל',
-  ];
-  const templates = await prisma.systemLocalityTemplate.findMany({ include: { area: true } });
-  const byName = {};
-  templates.forEach(t => { byName[t.name] = t; });
-
-  for (const city of majorCities) {
-    const t = byName[city];
-    if (!t) {
-      console.log(`  ${city}: *** NOT IN EXCEL ***`);
-    } else {
-      const areaLabel = t.areaId ? (t.area?.name || t.areaId) : '(no area)';
-      const fixedLabel = t.isFixed ? '⭐' : '  ';
-      console.log(`  ${fixedLabel} ${city} -> ${areaLabel}`);
-    }
+  console.log('\n=== Fixed localities from 100-Israel-City.md ===');
+  for (const { city, area } of fixedCities.sort((a, b) => a.area.localeCompare(b.area))) {
+    console.log(`  ${city} -> ${area}`);
   }
 }
 
