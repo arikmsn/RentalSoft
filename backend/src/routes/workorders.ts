@@ -602,6 +602,84 @@ router.delete('/:id', authenticate, isManagerOrAdmin, async (req: AuthRequest, r
   }
 });
 
+router.get('/:id/notes', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
+  try {
+    const tenantFilter = getWorkOrdersTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id: req.params.id, ...tenantFilter },
+      select: { id: true },
+    });
+
+    if (!workOrder) {
+      return res.status(404).json({ message: 'Work order not found' });
+    }
+
+    const notes = await prisma.workOrderNote.findMany({
+      where: { workOrderId: req.params.id },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    res.json(notes);
+  } catch (error) {
+    console.error('Get work order notes error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/:id/notes', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
+  try {
+    const { text } = req.body;
+    const tenantFilter = getWorkOrdersTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id: req.params.id, ...tenantFilter },
+      select: { id: true },
+    });
+
+    if (!workOrder) {
+      return res.status(404).json({ message: 'Work order not found' });
+    }
+
+    const note = await prisma.workOrderNote.create({
+      data: {
+        workOrderId: req.params.id,
+        text,
+        tenantId: req.tenantId || undefined,
+      },
+    });
+
+    res.status(201).json(note);
+  } catch (error) {
+    console.error('Create work order note error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/:id/notes/:noteId', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
+  try {
+    const tenantFilter = getWorkOrdersTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
+    const workOrder = await prisma.workOrder.findUnique({
+      where: { id: req.params.id, ...tenantFilter },
+      select: { id: true },
+    });
+
+    if (!workOrder) {
+      return res.status(404).json({ message: 'Work order not found' });
+    }
+
+    await prisma.workOrderNote.delete({
+      where: { id: req.params.noteId },
+    });
+
+    res.json({ message: 'Note deleted' });
+  } catch (error: any) {
+    console.error('Delete work order note error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.get('/:id/checklist', authenticate, isTechnicianOrHigher, async (req, res) => {
   try {
     const checklist = await prisma.checklistItem.findMany({

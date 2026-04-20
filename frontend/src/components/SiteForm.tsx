@@ -159,15 +159,6 @@ export function SiteForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.contact1')}</label>
-        <input type="text" value={data.contact1Name} onChange={(e) => setData({ ...data, contact1Name: e.target.value })} className={inputClasses} />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.phone1')}</label>
-        <input type="tel" autoComplete="tel" value={data.contact1Phone} onChange={(e) => setData({ ...data, contact1Phone: e.target.value })} className={inputClasses} />
-      </div>
-
-      <div>
         <label className="block text-sm font-medium text-surface-700 mb-2">אזור</label>
         <select
           value={data.area || ''}
@@ -179,6 +170,15 @@ export function SiteForm({
             <option key={a} value={a}>{a}</option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.contact1')}</label>
+        <input type="text" value={data.contact1Name} onChange={(e) => setData({ ...data, contact1Name: e.target.value })} className={inputClasses} />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-surface-700 mb-2">{t('sites.phone1')}</label>
+        <input type="tel" autoComplete="tel" value={data.contact1Phone} onChange={(e) => setData({ ...data, contact1Phone: e.target.value })} className={inputClasses} />
       </div>
 
       <div>

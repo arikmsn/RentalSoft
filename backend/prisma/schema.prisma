@@ -126,6 +126,15 @@ model Site {
   workOrders       WorkOrder[]
 }
 
+model WorkOrderNote {
+  id          String   @id @default(uuid())
+  workOrderId String
+  text        String
+  createdAt   DateTime @default(now())
+  tenantId    String?  @db.VarChar(36)
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+}
+
 model WorkOrder {
   id                          String                   @id @default(uuid())
   siteId                      String
@@ -157,6 +166,7 @@ model WorkOrder {
   equipment                   WorkOrderEquipment[]
   statusHistory               WorkOrderStatusHistory[]
   history                    WorkOrderHistory[]
+  notes                      WorkOrderNote[]
 }
 
 model ChecklistItem {

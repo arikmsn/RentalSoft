@@ -9,11 +9,23 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SiteForm, emptySiteForm } from '../components/SiteForm';
 import type { SiteFormData } from '../components/SiteForm';
 
+function normalizePhoneForWhatsApp(phone: string): string {
+  const digits = phone.replace(/[^0-9]/g, '');
+  if (digits.startsWith('0')) {
+    return '972' + digits.substring(1);
+  }
+  if (digits.startsWith('+')) {
+    return digits.substring(1);
+  }
+  return digits;
+}
+
 type ActiveFilter = 'active' | 'inactive' | 'all';
 
 interface SiteFilters {
   status: ActiveFilter;
   cities: string[];
+  areas: string[];
   nearMe: boolean;
   radiusKm: number;
   favoritesOnly: boolean;
@@ -24,6 +36,7 @@ interface SiteFilters {
 const defaultFilters: SiteFilters = {
   status: 'active',
   cities: [],
+  areas: [],
   nearMe: false,
   radiusKm: 10,
   favoritesOnly: false,
@@ -129,10 +142,20 @@ export function SitesListPage() {
     return Array.from(citySet).sort();
   }, [sites]);
 
+  // Get unique areas from sites
+  const areas = useMemo(() => {
+    const areaSet = new Set<string>();
+    sites.forEach(site => {
+      if (site.area) areaSet.add(site.area);
+    });
+    return Array.from(areaSet).sort();
+  }, [sites]);
+
   // Count active filters (always show indicator when any filter is active including default status)
   const activeFilterCount = 
     (filters.status !== 'all' ? 1 : 0) +
     filters.cities.length +
+    filters.areas.length +
     (filters.nearMe ? 1 : 0) +
     (filters.favoritesOnly ? 1 : 0);
 
@@ -184,6 +207,13 @@ export function SitesListPage() {
       // City filter
       if (filters.cities.length > 0) {
         if (!filters.cities.includes(site.city)) return false;
+      }
+      return true;
+    })
+    .filter(site => {
+      // Area filter
+      if (filters.areas.length > 0) {
+        if (!filters.areas.includes(site.area || '')) return false;
       }
       return true;
     })
@@ -403,6 +433,33 @@ export function SitesListPage() {
             </div>
           </div>
 
+          {/* Area Filter */}
+          {areas.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-surface-700 mb-2">אזור</h3>
+              <div className="flex flex-wrap gap-2">
+                {areas.map(area => (
+                  <button
+                    key={area}
+                    onClick={() => setFilters(prev => ({
+                      ...prev,
+                      areas: prev.areas.includes(area)
+                        ? prev.areas.filter(a => a !== area)
+                        : [...prev.areas, area]
+                    }))}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      filters.areas.includes(area)
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                    }`}
+                  >
+                    {area}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Cities Filter */}
           {cities.length > 0 && (
             <Multiselect
@@ -528,7 +585,8 @@ export function SitesListPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      const phone = site.contact1Phone?.replace(/[^0-9]/g, '') || '';
+                      const phone = normalizePhoneForWhatsApp(site.contact1Phone || '');
+                      if (!phone) return;
                       const text = whatsappTemplate
                         .replace('{site_name}', site.name)
                         .replace('{site_address}', site.address);

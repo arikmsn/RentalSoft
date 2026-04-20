@@ -8,6 +8,17 @@ import { useAppStore } from '../stores/appStore';
 import { BaseQrScanner } from '../components/qr/BaseQrScanner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { CustomDatePicker } from '../components/CustomDatePicker';
+
+function normalizePhoneForWhatsApp(phone: string): string {
+  const digits = phone.replace(/[^0-9]/g, '');
+  if (digits.startsWith('0')) {
+    return '972' + digits.substring(1);
+  }
+  if (digits.startsWith('+')) {
+    return digits.substring(1);
+  }
+  return digits;
+}
 import { offlineApi } from '../services/offlineApi';
 import { workOrderService } from '../services/workOrderService';
 import { siteService } from '../services/siteService';
@@ -23,6 +34,12 @@ const statusColors: Record<string, string> = {
 
 interface ScannedEquipment extends Equipment {
   addedAt: Date;
+}
+
+interface WorkOrderNote {
+  id: string;
+  text: string;
+  createdAt: string;
 }
 
 export function WorkOrderDetailsPage() {
@@ -46,8 +63,6 @@ export function WorkOrderDetailsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [fromCache, setFromCache] = useState(false);
   
-  const [done, setDone] = useState('');
-  const [todo, setTodo] = useState('');
   const [checklistItems, setChecklistItems] = useState<ChecklistUpdate[]>([]);
   
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -56,6 +71,10 @@ export function WorkOrderDetailsPage() {
   const [availableEquipment, setAvailableEquipment] = useState<Equipment[]>([]);
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<string>('');
   const [loadingEquipment, setLoadingEquipment] = useState(false);
+  const [notes, setNotes] = useState<WorkOrderNote[]>([]);
+  const [newNote, setNewNote] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+
 
   const closeScanner = useCallback(() => {
     console.log('[QR] Closing scanner');
@@ -128,8 +147,6 @@ export function WorkOrderDetailsPage() {
         return;
       }
       setWorkOrder(wo.data);
-      setDone(wo.data.done || '');
-      setTodo(wo.data.todo || '');
       setChecklistItems(
         (wo.data.checklist || []).map((item: any) => ({
           id: item.id,
@@ -151,6 +168,15 @@ export function WorkOrderDetailsPage() {
       })));
       
       setFromCache(!!wo.fromCache);
+
+      // Fetch notes
+      try {
+        const notesRes = await api.get<WorkOrderNote[]>(`/workorders/${id}/notes`);
+        setNotes(notesRes.data || []);
+      } catch (notesErr) {
+        console.warn('Failed to fetch work order notes:', notesErr);
+      }
+
       setError(null);
     } catch (err: any) {
       console.error('Failed to fetch work order:', err);
@@ -211,26 +237,31 @@ export function WorkOrderDetailsPage() {
     }
   };
 
-  const handleSaveNotes = async () => {
-    if (!id) return;
-    setSaving(true);
+  const handleAddNote = async () => {
+    if (!id || !newNote.trim()) return;
+    setSavingNote(true);
     try {
-      await offlineApi.updateWorkOrderNotes(id, { done, todo });
-      setSuccess(t('app.success'));
-      setTimeout(() => setSuccess(null), 3000);
+      const res = await api.post<WorkOrderNote>(`/workorders/${id}/notes`, {
+        text: newNote.trim(),
+      });
+      setNotes([...notes, res.data]);
+      setNewNote('');
     } catch (err: any) {
-      if (err.message === 'offline_queued') {
-        setSuccess(t('sync.syncedLater'));
-        setTimeout(() => setSuccess(null), 3000);
-      } else if (err?.response?.status === 400) {
-        setError(err?.response?.data?.message || t('errors.validationError'));
-        setTimeout(() => setError(null), 5000);
-      } else {
-        setError(t('errors.serverError'));
-        setTimeout(() => setError(null), 3000);
-      }
+      console.error('Failed to add note:', err);
+      alert(err?.response?.data?.message || 'Failed to add note');
     } finally {
-      setSaving(false);
+      setSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!id) return;
+    try {
+      await api.delete(`/workorders/${id}/notes/${noteId}`);
+      setNotes(notes.filter(n => n.id !== noteId));
+    } catch (err: any) {
+      console.error('Failed to delete note:', err);
+      alert(err?.response?.data?.message || 'Failed to delete note');
     }
   };
 
@@ -868,7 +899,9 @@ export function WorkOrderDetailsPage() {
               {workOrder.site.contact1Phone && (
                 <button
                   onClick={() => {
-                    const phone = workOrder.site?.contact1Phone?.replace(/[^0-9]/g, '') || '';
+                    const rawPhone = workOrder.site?.contact1Phone || '';
+                    const phone = normalizePhoneForWhatsApp(rawPhone);
+                    if (!phone) return;
                     const text = whatsappTemplate
                       .replace(/\{site_name\}/g, workOrder.site?.name || '')
                       .replace(/\{site_address\}/g, workOrder.site?.address || '');
@@ -1056,20 +1089,46 @@ export function WorkOrderDetailsPage() {
 {canEdit && (
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <h2 className="text-lg font-semibold mb-4">הערות</h2>
-          <textarea
-            value={done}
-            onChange={(e) => setDone(e.target.value)}
-            placeholder="הזן הערות..."
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-          />
-          <button
-            onClick={handleSaveNotes}
-            disabled={saving}
-            className="mt-3 w-full px-4 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 disabled:opacity-50"
-          >
-            {saving ? t('app.loading') : t('app.save')}
-          </button>
+          <div className="space-y-3 mb-4">
+            {notes.map((note) => (
+              <div key={note.id} className="flex items-start gap-3 p-3 bg-surface-50 rounded-xl">
+                <div className="flex-1">
+                  <p className="text-surface-800">{note.text}</p>
+                  <p className="text-xs text-surface-500 mt-1">
+                    {formatDate(note.createdAt)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDeleteNote(note.id)}
+                  className="text-surface-400 hover:text-danger-600 transition-colors p-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+            {notes.length === 0 && (
+              <p className="text-surface-400 text-sm">אין הערות</p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              placeholder="הוסף הערה..."
+              className="flex-1 px-4 py-3 border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all bg-white text-surface-800"
+              onKeyDown={(e) => e.key === 'Enter' && handleAddNote()}
+            />
+            <button
+              onClick={handleAddNote}
+              disabled={savingNote || !newNote.trim()}
+              className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:opacity-50 font-medium transition-all duration-200"
+            >
+              {savingNote ? t('app.loading') : t('app.add')}
+            </button>
+          </div>
         </div>
       )}
 

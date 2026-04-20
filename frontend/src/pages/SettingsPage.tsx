@@ -291,7 +291,6 @@ export function SettingsPage() {
         ) : activeTab === 'whatsappTemplate' ? (
           <div className="bg-white rounded-xl border border-surface-200 p-6">
             <h2 className="text-lg font-semibold mb-4">הודעת ווטסאפ לאתרים</h2>
-            <p className="text-sm text-surface-600 mb-4">השתמש בקודים: {'{site_name}'}, {'{site_address}'}</p>
             <textarea
               value={whatsappTemplate}
               onChange={(e) => setWhatsappTemplate(e.target.value)}
