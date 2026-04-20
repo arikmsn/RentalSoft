@@ -94,6 +94,9 @@ export function Header({ onMenuToggle, tenantSlug }: HeaderProps) {
             </button>
           )}
           <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-l from-primary-600 to-primary-500 bg-clip-text text-transparent">{t('app.title')}</h1>
+        </div>
+
+        <div className="flex-1 flex justify-center">
           {tenantSlug && (
             <span className="text-xs sm:text-sm px-2 py-0.5 bg-primary-100 text-primary-600 rounded-full font-medium">
               {tenantSlug}
@@ -122,7 +125,7 @@ export function Header({ onMenuToggle, tenantSlug }: HeaderProps) {
               className="flex items-center gap-1 px-2 py-1.5 rounded hover:bg-gray-100 min-h-[40px]"
             >
               <span className="text-lg">{i18n.language === 'he' ? '🇮🇱' : '🇬🇧'}</span>
-              <span className="hidden sm:inline text-sm">{i18n.language.toUpperCase()}</span>
+              <span className="hidden sm:inline text-sm">{i18n.language === 'he' ? 'IL' : 'EN'}</span>
             </button>
             {showLangMenu && (
               <div className="absolute end-0 mt-1 bg-white border rounded-lg shadow-lg py-1 min-w-[120px] z-50">
@@ -150,7 +153,6 @@ export function Header({ onMenuToggle, tenantSlug }: HeaderProps) {
             >
               <div className="text-end hidden sm:block">
                 <p className="text-sm font-medium">{user?.name}</p>
-                <p className="text-xs text-gray-500">{t(`roles.${user?.role}`)}</p>
               </div>
               <div className="w-8 h-8 sm:w-9 sm:h-9 bg-primary-100 rounded-full flex items-center justify-center">
                 <span className="text-primary-600 font-medium text-sm">
@@ -162,7 +164,6 @@ export function Header({ onMenuToggle, tenantSlug }: HeaderProps) {
               <div className="absolute end-0 mt-1 bg-white border rounded-lg shadow-lg py-1 min-w-[140px] z-[60]">
                 <div className="px-4 py-2 border-b sm:hidden">
                   <p className="font-medium">{user?.name}</p>
-                  <p className="text-xs text-gray-500">{t(`roles.${user?.role}`)}</p>
                 </div>
                 <button
                   onClick={() => { logout(); setShowUserMenu(false); }}

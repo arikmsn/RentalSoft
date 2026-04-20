@@ -798,28 +798,11 @@ export function WorkOrderDetailsPage() {
         </button>
         <div className="flex items-center gap-2">
           <div className="relative">
-            {canChangeStatus && showStatusDropdown ? (
-              <select
-                value={workOrder.status}
-                onChange={(e) => handleStatusChange(e.target.value as WorkOrderStatus)}
-                onBlur={() => setShowStatusDropdown(false)}
-                autoFocus
-                className={`px-3 py-1 rounded-full text-sm font-medium border-2 cursor-pointer ${statusColors[workOrder.status]}`}
-              >
-                <option value="open">{t('workOrders.statuses.open')}</option>
-                <option value="in_progress">{t('workOrders.statuses.in_progress')}</option>
-                <option value="completed">{t('workOrders.statuses.completed')}</option>
-              </select>
-            ) : (
-              <button
-                onClick={() => setShowStatusDropdown(true)}
-                disabled={!canChangeStatus}
-                className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[workOrder.status]} ${canChangeStatus ? 'cursor-pointer hover:opacity-80' : ''}`}
-                title={canChangeStatus ? t('app.edit') : ''}
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${statusColors[workOrder.status]}`}
               >
                 {t(`workOrders.statuses.${workOrder.status}`)}
-              </button>
-            )}
+              </span>
           </div>
         </div>
       </div>

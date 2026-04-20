@@ -141,7 +141,7 @@ export function DashboardPage() {
           <h2 className="text-base sm:text-lg font-semibold text-surface-800">{t('dashboard.alerts')}</h2>
           {alerts.length > 0 && (
             <Link
-              to="/alerts"
+              to={`/${tenantSlug}/alerts`}
               className="text-sm text-primary-600 hover:text-primary-700 font-medium transition-colors"
             >
               {t('app.actions')} &larr;

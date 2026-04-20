@@ -126,7 +126,7 @@ export function Sidebar({ tenantSlug, onClose }: SidebarProps) {
             onClick={() => handleLanguageChange('he')}
             className={`px-2 py-1 rounded ${i18n.language === 'he' ? 'bg-primary-100 text-primary-600' : 'hover:bg-surface-100'}`}
           >
-            🇮🇱 HE
+            🇮🇱 IL
           </button>
           <button
             onClick={() => handleLanguageChange('en')}
@@ -139,7 +139,6 @@ export function Sidebar({ tenantSlug, onClose }: SidebarProps) {
         {/* User info and logout */}
         <div className="px-4 py-2">
           <p className="text-sm font-medium text-surface-700">{user?.name}</p>
-          <p className="text-xs text-surface-500">{t(`roles.${user?.role}`)}</p>
         </div>
         <button
           onClick={handleLogout}
