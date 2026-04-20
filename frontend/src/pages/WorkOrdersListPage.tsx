@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { Multiselect } from '../components/Multiselect';
 import type { WorkOrder, WorkOrderStatus, Site } from '../types';
 import { workOrderService } from '../services/workOrderService';
@@ -69,7 +69,6 @@ export function WorkOrdersListPage() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const location = useLocation();
-  const navigate = useNavigate();
   const tenantSlug = location.pathname.split('/')[1] || user?.tenantSlug || 'default';
   const linkTo = (path: string) => `/${tenantSlug}/${path.replace(/^\//, '')}`;
   
@@ -429,14 +428,6 @@ export function WorkOrdersListPage() {
             className="px-5 py-2.5 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md active:scale-[0.98]"
           >
             + {t('workOrders.addNew')}
-          </button>
-        )}
-        {(user?.role === 'manager' || user?.role === 'admin') && (
-          <button
-            onClick={() => navigate(`/${tenantSlug}/workorders/report`)}
-            className="px-5 py-2.5 bg-surface-100 text-surface-700 rounded-xl font-medium hover:bg-surface-200 transition-all duration-200 border border-surface-200"
-          >
-            📊 {t('reports.generate')}
           </button>
         )}
       </div>
