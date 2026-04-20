@@ -298,15 +298,27 @@ model SettingsArea {
 }
 
 model SettingsLocality {
-  id        String   @id @default(uuid())
-  tenantId  String   @db.VarChar(36)
-  name      String   @db.VarChar(255)
-  areaId    String?  @db.VarChar(36)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  area      SettingsArea? @relation(fields: [areaId], references: [id])
+  id          String   @id @default(uuid())
+  tenantId    String   @db.VarChar(36)
+  name        String   @db.VarChar(255)
+  areaId      String?  @db.VarChar(36)
+  isFixed     Boolean  @default(false)
+  isOverride  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  area        SettingsArea? @relation(fields: [areaId], references: [id])
 
   @@unique([tenantId, name])
+}
+
+model SettingsLocalityOverride {
+  id          String   @id @default(uuid())
+  tenantId    String   @db.VarChar(36)
+  localityName String  @db.VarChar(255)
+  areaId      String   @db.VarChar(36)
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, localityName])
 }
 
 model SystemAreaTemplate {
@@ -320,9 +332,10 @@ model SystemAreaTemplate {
 model SystemLocalityTemplate {
   id              String   @id @default(uuid())
   name            String   @unique @db.VarChar(255)
-  areaId          String   @db.VarChar(36)
-  area            SystemAreaTemplate @relation(fields: [areaId], references: [id])
+  areaId          String?  @db.VarChar(36)
+  area            SystemAreaTemplate? @relation(fields: [areaId], references: [id])
   excelAreaRaw    String?  @db.VarChar(255)
+  isFixed         Boolean  @default(false)
   createdAt       DateTime @default(now())
 }
 

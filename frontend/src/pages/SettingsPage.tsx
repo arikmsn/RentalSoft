@@ -39,6 +39,8 @@ interface Locality {
   name: string;
   areaId: string | null;
   area?: { id: string; name: string } | null;
+  isFixed?: boolean;
+  isOverride?: boolean;
 }
 
 type TabType = 'workOrderTypes' | 'equipmentTypes' | 'technicians' | 'equipmentLocations' | 'whatsappTemplate' | 'leadSources' | 'areasAndLocalities';
@@ -513,10 +515,14 @@ export function SettingsPage() {
                       filteredLocalities.map(locality => (
                         <div key={locality.id} className="flex items-center gap-2 p-2 hover:bg-surface-100 rounded-lg">
                           <span className="flex-1 text-sm font-medium text-surface-800 truncate">{locality.name}</span>
+                          {locality.isOverride && (
+                            <span className="text-xs text-amber-600" title="התאמה ידנית">✎</span>
+                          )}
                           <select
                             value={locality.areaId || ''}
                             onChange={(e) => handleChangeLocalityArea(locality.id, e.target.value)}
-                            className="px-2 py-1 border border-surface-200 rounded text-sm focus:ring-2 focus:ring-primary-500 outline-none"
+                            disabled={locality.isFixed && !locality.isOverride}
+                            className="px-2 py-1 border border-surface-200 rounded text-sm focus:ring-2 focus:ring-primary-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <option value="">ללא אזור</option>
                             {areas.map(a => (

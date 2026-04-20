@@ -958,9 +958,28 @@ router.put('/localities/:id', authorize('admin', 'manager'), async (req: AuthReq
       data: {
         name: name ? name.trim() : existing.name,
         areaId: areaId !== undefined ? areaId : existing.areaId,
+        isOverride: true,
       },
       include: { area: true },
     });
+
+    if (areaId && !existing.isFixed) {
+      await prisma.settingsLocalityOverride.upsert({
+        where: {
+          tenantId_localityName: {
+            tenantId: existing.tenantId,
+            localityName: existing.name,
+          },
+        },
+        update: { areaId },
+        create: {
+          tenantId: existing.tenantId,
+          localityName: existing.name,
+          areaId,
+        },
+      });
+    }
+
     res.json(locality);
   } catch (error) {
     console.error('Error updating locality:', error);
@@ -987,11 +1006,37 @@ router.patch('/localities/:id/area', authorize('admin', 'manager'), async (req: 
         return res.status(400).json({ message: 'Area not found for this tenant' });
       }
     }
+
     const locality = await prisma.settingsLocality.update({
       where: { id },
-      data: { areaId: areaId || null },
+      data: { areaId: areaId || null, isOverride: true },
       include: { area: true },
     });
+
+    if (areaId && !existing.isFixed) {
+      await prisma.settingsLocalityOverride.upsert({
+        where: {
+          tenantId_localityName: {
+            tenantId: existing.tenantId,
+            localityName: existing.name,
+          },
+        },
+        update: { areaId },
+        create: {
+          tenantId: existing.tenantId,
+          localityName: existing.name,
+          areaId,
+        },
+      });
+    } else if (!areaId) {
+      await prisma.settingsLocalityOverride.deleteMany({
+        where: {
+          tenantId: existing.tenantId,
+          localityName: existing.name,
+        },
+      });
+    }
+
     res.json(locality);
   } catch (error) {
     console.error('Error updating locality area:', error);

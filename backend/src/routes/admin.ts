@@ -10,6 +10,11 @@ const MIN_PASSWORD_LENGTH = 10;
 const BCRYPT_ROUNDS = 12;
 
 async function seedAreasAndLocalitiesForTenant(tenantId: string): Promise<void> {
+  const overrides = await prisma.settingsLocalityOverride.findMany({
+    where: { tenantId },
+  });
+  const overrideMap = new Map(overrides.map(o => [o.localityName, o.areaId]));
+
   await prisma.settingsLocality.deleteMany({ where: { tenantId } });
   await prisma.settingsArea.deleteMany({ where: { tenantId } });
 
@@ -29,17 +34,40 @@ async function seedAreasAndLocalitiesForTenant(tenantId: string): Promise<void> 
     include: { area: true },
   });
 
+  const batch = [];
   for (const tl of templateLocalities) {
-    if (!tl.area) continue;
-    const tenantAreaId = areaIdMap.get(tl.area.name);
-    if (!tenantAreaId) continue;
-    await prisma.settingsLocality.create({
-      data: {
-        tenantId,
-        name: tl.name,
-        areaId: tenantAreaId,
-      },
+    const tenantAreaId = tl.area ? areaIdMap.get(tl.area.name) : null;
+    batch.push({
+      tenantId,
+      name: tl.name,
+      areaId: tenantAreaId,
+      isFixed: tl.isFixed,
+      isOverride: false,
     });
+  }
+
+  for (let i = 0; i < batch.length; i += 100) {
+    await prisma.settingsLocality.createMany({
+      data: batch.slice(i, i + 100),
+      skipDuplicates: true,
+    });
+  }
+
+  for (const [localityName, areaId] of overrideMap) {
+    await prisma.settingsLocalityOverride.upsert({
+      where: { tenantId_localityName: { tenantId, localityName } },
+      update: { areaId },
+      create: { tenantId, localityName, areaId },
+    });
+    const loc = await prisma.settingsLocality.findFirst({
+      where: { tenantId, name: localityName },
+    });
+    if (loc) {
+      await prisma.settingsLocality.update({
+        where: { id: loc.id },
+        data: { areaId, isOverride: true },
+      });
+    }
   }
 }
 
