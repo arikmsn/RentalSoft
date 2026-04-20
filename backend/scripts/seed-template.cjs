@@ -35,8 +35,8 @@ function parseMarkdownCityMap(mdPath) {
   const cityToArea = new Map();
 
   const areaNormalize = {
-    'ירושלים והסביבה': 'ירושלים ויהודה ושומרון',
-    'יהודה ושומרון': 'ירושלים ויהודה ושומרון',
+    'ירושלים והסביבה': 'ירושלים והסביבה',
+    'יהודה ושומרון': 'יהודה ושומרון',
     'מרכז': 'מרכז',
     'השרון': 'השרון',
     'צפון': 'צפון',
@@ -63,36 +63,79 @@ function parseMarkdownCityMap(mdPath) {
 
 const MARKDOWN_CITY_MAP = parseMarkdownCityMap(mdPath);
 
+const MD_CITY_VARIANTS = [
+  ['מודיעין-מכבים-רעות', ['מודיעין מכבים רעות', 'מודיעין מכבים רעו', 'מודיעין-מכבים רעות', 'מודיעין-מכבים רעו']],
+  ['כוכב יאיר-צור יגאל', ['כוכב יאיר', 'כוכב יאיר/צור יגאל', 'כוכב יאיר צור יגאל', 'צור יגאל']],
+  ['באקה אל-גרבייה', ['באקה אל ע\'רביה', 'באקה אל ערביה', 'באקה אל-גרבייה']],
+  ["מע'אר", ['מעאר', "מע'אר", 'מעאר']],
+  ['קריית גת', ['קרית גת', 'קריית גת']],
+  ['קריית אתא', ['קרית אתא', 'קריית אתא']],
+  ['קריית מוצקין', ['קרית מוצקין', 'קריית מוצקין']],
+  ['קריית ביאליק', ['קרית ביאליק', 'קריית ביאליק']],
+  ['קריית ים', ['קרית ים', 'קריית ים']],
+  ['קריית שמונה', ['קרית שמונה', 'קריית שמונה']],
+  ['קריית עקרון', ['קרית עקרון', 'קריית עקרון']],
+  ['קריית ארבע', ['קרית ארבע', 'קריית ארבע']],
+  ['קריית אונו', ['קרית אונו', 'קריית אונו']],
+  ['קריית מלאכי', ['קרית מלאכי', 'קריית מלאכי']],
+  ['נוף הגליל', ['נוף הגליל', 'נוף הגליל']],
+];
+
 function normalizeCityName(name) {
   return name.replace(/[_\-]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function findAreaForCity(cityName) {
-  if (MARKDOWN_CITY_MAP.has(cityName)) {
-    return MARKDOWN_CITY_MAP.get(cityName);
-  }
-  const normalized = normalizeCityName(cityName);
-  for (const [key, value] of MARKDOWN_CITY_MAP) {
-    if (normalizeCityName(key) === normalized) {
-      return value;
+function buildExcelToMdMap(allExcelLocalities) {
+  const excelToMdCity = new Map();
+
+  for (const mdCity of MARKDOWN_CITY_MAP.keys()) {
+    const normalizedMd = normalizeCityName(mdCity);
+
+    if (allExcelLocalities.has(mdCity)) {
+      excelToMdCity.set(mdCity, mdCity);
+      continue;
+    }
+
+    let found = false;
+    for (const excelCity of allExcelLocalities) {
+      if (normalizeCityName(excelCity) === normalizedMd) {
+        excelToMdCity.set(excelCity, mdCity);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      for (const [mdKey, variants] of MD_CITY_VARIANTS) {
+        if (mdCity === mdKey) {
+          for (const variant of variants) {
+            if (allExcelLocalities.has(variant)) {
+              excelToMdCity.set(variant, mdCity);
+              found = true;
+              break;
+            }
+          }
+        }
+      }
     }
   }
-  return null;
+
+  return excelToMdCity;
 }
 
 async function seedTemplate() {
-  console.log('=== Seeding System Area Template from 100-Israel-City.md ===\n');
+  console.log('=== Seeding System Area Template ===\n');
 
   await prisma.systemLocalityTemplate.deleteMany({});
   await prisma.systemAreaTemplate.deleteMany({});
 
   const OPERATIONAL_AREAS = [
     { name: 'צפון', displayOrder: 1 },
-    { name: 'השרון', displayOrder: 2 },
+    { name: 'דרום', displayOrder: 2 },
     { name: 'מרכז', displayOrder: 3 },
-    { name: 'ירושלים ויהודה ושומרון', displayOrder: 4 },
-    { name: 'דרום', displayOrder: 5 },
-    { name: 'אילת והערבה', displayOrder: 6 },
+    { name: 'השרון', displayOrder: 4 },
+    { name: 'ירושלים והסביבה', displayOrder: 5 },
+    { name: 'יהודה ושומרון', displayOrder: 6 },
   ];
 
   const areaIdMap = {};
@@ -101,6 +144,7 @@ async function seedTemplate() {
       data: { name: area.name, displayOrder: area.displayOrder },
     });
     areaIdMap[area.name] = created.id;
+    console.log(`  Created area: ${area.name}`);
   }
 
   const allExcelLocalities = new Set([
@@ -113,12 +157,19 @@ async function seedTemplate() {
     ...[...excelDrom],
   ]);
 
+  const excelToMdCity = buildExcelToMdMap(allExcelLocalities);
+
   const batches = [];
   const areaCounts = {};
   const fixedCities = [];
+  const unmatchedMdCities = [];
 
   for (const loc of allExcelLocalities) {
-    const areaName = findAreaForCity(loc);
+    const mdCity = excelToMdCity.get(loc);
+    let areaName = null;
+    if (mdCity) {
+      areaName = MARKDOWN_CITY_MAP.get(mdCity);
+    }
     const isFixed = areaName !== null;
 
     if (!areaCounts[areaName || '_none']) {
@@ -138,6 +189,33 @@ async function seedTemplate() {
     }
   }
 
+  for (const [city, area] of MARKDOWN_CITY_MAP) {
+    const normalized = normalizeCityName(city);
+    let found = false;
+    for (const loc of allExcelLocalities) {
+      if (normalizeCityName(loc) === normalized) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      let matchedViaVariant = false;
+      for (const [mdKey, variants] of MD_CITY_VARIANTS) {
+        if (city === mdKey) {
+          for (const variant of variants) {
+            if (allExcelLocalities.has(variant)) {
+              matchedViaVariant = true;
+              break;
+            }
+          }
+        }
+      }
+      if (!matchedViaVariant) {
+        unmatchedMdCities.push({ city, area });
+      }
+    }
+  }
+
   while (batches.length > 0) {
     await prisma.systemLocalityTemplate.createMany({
       data: batches.splice(0, 100),
@@ -145,7 +223,7 @@ async function seedTemplate() {
     });
   }
 
-  console.log('=== Template locality counts by area ===');
+  console.log('\n=== Template locality counts by area ===');
   for (const [area, count] of Object.entries(areaCounts)) {
     const label = area === '_none' ? '(no area)' : area;
     console.log(`  ${label}: ${count}`);
@@ -153,9 +231,24 @@ async function seedTemplate() {
   console.log(`  Grand total: ${Object.values(areaCounts).reduce((a, b) => a + b, 0)}`);
   console.log(`  Fixed: ${fixedCities.length}`);
 
-  console.log('\n=== Fixed localities from 100-Israel-City.md ===');
-  for (const { city, area } of fixedCities.sort((a, b) => a.area.localeCompare(b.area))) {
-    console.log(`  ${city} -> ${area}`);
+  console.log('\n=== Fixed localities (from MD file) ===');
+  const byAreaGroup = {};
+  for (const { city, area } of fixedCities) {
+    if (!byAreaGroup[area]) byAreaGroup[area] = [];
+    byAreaGroup[area].push(city);
+  }
+  for (const area of Object.keys(byAreaGroup).sort()) {
+    console.log(`  ${area} (${byAreaGroup[area].length}):`);
+    for (const city of byAreaGroup[area].sort()) {
+      console.log(`    ${city}`);
+    }
+  }
+
+  if (unmatchedMdCities.length > 0) {
+    console.log('\n=== MD cities NOT found in Excel (no match) ===');
+    for (const { city, area } of unmatchedMdCities) {
+      console.log(`  ${city} -> ${area} (NOT IN EXCEL)`);
+    }
   }
 }
 
