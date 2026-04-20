@@ -95,8 +95,8 @@ export function SettingsPage() {
           break;
       }
       if (activeTab === 'whatsappTemplate') {
-        const response = await api.get<{template: string}>(url);
-        setWhatsappTemplate(response.data.template || '');
+        const response = await api.get<{template?: string}>(url);
+        setWhatsappTemplate(response.data?.template || '');
       } else if (activeTab === 'leadSources') {
         const response = await api.get<{id: string; name: string}[]>(url);
         setItems(response.data);
@@ -106,7 +106,11 @@ export function SettingsPage() {
       }
     } catch (error) {
       console.error('Error fetching items:', error);
-      setError('session_expired');
+      if (activeTab === 'whatsappTemplate') {
+        setWhatsappTemplate('');
+      } else {
+        setError('session_expired');
+      }
     } finally {
       setLoading(false);
     }

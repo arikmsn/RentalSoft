@@ -660,13 +660,13 @@ router.delete('/equipment-locations/:id', authorize('admin', 'manager'), async (
 router.get('/whatsapp-template', async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.tenantId;
-    const template = await prisma.settingsWhatsAppTemplate.findUnique({
+    const record = await prisma.settingsWhatsAppTemplate.findUnique({
       where: { tenantId: tenantId || 'default' },
     });
-    res.json(template);
+    res.json({ template: record?.template || '' });
   } catch (error) {
     console.error('Error fetching WhatsApp template:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.json({ template: '' });
   }
 });
 

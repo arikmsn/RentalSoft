@@ -165,14 +165,17 @@ export function SitesListPage() {
   useEffect(() => {
     if (!canEdit) return;
     Promise.all([
-      api.get<{template: string}>('/settings/whatsapp-template'),
+      api.get<{template?: string}>('/settings/whatsapp-template'),
       api.get<{id: string; name: string}[]>('/settings/lead-sources'),
     ])
       .then(([wtRes, lsRes]) => {
-        setWhatsappTemplate(wtRes.data.template || '');
-        setLeadSources(lsRes.data);
+        setWhatsappTemplate(wtRes.data?.template || '');
+        setLeadSources(Array.isArray(lsRes.data) ? lsRes.data : []);
       })
-      .catch(err => console.error('Failed to load settings:', err));
+      .catch(err => {
+        console.error('Failed to load settings:', err);
+        setLeadSources([]);
+      });
   }, [canEdit]);
 
   // Apply filters to sites

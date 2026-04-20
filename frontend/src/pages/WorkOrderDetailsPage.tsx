@@ -101,19 +101,11 @@ export function WorkOrderDetailsPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [showMeterFields, setShowMeterFields] = useState(false);
   const [paymentFormData, setPaymentFormData] = useState({
     receiptNumber: '',
     invoiceNumber: '',
-    electricMeterStart: undefined as number | undefined,
-    electricMeterEnd: undefined as number | undefined,
-    waterMeterStart: undefined as number | undefined,
-    waterMeterEnd: undefined as number | undefined,
   });
   const [savingPayment, setSavingPayment] = useState(false);
-
-  const [statusHistory, setStatusHistory] = useState<{id: string; previousStatus: string | null; newStatus: string; changedBy: {name: string}; createdAt: Date}[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const isAssignedTechnician = user?.id === workOrder?.technicianId;
   const canEdit = user?.role === 'manager' || user?.role === 'admin' || isAssignedTechnician;
@@ -177,21 +169,6 @@ export function WorkOrderDetailsPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  useEffect(() => {
-    if (!workOrder) return;
-    setLoadingHistory(true);
-    api.get(`/workorders/${id}/history`)
-      .then(res => {
-        setStatusHistory(res.data);
-      })
-      .catch(err => {
-        console.error('Failed to load status history:', err);
-      })
-      .finally(() => {
-        setLoadingHistory(false);
-      });
-  }, [workOrder, id]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -487,10 +464,6 @@ export function WorkOrderDetailsPage() {
       setPaymentFormData({
         receiptNumber: workOrder.receiptNumber || '',
         invoiceNumber: workOrder.invoiceNumber || '',
-        electricMeterStart: workOrder.electricMeterStart,
-        electricMeterEnd: workOrder.electricMeterEnd,
-        waterMeterStart: workOrder.waterMeterStart,
-        waterMeterEnd: workOrder.waterMeterEnd,
       });
       setShowPaymentModal(true);
     } else {
@@ -513,10 +486,6 @@ export function WorkOrderDetailsPage() {
         paymentStatus: 'paid',
         receiptNumber: paymentFormData.receiptNumber || undefined,
         invoiceNumber: paymentFormData.invoiceNumber || undefined,
-        electricMeterStart: paymentFormData.electricMeterStart,
-        electricMeterEnd: paymentFormData.electricMeterEnd,
-        waterMeterStart: paymentFormData.waterMeterStart,
-        waterMeterEnd: paymentFormData.waterMeterEnd,
       });
       setShowPaymentModal(false);
       fetchData();
@@ -843,6 +812,17 @@ export function WorkOrderDetailsPage() {
               >
                 🚗 {t('sites.navigate')}
               </button>
+              {workOrder.site.contact1Phone && (
+                <button
+                  onClick={() => {
+                    const phone = workOrder.site?.contact1Phone?.replace(/[^0-9]/g, '') || '';
+                    window.open(`https://wa.me/${phone}`, '_blank');
+                  }}
+                  className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-1"
+                >
+                  💬 ווטסאפ
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -909,6 +889,26 @@ export function WorkOrderDetailsPage() {
             </div>
           )}
         </div>
+
+        {(workOrder.electricMeterStart !== null || workOrder.electricMeterEnd !== null || workOrder.waterMeterStart !== null || workOrder.waterMeterEnd !== null) && (
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">{t('workOrder.meters')}</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {(workOrder.electricMeterStart !== null || workOrder.electricMeterEnd !== null) && (
+                <div className="bg-white p-2 rounded">
+                  <p className="text-xs text-gray-500">{t('workOrder.electricMeter')}</p>
+                  <p className="font-medium">{workOrder.electricMeterStart ?? '-'} → {workOrder.electricMeterEnd ?? '-'}</p>
+                </div>
+              )}
+              {(workOrder.waterMeterStart !== null || workOrder.waterMeterEnd !== null) && (
+                <div className="bg-white p-2 rounded">
+                  <p className="text-xs text-gray-500">{t('workOrder.waterMeter')}</p>
+                  <p className="font-medium">{workOrder.waterMeterStart ?? '-'} → {workOrder.waterMeterEnd ?? '-'}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -997,79 +997,23 @@ export function WorkOrderDetailsPage() {
         </div>
       )}
 
-      {canEdit && (
+{canEdit && (
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold mb-4">{t('workOrder.editNotes')}</h2>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('workOrders.done')}
-              </label>
-              <textarea
-                value={done}
-                onChange={(e) => setDone(e.target.value)}
-                placeholder={t('workOrder.donePlaceholder')}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {t('workOrders.todo')}
-              </label>
-              <textarea
-                value={todo}
-                onChange={(e) => setTodo(e.target.value)}
-                placeholder={t('workOrder.todoPlaceholder')}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-              />
-            </div>
-            <button
-              onClick={handleSaveNotes}
-              disabled={saving}
-              className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 disabled:opacity-50"
-            >
-              {saving ? t('app.loading') : t('app.save')}
-            </button>
-          </div>
-</div>
-        )}
-
-      {(statusHistory.length > 0 || loadingHistory) && (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-semibold mb-4">{t('workOrder.statusHistory')}</h2>
-          {loadingHistory ? (
-            <div className="text-center text-gray-500 py-2">{t('app.loading')}</div>
-          ) : (
-            <div className="space-y-3">
-              {statusHistory.map((entry) => (
-                <div key={entry.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-shrink-0 w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-700">
-                      {entry.previousStatus ? (
-                        <>
-                          <span className="font-medium">{t(`workOrders.statuses.${entry.previousStatus}`)}</span>
-                          {' → '}
-                          <span className="font-medium">{t(`workOrders.statuses.${entry.newStatus}`)}</span>
-                        </>
-                      ) : (
-                        <span className="font-medium">{t(`workOrders.statuses.${entry.newStatus}`)}</span>
-                      )}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {entry.changedBy?.name} • {formatDate(entry.createdAt)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <h2 className="text-lg font-semibold mb-4">הערות</h2>
+          <textarea
+            value={done}
+            onChange={(e) => setDone(e.target.value)}
+            placeholder="הזן הערות..."
+            rows={4}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          />
+          <button
+            onClick={handleSaveNotes}
+            disabled={saving}
+            className="mt-3 w-full px-4 py-2 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 disabled:opacity-50"
+          >
+            {saving ? t('app.loading') : t('app.save')}
+          </button>
         </div>
       )}
 
@@ -1177,68 +1121,10 @@ export function WorkOrderDetailsPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => setShowMeterFields(!showMeterFields)}
-                className="text-sm text-primary-600 hover:text-primary-700 flex items-center gap-1"
-              >
-                {showMeterFields ? '▲ הסתר מדים' : '▼ הצג מדים'}
-              </button>
-              {showMeterFields && (
-                <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm font-medium text-gray-700">{t('workOrder.meters')}</p>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">{t('workOrder.electricMeter')}</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs text-gray-500">{t('workOrder.meterStart')}</label>
-                        <input
-                          type="number"
-                          value={paymentFormData.electricMeterStart || ''}
-                          onChange={(e) => setPaymentFormData({ ...paymentFormData, electricMeterStart: e.target.value ? parseInt(e.target.value) : undefined })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500">{t('workOrder.meterEnd')}</label>
-                        <input
-                          type="number"
-                          value={paymentFormData.electricMeterEnd || ''}
-                          onChange={(e) => setPaymentFormData({ ...paymentFormData, electricMeterEnd: e.target.value ? parseInt(e.target.value) : undefined })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">{t('workOrder.waterMeter')}</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-xs text-gray-500">{t('workOrder.meterStart')}</label>
-                        <input
-                          type="number"
-                          value={paymentFormData.waterMeterStart || ''}
-                          onChange={(e) => setPaymentFormData({ ...paymentFormData, waterMeterStart: e.target.value ? parseInt(e.target.value) : undefined })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-500">{t('workOrder.meterEnd')}</label>
-                        <input
-                          type="number"
-                          value={paymentFormData.waterMeterEnd || ''}
-                          onChange={(e) => setPaymentFormData({ ...paymentFormData, waterMeterEnd: e.target.value ? parseInt(e.target.value) : undefined })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => { setShowPaymentModal(false); setPaymentFormData({ receiptNumber: '', invoiceNumber: '', electricMeterStart: undefined, electricMeterEnd: undefined, waterMeterStart: undefined, waterMeterEnd: undefined }); }}
+                onClick={() => { setShowPaymentModal(false); setPaymentFormData({ receiptNumber: '', invoiceNumber: '' }); }}
                 className="flex-1 px-4 py-3 border border-surface-200 rounded-xl hover:bg-surface-50 transition-colors text-surface-700 font-medium"
               >
                 {t('app.cancel')}
