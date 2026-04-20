@@ -5,6 +5,7 @@ export * from './EquipmentDetailsPage';
 export * from './SitesListPage';
 export * from './WorkOrdersListPage';
 export * from './WorkOrderDetailsPage';
+export * from './WorkOrderReportPage';
 export * from './MapPage';
 export * from './AlertsPage';
 export * from './MyTasksPage';

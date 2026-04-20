@@ -19,7 +19,7 @@ function getWorkOrdersTenantFilter(tenantId: string | null, isSuperAdmin: boolea
 
 router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res) => {
   try {
-    const { type, status, technicianId, siteId, plannedDate, nearLat, nearLng, radiusKm } = req.query;
+    const { type, status, technicianId, siteId, plannedDate, startDate, endDate, nearLat, nearLng, radiusKm } = req.query;
     const tenantFilter = getWorkOrdersTenantFilter(req.tenantId || null, req.isSuperAdmin || false);
 
     const where: any = { ...tenantFilter };
@@ -27,7 +27,13 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
     if (status) where.status = status;
     if (technicianId) where.technicianId = technicianId;
     if (siteId) where.siteId = siteId;
-    if (plannedDate) {
+    if (startDate && endDate) {
+      const start = new Date(String(startDate));
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(String(endDate));
+      end.setHours(23, 59, 59, 999);
+      where.plannedDate = { gte: start, lte: end };
+    } else if (plannedDate) {
       const date = new Date(String(plannedDate));
       const nextDay = new Date(date);
       nextDay.setDate(nextDay.getDate() + 1);

@@ -9,6 +9,7 @@ import {
   SitesListPage,
   WorkOrdersListPage,
   WorkOrderDetailsPage,
+  WorkOrderReportPage,
   MapPage,
   AlertsPage,
   SettingsPage,
@@ -48,6 +49,7 @@ function TenantAppRoutes() {
       <Route path="sites" element={<SitesListPage />} />
       <Route path="sites/:id" element={<SitesListPage />} />
       <Route path="workorders" element={<WorkOrdersListPage />} />
+      <Route path="workorders/report" element={<WorkOrderReportPage />} />
       <Route path="workorders/:id" element={<WorkOrderDetailsPage />} />
       <Route path="map" element={<MapPage />} />
       <Route path="alerts" element={<AlertsPage />} />

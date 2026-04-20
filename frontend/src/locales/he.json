@@ -23,7 +23,8 @@
     "refresh": "רענן",
     "select": "בחר",
     "today": "היום",
-    "view": "צפה"
+    "view": "צפה",
+    "print": "הדפס"
   },
   "auth": {
     "login": "התחברות",
@@ -325,5 +326,12 @@
     "name": "שם",
     "code": "קוד",
     "active": "פעיל"
+  },
+  "reports": {
+    "title": "דוחות",
+    "workOrderReport": "דוח עבודות",
+    "generate": "הפק דוח",
+    "total": "סה\"כ",
+    "generatedAt": "הופק ב"
   }
 }
