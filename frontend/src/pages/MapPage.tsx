@@ -499,7 +499,7 @@ export function MapPage() {
   const defaultCenter: [number, number] = [31.0461, 34.8516];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)]">
+    <div className="flex flex-col h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] overflow-y-auto">
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between p-3 sm:p-4 shrink-0 bg-white border-b border-surface-200">
         <h1 className="text-lg sm:text-xl font-bold text-surface-800">{t('map.title')}</h1>
