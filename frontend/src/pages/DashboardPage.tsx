@@ -155,8 +155,8 @@ export function DashboardPage() {
             <p className="text-surface-400 text-sm">{t('dashboard.noAlerts')}</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-[320px] overflow-y-auto">
-            {alerts.slice(0, 5).map((alert) => {
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {alerts.map((alert) => {
               const isBlack = alert.daysRemaining < 0;
               const isOrange = alert.daysRemaining >= 4 && alert.daysRemaining <= 7;
               const borderColor = isBlack ? 'border-surface-800' : isOrange ? 'border-warning-400' : 'border-danger-400';

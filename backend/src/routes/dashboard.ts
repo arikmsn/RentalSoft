@@ -183,7 +183,8 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
           sitePhone: site.contact1Phone || '',
         };
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort((a, b) => (b as any).daysRemaining - (a as any).daysRemaining);
 
     res.json(alerts);
   } catch (error) {
