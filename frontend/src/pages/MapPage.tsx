@@ -499,7 +499,7 @@ export function MapPage() {
   const defaultCenter: [number, number] = [31.0461, 34.8516];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] overflow-y-auto">
+    <div className="flex flex-col h-screen sm:h-[calc(100vh-5rem)] overflow-hidden">
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between p-3 sm:p-4 shrink-0 bg-white border-b border-surface-200">
         <h1 className="text-lg sm:text-xl font-bold text-surface-800">{t('map.title')}</h1>
@@ -735,10 +735,9 @@ export function MapPage() {
       {/* Content - flex row on desktop, column on mobile */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Map Container */}
-        <div 
+        <div
           ref={mapContainerRef}
-          className="flex-1 relative min-h-[40vh] lg:min-h-0"
-          style={{ height: '100%' }}
+          className="flex-1 relative"
         >
           <MapContainer
             center={defaultCenter}
