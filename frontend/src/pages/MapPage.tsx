@@ -154,7 +154,7 @@ export function MapPage() {
   const tenantSlug = location.pathname.split('/')[1] || 'default';
   const [sites, setSites] = useState<SiteWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSiteList, setShowSiteList] = useState(false);
+  const [showSiteList, setShowSiteList] = useState(true);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
@@ -732,12 +732,12 @@ export function MapPage() {
         </div>
       )}
 
-      {/* Content - flex row on desktop, column on mobile */}
+      {/* Content - map+list stacked on mobile, side-by-side on desktop */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Map Container */}
+        {/* Map Container - fixed height on mobile, flex-1 on desktop */}
         <div
           ref={mapContainerRef}
-          className="flex-1 relative"
+          className="shrink-0 h-[40vh] lg:shrink-0 lg:w-0 lg:flex-1 lg:h-auto"
         >
           <MapContainer
             center={defaultCenter}
@@ -875,8 +875,8 @@ export function MapPage() {
           </MapContainer>
         </div>
 
-        {/* Site List - sidebar on desktop, below map on mobile */}
-        <div className={`bg-white overflow-auto lg:overflow-y-auto lg:flex-1 lg:max-w-[360px] ${showSiteList ? 'h-[50vh] lg:h-auto' : 'hidden lg:block'}`}>
+        {/* Site List - below map on mobile (always visible), sidebar on desktop */}
+        <div className="flex-1 overflow-y-auto bg-white lg:overflow-y-auto lg:w-[360px] lg:flex lg:flex-col lg:shrink-0">
           <div className="p-3 sm:p-4">
             <input
               type="text"
