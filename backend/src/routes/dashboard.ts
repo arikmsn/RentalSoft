@@ -184,7 +184,7 @@ router.get('/alerts', authenticate, isTechnicianOrHigher, async (req: AuthReques
         };
       })
       .filter(Boolean)
-      .sort((a, b) => (b as any).daysRemaining - (a as any).daysRemaining);
+      .sort((a, b) => (a as any).daysRemaining - (b as any).daysRemaining);
 
     res.json(alerts);
   } catch (error) {
