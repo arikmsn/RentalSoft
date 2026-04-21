@@ -737,7 +737,7 @@ export function MapPage() {
         {/* Map Container */}
         <div 
           ref={mapContainerRef}
-          className="flex-1 relative min-h-[50vh] lg:min-h-0"
+          className="flex-1 relative min-h-[40vh] lg:min-h-0"
           style={{ height: '100%' }}
         >
           <MapContainer
@@ -945,28 +945,6 @@ export function MapPage() {
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="bg-white p-3 sm:p-4 border-t border-surface-200 shrink-0">
-        <h2 className="font-semibold mb-2 text-sm text-surface-800">{t('map.legend')}</h2>
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-gray-700"></span>
-            <span className="text-xs text-surface-600">עבר תאריך</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-success-500"></span>
-            <span className="text-xs text-surface-600">{t('equipment.progress.green')}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-warning-500"></span>
-            <span className="text-xs text-surface-600">מתקרב</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-danger-500"></span>
-            <span className="text-xs text-surface-600">בימים הקרובים</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
