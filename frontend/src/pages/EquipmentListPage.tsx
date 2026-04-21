@@ -237,7 +237,9 @@ export function EquipmentListPage() {
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={`px-4 py-3 border rounded-xl transition-all flex items-center gap-2 shrink-0 min-h-[48px] ${
-            showFilters ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-surface-200 bg-white text-surface-700 hover:bg-surface-50'
+            showFilters || (filters.status !== 'all' || filters.condition !== 'all' || filters.type !== 'all' || filters.location !== 'all' || filters.scheduledRemoval !== 'all')
+              ? 'border-primary-500 bg-primary-50 text-primary-700'
+              : 'border-surface-200 bg-white text-surface-700 hover:bg-surface-50'
           }`}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

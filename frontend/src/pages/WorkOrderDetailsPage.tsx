@@ -756,20 +756,13 @@ export function WorkOrderDetailsPage() {
                     placeholder={t('workOrder.meterStart')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                   />
-                  <input
-                    type="number"
-                    value={editFormData.waterMeterEnd ?? ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, waterMeterEnd: e.target.value ? parseInt(e.target.value) : null })}
-                    placeholder={t('workOrder.meterEnd')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  />
-                  <input
-                    type="number"
-                    value={editFormData.waterMeterEnd ?? ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, waterMeterEnd: e.target.value ? parseInt(e.target.value) : null })}
-                    placeholder={t('workOrder.meterEnd')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  />
+              <input
+                type="number"
+                value={editFormData.waterMeterEnd ?? ''}
+                onChange={(e) => setEditFormData({ ...editFormData, waterMeterEnd: e.target.value ? parseInt(e.target.value) : null })}
+                placeholder={t('workOrder.meterEnd')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              />
                 </div>
               </div>
               <div className="flex gap-3 pt-2">
