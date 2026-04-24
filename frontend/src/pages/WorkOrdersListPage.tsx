@@ -751,7 +751,7 @@ export function WorkOrdersListPage() {
                     <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[wo.status]}`}>
                       {t(`workOrders.statuses.${wo.status}`)}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 whitespace-nowrap ${
                       wo.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
                       {wo.paymentStatus === 'paid' ? t('workOrder.paid') : t('workOrder.unpaid')}
