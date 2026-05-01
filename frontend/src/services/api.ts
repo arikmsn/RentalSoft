@@ -40,15 +40,30 @@ api.interceptors.response.use(
     const data = error.response?.data as any;
     const url = error.config?.url || '';
 
-    const isSessionExpired = status === 401 && data?.status === 'session_expired';
     const isLoginRequest = url.includes('/auth/login');
+    const isLogoutRequest = url.includes('/auth/logout');
+    if (isLoginRequest || isLogoutRequest) {
+      return Promise.reject(error);
+    }
 
-    if (isSessionExpired && !isLoginRequest && !isRedirecting) {
+    const isAuthError = 
+      status === 401 || 
+      status === 403 || 
+      data?.status === 'session_expired' ||
+      data?.status === 'unauthorized' ||
+      data?.message?.includes('unauthorized') ||
+      data?.message?.includes('Invalid') ||
+      data?.message?.includes('expired');
+
+    if (isAuthError && !isRedirecting) {
       isRedirecting = true;
+      console.log('[Auth] Session expired / unauthorized - redirecting to login');
       useAuthStore.getState().logout();
       const redirectTo = getTenantLoginPath();
-      window.location.href = `${redirectTo}?reason=session_expired&message=${encodeURIComponent('המערכת עודכנה, נא להתחבר מחדש')}`;
+      window.location.href = `${redirectTo}?reason=session_expired&message=${encodeURIComponent('ההתחברות פגה, יש להתחבר מחדש')}`;
+      return Promise.reject(error);
     }
+
     return Promise.reject(error);
   }
 );
