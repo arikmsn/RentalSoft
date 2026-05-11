@@ -362,7 +362,7 @@ export function WorkOrdersListPage() {
       const diffDays = Math.ceil((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       
       if (filters.timeRange === 'all') {
-        return diffDays >= -30 && diffDays <= 30;
+        return true;
       } else if (filters.timeRange === 'week') {
         return diffDays >= 0 && diffDays <= 7;
       } else if (filters.timeRange === '2weeks') {
