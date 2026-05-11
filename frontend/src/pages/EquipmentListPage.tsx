@@ -163,7 +163,7 @@ export function EquipmentListPage() {
       let matchesFilter = true;
       
       if (filters.status !== 'all') {
-        if (filters.status === 'available') matchesFilter = eq.status === 'available';
+        if (filters.status === 'available') matchesFilter = eq.status === 'available' && (eq as any).conditionState !== 'NOT_OK';
         else if (filters.status === 'assigned_to_work') matchesFilter = eq.status === 'assigned_to_work';
       }
       
@@ -395,9 +395,15 @@ export function EquipmentListPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[eq.status]}`}>
-                {eq.status === 'available' ? t('equipment.statuses.available') : t('equipment.statuses.assigned_to_work')}
-              </span>
+              {(eq as any).conditionState === 'NOT_OK' ? (
+                <span className="px-3 py-1 rounded-full text-xs font-medium bg-surface-200 text-surface-500">
+                  ללא מצב
+                </span>
+              ) : (
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[eq.status]}`}>
+                  {eq.status === 'available' ? t('equipment.statuses.available') : t('equipment.statuses.assigned_to_work')}
+                </span>
+              )}
               {(eq as any).isScheduledForRemoval === true && (
                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-warning-100 text-warning-700" title="מיועד לפירוק">
                   פ

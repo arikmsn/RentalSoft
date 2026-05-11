@@ -39,6 +39,7 @@ router.get('/', authenticate, isTechnicianOrHigher, async (req: AuthRequest, res
           workOrder: { status: { in: ['open', 'in_progress'] } },
         },
       };
+      where.conditionState = { not: 'NOT_OK' };
     }
 
     const equipment = await prisma.equipment.findMany({
@@ -270,7 +271,7 @@ router.patch('/:id', authenticate, isManagerOrAdmin, async (req: AuthRequest, re
       }
       await prisma.equipment.update({
         where: { id: equipment.id },
-        data: { status: 'available', siteId: null },
+        data: { siteId: null },
       });
     }
 

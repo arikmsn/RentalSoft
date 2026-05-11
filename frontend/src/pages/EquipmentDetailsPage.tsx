@@ -388,7 +388,6 @@ export function EquipmentDetailsPage() {
                     await equipmentService.update(equipment.id, { 
                       conditionState: 'NOT_OK',
                       currentLocationId: null,
-                      status: equipment.activeWorkOrder ? 'available' : undefined,
                     });
                     
                     // Add system note

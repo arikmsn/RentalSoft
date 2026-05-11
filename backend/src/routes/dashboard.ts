@@ -35,7 +35,8 @@ router.get('/stats', authenticate, isTechnicianOrHigher, async (req: AuthRequest
                   workOrder: { status: { in: ['open', 'in_progress'] } }
                 }
               }
-            }
+            },
+            conditionState: { not: 'NOT_OK' },
           }
         }),
         prisma.equipment.count({ where: { ...tenantFilter, status: 'assigned_to_work' } }),
