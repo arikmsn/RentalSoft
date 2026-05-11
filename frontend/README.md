@@ -71,3 +71,5 @@ export default defineConfig([
   },
 ])
 ```
+
+<!-- Vercel verification: 2026-05-11 -->
