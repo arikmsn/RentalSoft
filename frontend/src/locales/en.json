@@ -209,7 +209,8 @@
     "weeklyTasks": "This Week's Tasks",
     "summary": "Summary",
     "activeEquipment": "Active Equipment",
-    "sitesWithEquipment": "Sites with Equipment",
+    "sitesWithEquipment": "Active Work Orders",
+    "activeWorkOrders": "Active Work Orders",
     "overdueRemovals": "Overdue Removals",
     "upcomingRemovals": "Upcoming Removals",
     "noAlerts": "No alerts"
