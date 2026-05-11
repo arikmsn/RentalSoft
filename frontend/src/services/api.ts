@@ -20,19 +20,6 @@ api.interceptors.request.use((config) => {
 
 let isRedirecting = false;
 
-function getTenantLoginPath(): string {
-  const pathname = window.location.pathname;
-  const segments = pathname.split('/').filter(Boolean);
-  const firstSegment = segments[0];
-
-  const reserved = ['login', 'qr-test', 'admin', 'api'];
-  if (!firstSegment || reserved.includes(firstSegment)) {
-    return '/login';
-  }
-
-  return `/${firstSegment}/login`;
-}
-
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
@@ -59,8 +46,6 @@ api.interceptors.response.use(
       isRedirecting = true;
       console.log('[Auth] Session expired / unauthorized - redirecting to login');
       useAuthStore.getState().logout();
-      const redirectTo = getTenantLoginPath();
-      window.location.href = `${redirectTo}?reason=session_expired&message=${encodeURIComponent('ההתחברות פגה, יש להתחבר מחדש')}`;
       return Promise.reject(error);
     }
 
